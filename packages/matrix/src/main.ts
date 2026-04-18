@@ -4,9 +4,7 @@
 import { VERSION } from '@pkg-action/core';
 
 function main(): void {
-  process.stdout.write(
-    `pkg-action matrix (core v${VERSION}) — M0 scaffold. Not yet functional.\n`,
-  );
+  process.stdout.write(`pkg-action matrix (core v${VERSION}) — M0 scaffold. Not yet functional.\n`);
 }
 
 main();

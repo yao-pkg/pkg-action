@@ -9,12 +9,7 @@ import globals from 'globals';
 
 export default [
   {
-    ignores: [
-      '**/dist/**',
-      '**/node_modules/**',
-      '**/coverage/**',
-      'coverage.lcov',
-    ],
+    ignores: ['**/dist/**', '**/node_modules/**', '**/coverage/**', 'coverage.lcov'],
   },
 
   js.configs.recommended,

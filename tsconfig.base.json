@@ -15,6 +15,8 @@
     "erasableSyntaxOnly": true,
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": false,
 
     "esModuleInterop": true,
     "resolveJsonModule": true,
