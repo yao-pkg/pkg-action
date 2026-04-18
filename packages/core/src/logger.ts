@@ -44,11 +44,7 @@ export const actionsLogger: Logger = {
  */
 export function createTestLogger(): { logger: Logger; calls: LoggerCall[] } {
   const calls: LoggerCall[] = [];
-  const record = (
-    level: LoggerCall['level'],
-    message: string,
-    props?: AnnotationProps,
-  ): void => {
+  const record = (level: LoggerCall['level'], message: string, props?: AnnotationProps): void => {
     // Under exactOptionalPropertyTypes, omit `props` entirely when undefined.
     if (props === undefined) {
       calls.push({ level, message });
