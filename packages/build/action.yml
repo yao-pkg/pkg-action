@@ -1,0 +1,8 @@
+name: 'pkg-action internal: build'
+description: 'Internal sub-action invoked by the top-level pkg-action composite. Not a public API.'
+author: 'yao-pkg contributors'
+
+runs:
+  using: 'node24'
+  main: 'dist/index.mjs'
+  post: 'dist/post.mjs'

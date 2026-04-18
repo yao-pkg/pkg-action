@@ -1,0 +1,7 @@
+node_modules/
+**/dist/
+coverage.lcov
+coverage/
+yarn.lock
+.yarn/
+CHANGELOG.md

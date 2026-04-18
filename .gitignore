@@ -1,0 +1,31 @@
+# dependencies
+node_modules/
+
+# Build output (dist/ IS committed for published sub-actions; tsbuildinfo is not)
+**/*.tsbuildinfo
+
+# Coverage
+coverage.lcov
+coverage/
+
+# Logs
+npm-debug.log*
+yarn-error.log*
+yarn-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# pkg-action uses yarn — a root package-lock.json is always accidental
+package-lock.json
+
+# Runtime tmp artifacts created during e2e tests
+/test-fixtures/**/out/
+/test-fixtures/**/dist/

@@ -1,0 +1,17 @@
+{
+  "name": "@pkg-action/matrix",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Sub-action: expand a pkg targets list into a GitHub Actions job matrix with native runner pinning.",
+  "main": "./src/main.ts",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pkg-action/core": "0.0.0"
+  }
+}

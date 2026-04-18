@@ -1,0 +1,17 @@
+{
+  "name": "@pkg-action/windows-metadata",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Sub-action: inject Windows PE resources (icon, version info, product name, manifest) into an existing .exe via resedit.",
+  "main": "./src/main.ts",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pkg-action/core": "0.0.0"
+  }
+}

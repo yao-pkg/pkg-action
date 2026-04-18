@@ -1,0 +1,27 @@
+name: 'pkg-action/matrix'
+description: 'Expand a pkg targets list into a GitHub Actions job matrix with native runner pinning. NOT YET RELEASED.'
+author: 'yao-pkg contributors'
+branding:
+  icon: 'grid'
+  color: 'blue'
+
+inputs:
+  targets:
+    description: 'Comma- or newline-separated list of pkg target triples (e.g. node22-linux-x64,node22-macos-arm64).'
+    required: true
+  allow-cross-compile:
+    description: 'When false (default), warn on known-risky cross-compile targets. When true, emit them without warning.'
+    required: false
+    default: 'false'
+  runner-overrides:
+    description: 'JSON map of per-target runner label overrides, e.g. {"node22-linux-arm64": "my-self-hosted-arm"}.'
+    required: false
+    default: '{}'
+
+outputs:
+  matrix:
+    description: 'JSON array of {target, runner} objects consumable by strategy.matrix.'
+
+runs:
+  using: 'node24'
+  main: '../packages/matrix/dist/index.mjs'

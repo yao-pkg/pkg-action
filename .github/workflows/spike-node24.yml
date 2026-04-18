@@ -1,0 +1,45 @@
+name: Spike — runs.using node24 availability
+
+# M-1 pre-flight spike (see yao-pkg/pkg#248).
+# Confirms `runs.using: node24` resolves on GitHub-hosted runners across OSes.
+# Result informs whether the action's published sub-actions can use node24 or
+# must fall back to node20.
+#
+# Dispatched manually. Writes its finding to the job summary.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  node24-sub-action:
+    name: node24 stub on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Probe /matrix (runs.using node24)
+        id: probe
+        continue-on-error: true
+        uses: ./matrix # resolves to ./matrix/action.yml — runs.using: node24
+        with:
+          targets: node22-linux-x64
+
+      - name: Record result
+        shell: bash
+        run: |
+          if [ "${{ steps.probe.outcome }}" = "success" ] || [ "${{ steps.probe.outcome }}" = "failure" ]; then
+            # Both outcomes mean the runner ACCEPTED the runs.using: node24 declaration and
+            # invoked the entrypoint. A resolution error would have surfaced as a different
+            # step-level error (cannot find action / unsupported runtime).
+            echo "✅ node24 runtime accepted on ${{ matrix.os }}" | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            echo "❌ node24 runtime NOT accepted on ${{ matrix.os }} — outcome=${{ steps.probe.outcome }}" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi

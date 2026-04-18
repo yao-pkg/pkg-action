@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-test-build:
+    name: lint + test + build (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node:
+          - pinned # reads .node-version
+          - 24
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve Node version
+        id: node
+        run: |
+          if [ "${{ matrix.node }}" = "pinned" ]; then
+            echo "version=$(cat .node-version)" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=${{ matrix.node }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ steps.node.outputs.version }}
+          cache: yarn
+
+      - name: Install
+        run: yarn install --non-interactive
+
+      - name: Lint
+        run: yarn lint
+
+      - name: Typecheck
+        run: yarn typecheck
+
+      - name: Unit tests
+        run: yarn test:unit
+
+      - name: Build (bundle dist/)
+        run: yarn build
+
+      # M0 scaffold: dist/ is NOT committed yet — it's generated on every CI run. From M1
+      # onwards dist/ gets committed and this step tightens to also catch untracked output.
+      - name: Verify committed dist/ matches source
+        run: |
+          git diff --exit-code -- '**/dist/**' || {
+            echo "::error::Committed dist/ does not match source. Run 'yarn build' and commit the result.";
+            exit 1;
+          }

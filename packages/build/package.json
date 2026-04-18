@@ -1,0 +1,17 @@
+{
+  "name": "@pkg-action/build",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Internal Node 24 JS action invoked by the top-level pkg-action composite. Orchestrates build → sign → archive → upload.",
+  "main": "./src/main.ts",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pkg-action/core": "0.0.0"
+  }
+}

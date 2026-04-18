@@ -1,0 +1,66 @@
+name: 'pkg-action/windows-metadata'
+description: 'Inject Windows PE resources (icon, version info, strings, manifest) into an existing .exe via resedit. NOT YET RELEASED.'
+author: 'yao-pkg contributors'
+branding:
+  icon: 'edit-3'
+  color: 'blue'
+
+inputs:
+  input:
+    description: 'Path to the input .exe file.'
+    required: true
+  output:
+    description: 'Path for the patched output. Defaults to overwriting input.'
+    required: false
+  icon:
+    description: 'Newline- or comma-separated list of <id>=<path> icon entries, or just <path> for id 1.'
+    required: false
+  product-name:
+    description: 'ProductName string.'
+    required: false
+  product-version:
+    description: 'ProductVersion (auto-padded to 4 parts).'
+    required: false
+  file-version:
+    description: 'FileVersion (auto-padded to 4 parts).'
+    required: false
+  file-description:
+    description: 'FileDescription string.'
+    required: false
+  company-name:
+    description: 'CompanyName string.'
+    required: false
+  legal-copyright:
+    description: 'LegalCopyright string (© auto-inserted if omitted).'
+    required: false
+  original-filename:
+    description: 'OriginalFilename string. Defaults to basename of output.'
+    required: false
+  internal-name:
+    description: 'InternalName string.'
+    required: false
+  comments:
+    description: 'Comments string.'
+    required: false
+  manifest:
+    description: 'Path to a raw app.manifest file to embed as RT_MANIFEST.'
+    required: false
+  lang:
+    description: 'Language identifier. Default 1033 (en-US).'
+    required: false
+    default: '1033'
+  codepage:
+    description: 'Codepage. Default 1200 (Unicode).'
+    required: false
+    default: '1200'
+  metadata-file:
+    description: 'Path to a JSON file containing any of the above fields. Explicit inputs take precedence.'
+    required: false
+
+outputs:
+  output-path:
+    description: 'Resolved path to the patched .exe.'
+
+runs:
+  using: 'node24'
+  main: '../packages/windows-metadata/dist/index.mjs'
