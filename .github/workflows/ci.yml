@@ -23,7 +23,7 @@ jobs:
           - pinned # reads .node-version
           - 24
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Resolve Node version
         id: node
