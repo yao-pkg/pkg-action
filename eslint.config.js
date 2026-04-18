@@ -28,6 +28,7 @@ export default [
       },
       globals: {
         ...globals.node,
+        NodeJS: 'readonly',
       },
     },
     rules: {

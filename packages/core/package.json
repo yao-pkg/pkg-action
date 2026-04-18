@@ -8,11 +8,14 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "sideEffects": false,
   "engines": {
     "node": ">=22"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@actions/core": "^1.11.1"
+  }
 }

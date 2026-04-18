@@ -1,14 +1,14 @@
 // @pkg-action/core — public barrel.
 //
-// M0 scaffold: intentionally empty. Real modules land in M1:
-//   - inputs.ts          hand-rolled typed validator + metadata
-//   - templates.ts       filename/artifact-name tokens
-//   - targets.ts         triple parsing + matrix expansion + runner labels
-//   - pkg-runner.ts      spawn pkg CLI
-//   - pkg-output-map.ts  map on-disk pkg outputs back to target triples
-//   - archive.ts         tar/7z shell-out + yazl zip writer
-//   - checksum.ts        node:crypto digests + SHASUMS files
-//   - windows-metadata.ts  resedit integration
-//   - logger.ts / errors.ts / fs-utils.ts / summary.ts
+// M1.1 foundation + M1.2 input/target domain modules. Subprocess layer
+// (pkg-runner, pkg-output-map, archive, uploader, summary) lands in the next
+// M1 chunk.
+
+export * from './errors.ts';
+export * from './logger.ts';
+export * from './fs-utils.ts';
+export * from './targets.ts';
+export * from './templates.ts';
+export * from './checksum.ts';
 
 export const VERSION = '0.0.0';
