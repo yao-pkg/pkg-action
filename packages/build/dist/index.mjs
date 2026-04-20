@@ -79803,9 +79803,9 @@ async function main() {
     },
     { exec: execBridge, logger: logger7, pkgCommand }
   );
-  let pkgDurationMs = Date.now() - started, pkgOutputs = await mapPkgOutputs(resolvedTargets, project.name, pkgOutputDir), winEnvSnapshot = Object.keys(process.env).filter((k) => k.startsWith("INPUT_WINDOWS_")).sort();
-  logger7.info(
-    `[pkg-action] diag: INPUT_WINDOWS_* keys in env \u2192 [${winEnvSnapshot.join(", ") || "(none)"}]`
+  let pkgDurationMs = Date.now() - started, pkgOutputs = await mapPkgOutputs(resolvedTargets, project.name, pkgOutputDir), allInputKeys = Object.keys(process.env).filter((k) => k.toLowerCase().startsWith("input_")).sort(), windowsLikeKeys = Object.keys(process.env).filter((k) => /windows/i.test(k)).sort();
+  logger7.info(`[pkg-action] diag: all INPUT_* keys \u2192 [${allInputKeys.join(", ") || "(none)"}]`), logger7.info(
+    `[pkg-action] diag: keys matching /windows/i \u2192 [${windowsLikeKeys.join(", ") || "(none)"}]`
   );
   let windowsMeta = await parseWindowsMetadataInputs();
   logger7.info(
