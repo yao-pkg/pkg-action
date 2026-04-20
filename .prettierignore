@@ -5,3 +5,11 @@ coverage/
 yarn.lock
 .yarn/
 CHANGELOG.md
+
+# Generated artifacts — codegen is byte-stable, prettier would mangle the formatting.
+action.yml
+packages/build/action.yml
+docs/inputs.md
+
+# Status tracker — intentional hand-formatted YAML.
+STATUS.yaml
