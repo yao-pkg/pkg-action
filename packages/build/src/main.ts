@@ -34,11 +34,15 @@ import {
   hostTarget,
   mapPkgOutputs,
   parseInputs,
+  parseSigningInputs,
   parseWindowsMetadataInputs,
   readProjectInfo,
   render,
   resolveRepoFromEnv,
   runPkg,
+  signMacos,
+  signWindowsSigntool,
+  signWindowsTrustedSigning,
   tokensForTarget,
   uploadArtifacts,
   writeShasumsFile,
@@ -49,7 +53,9 @@ import {
   type ActionInputs,
   type ChecksumAlgorithm,
   type ExecFn,
+  type Logger,
   type OutputEntry,
+  type SigningInputs,
   type SummaryRow,
   type Target,
   type WindowsMetadataInputs,
@@ -180,6 +186,16 @@ async function main(): Promise<void> {
     logger.info('[pkg-action] Windows metadata detected — will patch win-* binaries post-rename.');
   }
 
+  // 6.6. Parse signing config. Null when nothing is configured — the common
+  //      dev-loop path. Any validation failure surfaces as a single
+  //      setFailed before we touch any binary.
+  const signing = parseSigningInputs({ registerSecret: (v) => core.setSecret(v) });
+  if (signing !== null) {
+    logger.info(
+      `[pkg-action] Signing configured — macOS=${String(signing.macos !== undefined)}, windows=${signing.windowsMode}.`,
+    );
+  }
+
   // 7. Per-binary finalize.
   const finalDir = join(invocationDir, 'final');
   await mkdir(finalDir, { recursive: true });
@@ -207,6 +223,18 @@ async function main(): Promise<void> {
       };
       await applyWindowsMetadata(renamedPath, renamedPath, perBinary);
       logger.info(`[pkg-action] Patched Windows resources on ${renamedPath}.`);
+    }
+
+    // 7.6. Sign the binary, if configured for this target's OS. We sign
+    //      AFTER the metadata patch (signing covers the whole binary
+    //      including its resource section) and BEFORE archive/checksum
+    //      so the shasum reflects the signed bytes.
+    if (signing !== null) {
+      await signOneTarget({ targetOs: out.target.os, binaryPath: renamedPath }, signing, {
+        exec: execBridge,
+        logger,
+        tempDir: invocationDir,
+      });
     }
 
     finalizedBinaries.push(renamedPath);
@@ -297,6 +325,33 @@ async function main(): Promise<void> {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
+
+async function signOneTarget(
+  spec: { targetOs: Target['os']; binaryPath: string },
+  signing: SigningInputs,
+  deps: { exec: ExecFn; logger: Logger; tempDir: string },
+): Promise<void> {
+  if (spec.targetOs === 'macos' && signing.macos !== undefined) {
+    const cleanup = await signMacos(spec.binaryPath, signing.macos, deps);
+    // Hand off to post.ts so the ephemeral keychain is torn down even on
+    // a later failure. We append instead of overwriting so multiple targets
+    // (unlikely with macOS, but safe) don't drop each other.
+    const prior = core.getState('macosKeychains');
+    const next = prior === '' ? cleanup.keychainPath : `${prior}\n${cleanup.keychainPath}`;
+    core.saveState('macosKeychains', next);
+    return;
+  }
+  if (spec.targetOs === 'win') {
+    if (signing.windowsMode === 'signtool' && signing.windowsSigntool !== undefined) {
+      await signWindowsSigntool(spec.binaryPath, signing.windowsSigntool, deps);
+      return;
+    }
+    if (signing.windowsMode === 'trusted-signing' && signing.windowsTrusted !== undefined) {
+      await signWindowsTrustedSigning(spec.binaryPath, signing.windowsTrusted, deps);
+      return;
+    }
+  }
+}
 
 async function archiveBinary(
   out: OutputEntry,

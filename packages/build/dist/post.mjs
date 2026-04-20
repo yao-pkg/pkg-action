@@ -33,7 +33,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 var require_tunnel = __commonJS({
   "node_modules/tunnel/lib/tunnel.js"(exports) {
     "use strict";
-    var net = __require("net"), tls = __require("tls"), http = __require("http"), https = __require("https"), events = __require("events"), assert = __require("assert"), util = __require("util");
+    var net = __require("net"), tls = __require("tls"), http = __require("http"), https = __require("https"), events2 = __require("events"), assert = __require("assert"), util = __require("util");
     exports.httpOverHttp = httpOverHttp2;
     exports.httpsOverHttp = httpsOverHttp2;
     exports.httpOverHttps = httpOverHttps2;
@@ -67,7 +67,7 @@ var require_tunnel = __commonJS({
         socket.destroy(), self.removeSocket(socket);
       });
     }
-    util.inherits(TunnelingAgent, events.EventEmitter);
+    util.inherits(TunnelingAgent, events2.EventEmitter);
     TunnelingAgent.prototype.addRequest = function(req, host, port, localAddress) {
       var self = this, options = mergeOptions({ request: req }, self.options, toOptions(host, port, localAddress));
       if (self.sockets.length >= this.maxSockets) {
@@ -791,8 +791,8 @@ var require_util = __commonJS({
           throw new InvalidArgumentError("Invalid URL origin: the origin must be a string or null/undefined.");
         if (!isHttpOrHttpsPrefixed(url.origin || url.protocol))
           throw new InvalidArgumentError("Invalid URL protocol: the URL must start with `http:` or `https:`.");
-        let port = url.port != null ? url.port : url.protocol === "https:" ? 443 : 80, origin = url.origin != null ? url.origin : `${url.protocol || ""}//${url.hostname || ""}:${port}`, path = url.path != null ? url.path : `${url.pathname || ""}${url.search || ""}`;
-        return origin[origin.length - 1] === "/" && (origin = origin.slice(0, origin.length - 1)), path && path[0] !== "/" && (path = `/${path}`), new URL(`${origin}${path}`);
+        let port = url.port != null ? url.port : url.protocol === "https:" ? 443 : 80, origin = url.origin != null ? url.origin : `${url.protocol || ""}//${url.hostname || ""}:${port}`, path4 = url.path != null ? url.path : `${url.pathname || ""}${url.search || ""}`;
+        return origin[origin.length - 1] === "/" && (origin = origin.slice(0, origin.length - 1)), path4 && path4[0] !== "/" && (path4 = `/${path4}`), new URL(`${origin}${path4}`);
       }
       if (!isHttpOrHttpsPrefixed(url.origin || url.protocol))
         throw new InvalidArgumentError("Invalid URL protocol: the URL must start with `http:` or `https:`.");
@@ -1154,36 +1154,36 @@ var require_diagnostics = __commonJS({
         );
       }), diagnosticsChannel.channel("undici:client:sendHeaders").subscribe((evt) => {
         let {
-          request: { method, path, origin }
+          request: { method, path: path4, origin }
         } = evt;
-        debuglog("sending request to %s %s/%s", method, origin, path);
+        debuglog("sending request to %s %s/%s", method, origin, path4);
       }), diagnosticsChannel.channel("undici:request:headers").subscribe((evt) => {
         let {
-          request: { method, path, origin },
+          request: { method, path: path4, origin },
           response: { statusCode }
         } = evt;
         debuglog(
           "received response to %s %s/%s - HTTP %d",
           method,
           origin,
-          path,
+          path4,
           statusCode
         );
       }), diagnosticsChannel.channel("undici:request:trailers").subscribe((evt) => {
         let {
-          request: { method, path, origin }
+          request: { method, path: path4, origin }
         } = evt;
-        debuglog("trailers received from %s %s/%s", method, origin, path);
+        debuglog("trailers received from %s %s/%s", method, origin, path4);
       }), diagnosticsChannel.channel("undici:request:error").subscribe((evt) => {
         let {
-          request: { method, path, origin },
+          request: { method, path: path4, origin },
           error
         } = evt;
         debuglog(
           "request to %s %s/%s errored - %s",
           method,
           origin,
-          path,
+          path4,
           error.message
         );
       }), isClientSet = !0;
@@ -1228,9 +1228,9 @@ var require_diagnostics = __commonJS({
           );
         }), diagnosticsChannel.channel("undici:client:sendHeaders").subscribe((evt) => {
           let {
-            request: { method, path, origin }
+            request: { method, path: path4, origin }
           } = evt;
-          debuglog("sending request to %s %s/%s", method, origin, path);
+          debuglog("sending request to %s %s/%s", method, origin, path4);
         });
       }
       diagnosticsChannel.channel("undici:websocket:open").subscribe((evt) => {
@@ -1282,7 +1282,7 @@ var require_request = __commonJS({
       normalizedMethodRecords
     } = require_util(), { channels } = require_diagnostics(), { headerNameLowerCasedRecord } = require_constants(), invalidPathRegex = /[^\u0021-\u00ff]/, kHandler = /* @__PURE__ */ Symbol("handler"), Request = class {
       constructor(origin, {
-        path,
+        path: path4,
         method,
         body,
         headers,
@@ -1297,11 +1297,11 @@ var require_request = __commonJS({
         expectContinue,
         servername
       }, handler) {
-        if (typeof path != "string")
+        if (typeof path4 != "string")
           throw new InvalidArgumentError("path must be a string");
-        if (path[0] !== "/" && !(path.startsWith("http://") || path.startsWith("https://")) && method !== "CONNECT")
+        if (path4[0] !== "/" && !(path4.startsWith("http://") || path4.startsWith("https://")) && method !== "CONNECT")
           throw new InvalidArgumentError("path must be an absolute URL or start with a slash");
-        if (invalidPathRegex.test(path))
+        if (invalidPathRegex.test(path4))
           throw new InvalidArgumentError("invalid request path");
         if (typeof method != "string")
           throw new InvalidArgumentError("method must be a string");
@@ -1341,7 +1341,7 @@ var require_request = __commonJS({
           this.body = body;
         else
           throw new InvalidArgumentError("body must be a string, a Buffer, a Readable stream, an iterable, or an async iterable");
-        if (this.completed = !1, this.aborted = !1, this.upgrade = upgrade || null, this.path = query ? buildURL(path, query) : path, this.origin = origin, this.idempotent = idempotent ?? (method === "HEAD" || method === "GET"), this.blocking = blocking ?? !1, this.reset = reset ?? null, this.host = null, this.contentLength = null, this.contentType = null, this.headers = [], this.expectContinue = expectContinue ?? !1, Array.isArray(headers)) {
+        if (this.completed = !1, this.aborted = !1, this.upgrade = upgrade || null, this.path = query ? buildURL(path4, query) : path4, this.origin = origin, this.idempotent = idempotent ?? (method === "HEAD" || method === "GET"), this.blocking = blocking ?? !1, this.reset = reset ?? null, this.host = null, this.contentLength = null, this.contentType = null, this.headers = [], this.expectContinue = expectContinue ?? !1, Array.isArray(headers)) {
           if (headers.length % 2 !== 0)
             throw new InvalidArgumentError("headers array must be even");
           for (let i = 0; i < headers.length; i += 2)
@@ -1488,7 +1488,7 @@ var require_request = __commonJS({
 var require_dispatcher = __commonJS({
   "node_modules/undici/lib/dispatcher/dispatcher.js"(exports, module) {
     "use strict";
-    var EventEmitter = __require("node:events"), Dispatcher = class extends EventEmitter {
+    var EventEmitter2 = __require("node:events"), Dispatcher = class extends EventEmitter2 {
       dispatch() {
         throw new Error("not implemented");
       }
@@ -1565,8 +1565,8 @@ var require_dispatcher_base = __commonJS({
       }
       close(callback) {
         if (callback === void 0)
-          return new Promise((resolve, reject) => {
-            this.close((err, data) => err ? reject(err) : resolve(data));
+          return new Promise((resolve2, reject) => {
+            this.close((err, data) => err ? reject(err) : resolve2(data));
           });
         if (typeof callback != "function")
           throw new InvalidArgumentError("invalid callback");
@@ -1591,11 +1591,11 @@ var require_dispatcher_base = __commonJS({
       }
       destroy(err, callback) {
         if (typeof err == "function" && (callback = err, err = null), callback === void 0)
-          return new Promise((resolve, reject) => {
+          return new Promise((resolve2, reject) => {
             this.destroy(err, (err2, data) => err2 ? (
               /* istanbul ignore next: should never error */
               reject(err2)
-            ) : resolve(data));
+            ) : resolve2(data));
           });
         if (typeof callback != "function")
           throw new InvalidArgumentError("invalid callback");
@@ -3269,8 +3269,8 @@ var require_util2 = __commonJS({
     }
     function createDeferredPromise() {
       let res, rej;
-      return { promise: new Promise((resolve, reject) => {
-        res = resolve, rej = reject;
+      return { promise: new Promise((resolve2, reject) => {
+        res = resolve2, rej = reject;
       }), resolve: res, reject: rej };
     }
     function isAborted(fetchParams) {
@@ -4486,7 +4486,7 @@ var require_client_h1 = __commonJS({
       return method !== "GET" && method !== "HEAD" && method !== "OPTIONS" && method !== "TRACE" && method !== "CONNECT";
     }
     function writeH1(client, request) {
-      let { method, path, host, upgrade, blocking, reset } = request, { body, headers, contentLength } = request, expectsPayload = method === "PUT" || method === "POST" || method === "PATCH" || method === "QUERY" || method === "PROPFIND" || method === "PROPPATCH";
+      let { method, path: path4, host, upgrade, blocking, reset } = request, { body, headers, contentLength } = request, expectsPayload = method === "PUT" || method === "POST" || method === "PATCH" || method === "QUERY" || method === "PROPFIND" || method === "PROPPATCH";
       if (util.isFormDataLike(body)) {
         extractBody || (extractBody = require_body().extractBody);
         let [bodyStream, contentType] = extractBody(body);
@@ -4510,7 +4510,7 @@ var require_client_h1 = __commonJS({
       if (request.aborted)
         return !1;
       method === "HEAD" && (socket[kReset] = !0), (upgrade || method === "CONNECT") && (socket[kReset] = !0), reset != null && (socket[kReset] = reset), client[kMaxRequests] && socket[kCounter]++ >= client[kMaxRequests] && (socket[kReset] = !0), blocking && (socket[kBlocking] = !0);
-      let header = `${method} ${path} HTTP/1.1\r
+      let header = `${method} ${path4} HTTP/1.1\r
 `;
       if (typeof host == "string" ? header += `host: ${host}\r
 ` : header += client[kHostHeader], upgrade ? header += `connection: upgrade\r
@@ -4595,8 +4595,8 @@ upgrade: ${upgrade}\r
           callback = null, cb();
         }
       }
-      let waitForDrain = () => new Promise((resolve, reject) => {
-        assert(callback === null), socket[kError] ? reject(socket[kError]) : callback = resolve;
+      let waitForDrain = () => new Promise((resolve2, reject) => {
+        assert(callback === null), socket[kError] ? reject(socket[kError]) : callback = resolve2;
       });
       socket.on("close", onDrain).on("drain", onDrain);
       let writer = new AsyncWriter({ abort, socket, request, contentLength, client, expectsPayload, header });
@@ -4800,7 +4800,7 @@ var require_client_h2 = __commonJS({
       return method !== "GET" && method !== "HEAD" && method !== "OPTIONS" && method !== "TRACE" && method !== "CONNECT";
     }
     function writeH2(client, request) {
-      let session = client[kHTTP2Session], { method, path, host, upgrade, expectContinue, signal, headers: reqHeaders } = request, { body } = request;
+      let session = client[kHTTP2Session], { method, path: path4, host, upgrade, expectContinue, signal, headers: reqHeaders } = request, { body } = request;
       if (upgrade)
         return util.errorRequest(client, request, new Error("Upgrade not supported for H2")), !1;
       let headers = {};
@@ -4830,7 +4830,7 @@ var require_client_h2 = __commonJS({
         }), stream.once("close", () => {
           session[kOpenStreams] -= 1, session[kOpenStreams] === 0 && session.unref();
         }), !0;
-      headers[HTTP2_HEADER_PATH] = path, headers[HTTP2_HEADER_SCHEME] = "https";
+      headers[HTTP2_HEADER_PATH] = path4, headers[HTTP2_HEADER_SCHEME] = "https";
       let expectsPayload = method === "PUT" || method === "POST" || method === "PATCH";
       body && typeof body.read == "function" && body.read(0);
       let contentLength = util.bodyLength(body);
@@ -4967,8 +4967,8 @@ var require_client_h2 = __commonJS({
           callback = null, cb();
         }
       }
-      let waitForDrain = () => new Promise((resolve, reject) => {
-        assert(callback === null), socket[kError] ? reject(socket[kError]) : callback = resolve;
+      let waitForDrain = () => new Promise((resolve2, reject) => {
+        assert(callback === null), socket[kError] ? reject(socket[kError]) : callback = resolve2;
       });
       h2stream.on("close", onDrain).on("drain", onDrain);
       try {
@@ -5026,8 +5026,8 @@ var require_redirect_handler = __commonJS({
         }
         if (this.opts.origin && this.history.push(new URL(this.opts.path, this.opts.origin)), !this.location)
           return this.handler.onHeaders(statusCode, headers, resume, statusText);
-        let { origin, pathname, search } = util.parseURL(new URL(this.location, this.opts.origin && new URL(this.opts.path, this.opts.origin))), path = search ? `${pathname}${search}` : pathname;
-        this.opts.headers = cleanRequestHeaders(this.opts.headers, statusCode === 303, this.opts.origin !== origin), this.opts.path = path, this.opts.origin = origin, this.opts.maxRedirections = 0, this.opts.query = null, statusCode === 303 && this.opts.method !== "HEAD" && (this.opts.method = "GET", this.opts.body = null);
+        let { origin, pathname, search } = util.parseURL(new URL(this.location, this.opts.origin && new URL(this.opts.path, this.opts.origin))), path4 = search ? `${pathname}${search}` : pathname;
+        this.opts.headers = cleanRequestHeaders(this.opts.headers, statusCode === 303, this.opts.origin !== origin), this.opts.path = path4, this.opts.origin = origin, this.opts.maxRedirections = 0, this.opts.query = null, statusCode === 303 && this.opts.method !== "HEAD" && (this.opts.method = "GET", this.opts.body = null);
       }
       onData(chunk) {
         if (!this.location)
@@ -5268,19 +5268,19 @@ var require_client = __commonJS({
         return this[kQueue].push(request), this[kResuming] || (util.bodyLength(request.body) == null && util.isIterable(request.body) ? (this[kResuming] = 1, queueMicrotask(() => resume(this))) : this[kResume](!0)), this[kResuming] && this[kNeedDrain] !== 2 && this[kBusy] && (this[kNeedDrain] = 2), this[kNeedDrain] < 2;
       }
       async [kClose]() {
-        return new Promise((resolve) => {
-          this[kSize] ? this[kClosedResolve] = resolve : resolve(null);
+        return new Promise((resolve2) => {
+          this[kSize] ? this[kClosedResolve] = resolve2 : resolve2(null);
         });
       }
       async [kDestroy](err) {
-        return new Promise((resolve) => {
+        return new Promise((resolve2) => {
           let requests = this[kQueue].splice(this[kPendingIdx]);
           for (let i = 0; i < requests.length; i++) {
             let request = requests[i];
             util.errorRequest(this, request, err);
           }
           let callback = () => {
-            this[kClosedResolve] && (this[kClosedResolve](), this[kClosedResolve] = null), resolve(null);
+            this[kClosedResolve] && (this[kClosedResolve](), this[kClosedResolve] = null), resolve2(null);
           };
           this[kHTTPContext] ? (this[kHTTPContext].destroy(err, callback), this[kHTTPContext] = null) : queueMicrotask(callback), this[kResume]();
         });
@@ -5319,7 +5319,7 @@ var require_client = __commonJS({
         connector: client[kConnector]
       });
       try {
-        let socket = await new Promise((resolve, reject) => {
+        let socket = await new Promise((resolve2, reject) => {
           client[kConnector]({
             host,
             hostname,
@@ -5328,7 +5328,7 @@ var require_client = __commonJS({
             servername: client[kServerName],
             localAddress: client[kLocalAddress]
           }, (err, socket2) => {
-            err ? reject(err) : resolve(socket2);
+            err ? reject(err) : resolve2(socket2);
           });
         });
         if (client.destroyed) {
@@ -5553,8 +5553,8 @@ var require_pool_base = __commonJS({
         return this[kStats];
       }
       async [kClose]() {
-        this[kQueue].isEmpty() ? await Promise.all(this[kClients].map((c) => c.close())) : await new Promise((resolve) => {
-          this[kClosedResolve] = resolve;
+        this[kQueue].isEmpty() ? await Promise.all(this[kClients].map((c) => c.close())) : await new Promise((resolve2) => {
+          this[kClosedResolve] = resolve2;
         });
       }
       async [kDestroy](err) {
@@ -5834,10 +5834,10 @@ var require_proxy_agent = __commonJS({
         };
         let {
           origin,
-          path = "/",
+          path: path4 = "/",
           headers = {}
         } = opts;
-        if (opts.path = origin + path, !("host" in headers) && !("Host" in headers)) {
+        if (opts.path = origin + path4, !("host" in headers) && !("Host" in headers)) {
           let { host } = new URL2(origin);
           headers.host = host;
         }
@@ -6355,13 +6355,13 @@ var require_readable = __commonJS({
         let limit = Number.isFinite(opts?.limit) ? opts.limit : 131072, signal = opts?.signal;
         if (signal != null && (typeof signal != "object" || !("aborted" in signal)))
           throw new InvalidArgumentError("signal must be an AbortSignal");
-        return signal?.throwIfAborted(), this._readableState.closeEmitted ? null : await new Promise((resolve, reject) => {
+        return signal?.throwIfAborted(), this._readableState.closeEmitted ? null : await new Promise((resolve2, reject) => {
           this[kContentLength] > limit && this.destroy(new AbortError());
           let onAbort = () => {
             this.destroy(signal.reason ?? new AbortError());
           };
           signal?.addEventListener("abort", onAbort), this.on("close", function() {
-            signal?.removeEventListener("abort", onAbort), signal?.aborted ? reject(signal.reason ?? new AbortError()) : resolve(null);
+            signal?.removeEventListener("abort", onAbort), signal?.aborted ? reject(signal.reason ?? new AbortError()) : resolve2(null);
           }).on("error", noop).on("data", function(chunk) {
             limit -= chunk.length, limit <= 0 && this.destroy();
           }).resume();
@@ -6375,7 +6375,7 @@ var require_readable = __commonJS({
       return util.isDisturbed(self) || isLocked(self);
     }
     async function consume(stream, type) {
-      return assert(!stream[kConsume]), new Promise((resolve, reject) => {
+      return assert(!stream[kConsume]), new Promise((resolve2, reject) => {
         if (isUnusable(stream)) {
           let rState = stream._readableState;
           rState.destroyed && rState.closeEmitted === !1 ? stream.on("error", (err) => {
@@ -6388,7 +6388,7 @@ var require_readable = __commonJS({
             stream[kConsume] = {
               type,
               stream,
-              resolve,
+              resolve: resolve2,
               reject,
               length: 0,
               body: []
@@ -6435,9 +6435,9 @@ var require_readable = __commonJS({
       return buffer;
     }
     function consumeEnd(consume2) {
-      let { type, body, resolve, stream, length } = consume2;
+      let { type, body, resolve: resolve2, stream, length } = consume2;
       try {
-        type === "text" ? resolve(chunksDecode(body, length)) : type === "json" ? resolve(JSON.parse(chunksDecode(body, length))) : type === "arrayBuffer" ? resolve(chunksConcat(body, length).buffer) : type === "blob" ? resolve(new Blob(body, { type: stream[kContentType] })) : type === "bytes" && resolve(chunksConcat(body, length)), consumeFinish(consume2);
+        type === "text" ? resolve2(chunksDecode(body, length)) : type === "json" ? resolve2(JSON.parse(chunksDecode(body, length))) : type === "arrayBuffer" ? resolve2(chunksConcat(body, length).buffer) : type === "blob" ? resolve2(new Blob(body, { type: stream[kContentType] })) : type === "bytes" && resolve2(chunksConcat(body, length)), consumeFinish(consume2);
       } catch (err) {
         stream.destroy(err);
       }
@@ -6575,8 +6575,8 @@ var require_api_request = __commonJS({
     };
     function request(opts, callback) {
       if (callback === void 0)
-        return new Promise((resolve, reject) => {
-          request.call(this, opts, (err, data) => err ? reject(err) : resolve(data));
+        return new Promise((resolve2, reject) => {
+          request.call(this, opts, (err, data) => err ? reject(err) : resolve2(data));
         });
       try {
         this.dispatch(opts, new RequestHandler(opts, callback));
@@ -6704,8 +6704,8 @@ var require_api_stream = __commonJS({
     };
     function stream(opts, factory, callback) {
       if (callback === void 0)
-        return new Promise((resolve, reject) => {
-          stream.call(this, opts, factory, (err, data) => err ? reject(err) : resolve(data));
+        return new Promise((resolve2, reject) => {
+          stream.call(this, opts, factory, (err, data) => err ? reject(err) : resolve2(data));
         });
       try {
         this.dispatch(opts, new StreamHandler(opts, factory, callback));
@@ -6905,8 +6905,8 @@ var require_api_upgrade = __commonJS({
     };
     function upgrade(opts, callback) {
       if (callback === void 0)
-        return new Promise((resolve, reject) => {
-          upgrade.call(this, opts, (err, data) => err ? reject(err) : resolve(data));
+        return new Promise((resolve2, reject) => {
+          upgrade.call(this, opts, (err, data) => err ? reject(err) : resolve2(data));
         });
       try {
         let upgradeHandler = new UpgradeHandler(opts, callback);
@@ -6972,8 +6972,8 @@ var require_api_connect = __commonJS({
     };
     function connect(opts, callback) {
       if (callback === void 0)
-        return new Promise((resolve, reject) => {
-          connect.call(this, opts, (err, data) => err ? reject(err) : resolve(data));
+        return new Promise((resolve2, reject) => {
+          connect.call(this, opts, (err, data) => err ? reject(err) : resolve2(data));
         });
       try {
         let connectHandler = new ConnectHandler(opts, callback);
@@ -7099,24 +7099,24 @@ var require_mock_utils = __commonJS({
       }
       return !0;
     }
-    function safeUrl(path) {
-      if (typeof path != "string")
-        return path;
-      let pathSegments = path.split("?");
+    function safeUrl(path4) {
+      if (typeof path4 != "string")
+        return path4;
+      let pathSegments = path4.split("?");
       if (pathSegments.length !== 2)
-        return path;
+        return path4;
       let qp = new URLSearchParams(pathSegments.pop());
       return qp.sort(), [...pathSegments, qp.toString()].join("?");
     }
-    function matchKey(mockDispatch2, { path, method, body, headers }) {
-      let pathMatch = matchValue(mockDispatch2.path, path), methodMatch = matchValue(mockDispatch2.method, method), bodyMatch = typeof mockDispatch2.body < "u" ? matchValue(mockDispatch2.body, body) : !0, headersMatch = matchHeaders(mockDispatch2, headers);
+    function matchKey(mockDispatch2, { path: path4, method, body, headers }) {
+      let pathMatch = matchValue(mockDispatch2.path, path4), methodMatch = matchValue(mockDispatch2.method, method), bodyMatch = typeof mockDispatch2.body < "u" ? matchValue(mockDispatch2.body, body) : !0, headersMatch = matchHeaders(mockDispatch2, headers);
       return pathMatch && methodMatch && bodyMatch && headersMatch;
     }
     function getResponseData(data) {
       return Buffer.isBuffer(data) || data instanceof Uint8Array || data instanceof ArrayBuffer ? data : typeof data == "object" ? JSON.stringify(data) : data.toString();
     }
     function getMockDispatch(mockDispatches, key) {
-      let basePath = key.query ? buildURL(key.path, key.query) : key.path, resolvedPath = typeof basePath == "string" ? safeUrl(basePath) : basePath, matchedMockDispatches = mockDispatches.filter(({ consumed }) => !consumed).filter(({ path }) => matchValue(safeUrl(path), resolvedPath));
+      let basePath = key.query ? buildURL(key.path, key.query) : key.path, resolvedPath = typeof basePath == "string" ? safeUrl(basePath) : basePath, matchedMockDispatches = mockDispatches.filter(({ consumed }) => !consumed).filter(({ path: path4 }) => matchValue(safeUrl(path4), resolvedPath));
       if (matchedMockDispatches.length === 0)
         throw new MockNotMatchedError(`Mock dispatch not matched for path '${resolvedPath}'`);
       if (matchedMockDispatches = matchedMockDispatches.filter(({ method }) => matchValue(method, key.method)), matchedMockDispatches.length === 0)
@@ -7138,9 +7138,9 @@ var require_mock_utils = __commonJS({
       index !== -1 && mockDispatches.splice(index, 1);
     }
     function buildKey(opts) {
-      let { path, method, body, headers, query } = opts;
+      let { path: path4, method, body, headers, query } = opts;
       return {
-        path,
+        path: path4,
         method,
         body,
         headers,
@@ -7483,10 +7483,10 @@ var require_pending_interceptors_formatter = __commonJS({
       }
       format(pendingInterceptors) {
         let withPrettyHeaders = pendingInterceptors.map(
-          ({ method, path, data: { statusCode }, persist, times, timesInvoked, origin }) => ({
+          ({ method, path: path4, data: { statusCode }, persist, times, timesInvoked, origin }) => ({
             Method: method,
             Origin: origin,
-            Path: path,
+            Path: path4,
             "Status code": statusCode,
             Persistent: persist ? PERSISTENT : NOT_PERSISTENT,
             Invocations: timesInvoked,
@@ -8052,10 +8052,10 @@ var require_headers = __commonJS({
         this[kHeadersSortedMap] = null;
         let lowercaseName = isLowerCase ? name : name.toLowerCase(), exists2 = this[kHeadersMap].get(lowercaseName);
         if (exists2) {
-          let delimiter = lowercaseName === "cookie" ? "; " : ", ";
+          let delimiter2 = lowercaseName === "cookie" ? "; " : ", ";
           this[kHeadersMap].set(lowercaseName, {
             name: exists2.name,
-            value: `${exists2.value}${delimiter}${value}`
+            value: `${exists2.value}${delimiter2}${value}`
           });
         } else
           this[kHeadersMap].set(lowercaseName, { name, value });
@@ -9620,7 +9620,7 @@ var require_fetch = __commonJS({
       return response;
       function dispatch({ body }) {
         let url = requestCurrentURL(request), agent = fetchParams.controller.dispatcher;
-        return new Promise((resolve, reject) => agent.dispatch(
+        return new Promise((resolve2, reject) => agent.dispatch(
           {
             path: url.pathname + url.search,
             origin: url.origin,
@@ -9680,7 +9680,7 @@ var require_fetch = __commonJS({
                 }
               }
               let onError = this.onError.bind(this);
-              return resolve({
+              return resolve2({
                 status,
                 statusText,
                 headersList,
@@ -9707,7 +9707,7 @@ var require_fetch = __commonJS({
               let headersList = new HeadersList();
               for (let i = 0; i < rawHeaders.length; i += 2)
                 headersList.append(bufferToLowerCasedHeaderName(rawHeaders[i]), rawHeaders[i + 1].toString("latin1"), !0);
-              return resolve({
+              return resolve2({
                 status,
                 statusText: STATUS_CODES[status],
                 headersList,
@@ -10097,7 +10097,7 @@ var require_util4 = __commonJS({
       kResult,
       kAborted,
       kLastProgressEventFired
-    } = require_symbols3(), { ProgressEvent } = require_progressevent(), { getEncoding } = require_encoding(), { serializeAMimeType, parseMIMEType } = require_data_url(), { types } = __require("node:util"), { StringDecoder } = __require("string_decoder"), { btoa } = __require("node:buffer"), staticPropertyDescriptors = {
+    } = require_symbols3(), { ProgressEvent } = require_progressevent(), { getEncoding } = require_encoding(), { serializeAMimeType, parseMIMEType } = require_data_url(), { types } = __require("node:util"), { StringDecoder: StringDecoder2 } = __require("string_decoder"), { btoa } = __require("node:buffer"), staticPropertyDescriptors = {
       enumerable: !0,
       writable: !1,
       configurable: !1
@@ -10154,7 +10154,7 @@ var require_util4 = __commonJS({
         case "DataURL": {
           let dataURL = "data:", parsed = parseMIMEType(mimeType || "application/octet-stream");
           parsed !== "failure" && (dataURL += serializeAMimeType(parsed)), dataURL += ";base64,";
-          let decoder = new StringDecoder("latin1");
+          let decoder = new StringDecoder2("latin1");
           for (let chunk of bytes)
             dataURL += btoa(decoder.write(chunk));
           return dataURL += btoa(decoder.end()), dataURL;
@@ -10170,7 +10170,7 @@ var require_util4 = __commonJS({
         case "ArrayBuffer":
           return combineByteSequences(bytes).buffer;
         case "BinaryString": {
-          let binaryString = "", decoder = new StringDecoder("latin1");
+          let binaryString = "", decoder = new StringDecoder2("latin1");
           for (let chunk of bytes)
             binaryString += decoder.write(chunk);
           return binaryString += decoder.end(), binaryString;
@@ -10964,9 +10964,9 @@ var require_util6 = __commonJS({
           throw new Error("Invalid cookie value");
       }
     }
-    function validateCookiePath(path) {
-      for (let i = 0; i < path.length; ++i) {
-        let code = path.charCodeAt(i);
+    function validateCookiePath(path4) {
+      for (let i = 0; i < path4.length; ++i) {
+        let code = path4.charCodeAt(i);
         if (code < 32 || // exclude CTLs (0-31)
         code === 127 || // DEL
         code === 59)
@@ -12447,8 +12447,8 @@ var require_util8 = __commonJS({
       return !0;
     }
     function delay(ms) {
-      return new Promise((resolve) => {
-        setTimeout(resolve, ms).unref();
+      return new Promise((resolve2) => {
+        setTimeout(resolve2, ms).unref();
       });
     }
     module.exports = {
@@ -12867,8 +12867,8 @@ var require_undici = __commonJS({
         if (opts && opts.path != null) {
           if (typeof opts.path != "string")
             throw new InvalidArgumentError("invalid opts.path");
-          let path = opts.path;
-          opts.path.startsWith("/") || (path = `/${path}`), url = new URL(util.parseOrigin(url).origin + path);
+          let path4 = opts.path;
+          opts.path.startsWith("/") || (path4 = `/${path4}`), url = new URL(util.parseOrigin(url).origin + path4);
         } else
           opts || (opts = typeof url == "object" ? url : {}), url = util.parseURL(url);
         let { agent, dispatcher = getGlobalDispatcher() } = opts;
@@ -13009,11 +13009,11 @@ import { EOL as EOL2 } from "os";
 import { constants, promises } from "fs";
 var __awaiter = function(thisArg, _arguments, P, generator) {
   function adopt(value) {
-    return value instanceof P ? value : new P(function(resolve) {
-      resolve(value);
+    return value instanceof P ? value : new P(function(resolve2) {
+      resolve2(value);
     });
   }
-  return new (P || (P = Promise))(function(resolve, reject) {
+  return new (P || (P = Promise))(function(resolve2, reject) {
     function fulfilled(value) {
       try {
         step(generator.next(value));
@@ -13029,7 +13029,7 @@ var __awaiter = function(thisArg, _arguments, P, generator) {
       }
     }
     function step(result) {
-      result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
+      result.done ? resolve2(result.value) : adopt(result.value).then(fulfilled, rejected);
     }
     step((generator = generator.apply(thisArg, _arguments || [])).next());
   });
@@ -13263,18 +13263,509 @@ var Summary = class {
 }, _summary = new Summary();
 
 // node_modules/@actions/core/lib/platform.js
-import os2 from "os";
+import os3 from "os";
+
+// node_modules/@actions/exec/lib/exec.js
+import { StringDecoder } from "string_decoder";
+
+// node_modules/@actions/exec/lib/toolrunner.js
+import * as os2 from "os";
+import * as events from "events";
+import * as child from "child_process";
+import * as path3 from "path";
+
+// node_modules/@actions/io/lib/io.js
+import * as path2 from "path";
 
 // node_modules/@actions/io/lib/io-util.js
 import * as fs from "fs";
-var { chmod, copyFile, lstat, mkdir, open, readdir, rename, rm, rmdir, stat, symlink, unlink } = fs.promises, IS_WINDOWS = process.platform === "win32";
+import * as path from "path";
+var __awaiter2 = function(thisArg, _arguments, P, generator) {
+  function adopt(value) {
+    return value instanceof P ? value : new P(function(resolve2) {
+      resolve2(value);
+    });
+  }
+  return new (P || (P = Promise))(function(resolve2, reject) {
+    function fulfilled(value) {
+      try {
+        step(generator.next(value));
+      } catch (e) {
+        reject(e);
+      }
+    }
+    function rejected(value) {
+      try {
+        step(generator.throw(value));
+      } catch (e) {
+        reject(e);
+      }
+    }
+    function step(result) {
+      result.done ? resolve2(result.value) : adopt(result.value).then(fulfilled, rejected);
+    }
+    step((generator = generator.apply(thisArg, _arguments || [])).next());
+  });
+}, { chmod, copyFile, lstat, mkdir, open, readdir, rename, rm, rmdir, stat, symlink, unlink } = fs.promises, IS_WINDOWS = process.platform === "win32";
 var READONLY = fs.constants.O_RDONLY;
+function exists(fsPath) {
+  return __awaiter2(this, void 0, void 0, function* () {
+    try {
+      yield stat(fsPath);
+    } catch (err) {
+      if (err.code === "ENOENT")
+        return !1;
+      throw err;
+    }
+    return !0;
+  });
+}
+function isRooted(p) {
+  if (p = normalizeSeparators(p), !p)
+    throw new Error('isRooted() parameter "p" cannot be empty');
+  return IS_WINDOWS ? p.startsWith("\\") || /^[A-Z]:/i.test(p) : p.startsWith("/");
+}
+function tryGetExecutablePath(filePath, extensions) {
+  return __awaiter2(this, void 0, void 0, function* () {
+    let stats;
+    try {
+      stats = yield stat(filePath);
+    } catch (err) {
+      err.code !== "ENOENT" && console.log(`Unexpected error attempting to determine if executable file exists '${filePath}': ${err}`);
+    }
+    if (stats && stats.isFile()) {
+      if (IS_WINDOWS) {
+        let upperExt = path.extname(filePath).toUpperCase();
+        if (extensions.some((validExt) => validExt.toUpperCase() === upperExt))
+          return filePath;
+      } else if (isUnixExecutable(stats))
+        return filePath;
+    }
+    let originalFilePath = filePath;
+    for (let extension of extensions) {
+      filePath = originalFilePath + extension, stats = void 0;
+      try {
+        stats = yield stat(filePath);
+      } catch (err) {
+        err.code !== "ENOENT" && console.log(`Unexpected error attempting to determine if executable file exists '${filePath}': ${err}`);
+      }
+      if (stats && stats.isFile()) {
+        if (IS_WINDOWS) {
+          try {
+            let directory = path.dirname(filePath), upperName = path.basename(filePath).toUpperCase();
+            for (let actualName of yield readdir(directory))
+              if (upperName === actualName.toUpperCase()) {
+                filePath = path.join(directory, actualName);
+                break;
+              }
+          } catch (err) {
+            console.log(`Unexpected error attempting to determine the actual case of the file '${filePath}': ${err}`);
+          }
+          return filePath;
+        } else if (isUnixExecutable(stats))
+          return filePath;
+      }
+    }
+    return "";
+  });
+}
+function normalizeSeparators(p) {
+  return p = p || "", IS_WINDOWS ? (p = p.replace(/\//g, "\\"), p.replace(/\\\\+/g, "\\")) : p.replace(/\/\/+/g, "/");
+}
+function isUnixExecutable(stats) {
+  return (stats.mode & 1) > 0 || (stats.mode & 8) > 0 && process.getgid !== void 0 && stats.gid === process.getgid() || (stats.mode & 64) > 0 && process.getuid !== void 0 && stats.uid === process.getuid();
+}
+
+// node_modules/@actions/io/lib/io.js
+var __awaiter3 = function(thisArg, _arguments, P, generator) {
+  function adopt(value) {
+    return value instanceof P ? value : new P(function(resolve2) {
+      resolve2(value);
+    });
+  }
+  return new (P || (P = Promise))(function(resolve2, reject) {
+    function fulfilled(value) {
+      try {
+        step(generator.next(value));
+      } catch (e) {
+        reject(e);
+      }
+    }
+    function rejected(value) {
+      try {
+        step(generator.throw(value));
+      } catch (e) {
+        reject(e);
+      }
+    }
+    function step(result) {
+      result.done ? resolve2(result.value) : adopt(result.value).then(fulfilled, rejected);
+    }
+    step((generator = generator.apply(thisArg, _arguments || [])).next());
+  });
+};
+function which(tool, check) {
+  return __awaiter3(this, void 0, void 0, function* () {
+    if (!tool)
+      throw new Error("parameter 'tool' is required");
+    if (check) {
+      let result = yield which(tool, !1);
+      if (!result)
+        throw IS_WINDOWS ? new Error(`Unable to locate executable file: ${tool}. Please verify either the file path exists or the file can be found within a directory specified by the PATH environment variable. Also verify the file has a valid extension for an executable file.`) : new Error(`Unable to locate executable file: ${tool}. Please verify either the file path exists or the file can be found within a directory specified by the PATH environment variable. Also check the file mode to verify the file is executable.`);
+      return result;
+    }
+    let matches = yield findInPath(tool);
+    return matches && matches.length > 0 ? matches[0] : "";
+  });
+}
+function findInPath(tool) {
+  return __awaiter3(this, void 0, void 0, function* () {
+    if (!tool)
+      throw new Error("parameter 'tool' is required");
+    let extensions = [];
+    if (IS_WINDOWS && process.env.PATHEXT)
+      for (let extension of process.env.PATHEXT.split(path2.delimiter))
+        extension && extensions.push(extension);
+    if (isRooted(tool)) {
+      let filePath = yield tryGetExecutablePath(tool, extensions);
+      return filePath ? [filePath] : [];
+    }
+    if (tool.includes(path2.sep))
+      return [];
+    let directories = [];
+    if (process.env.PATH)
+      for (let p of process.env.PATH.split(path2.delimiter))
+        p && directories.push(p);
+    let matches = [];
+    for (let directory of directories) {
+      let filePath = yield tryGetExecutablePath(path2.join(directory, tool), extensions);
+      filePath && matches.push(filePath);
+    }
+    return matches;
+  });
+}
 
 // node_modules/@actions/exec/lib/toolrunner.js
-var IS_WINDOWS2 = process.platform === "win32";
+import { setTimeout as setTimeout2 } from "timers";
+var __awaiter4 = function(thisArg, _arguments, P, generator) {
+  function adopt(value) {
+    return value instanceof P ? value : new P(function(resolve2) {
+      resolve2(value);
+    });
+  }
+  return new (P || (P = Promise))(function(resolve2, reject) {
+    function fulfilled(value) {
+      try {
+        step(generator.next(value));
+      } catch (e) {
+        reject(e);
+      }
+    }
+    function rejected(value) {
+      try {
+        step(generator.throw(value));
+      } catch (e) {
+        reject(e);
+      }
+    }
+    function step(result) {
+      result.done ? resolve2(result.value) : adopt(result.value).then(fulfilled, rejected);
+    }
+    step((generator = generator.apply(thisArg, _arguments || [])).next());
+  });
+}, IS_WINDOWS2 = process.platform === "win32", ToolRunner = class extends events.EventEmitter {
+  constructor(toolPath, args, options) {
+    if (super(), !toolPath)
+      throw new Error("Parameter 'toolPath' cannot be null or empty.");
+    this.toolPath = toolPath, this.args = args || [], this.options = options || {};
+  }
+  _debug(message) {
+    this.options.listeners && this.options.listeners.debug && this.options.listeners.debug(message);
+  }
+  _getCommandString(options, noPrefix) {
+    let toolPath = this._getSpawnFileName(), args = this._getSpawnArgs(options), cmd = noPrefix ? "" : "[command]";
+    if (IS_WINDOWS2)
+      if (this._isCmdFile()) {
+        cmd += toolPath;
+        for (let a of args)
+          cmd += ` ${a}`;
+      } else if (options.windowsVerbatimArguments) {
+        cmd += `"${toolPath}"`;
+        for (let a of args)
+          cmd += ` ${a}`;
+      } else {
+        cmd += this._windowsQuoteCmdArg(toolPath);
+        for (let a of args)
+          cmd += ` ${this._windowsQuoteCmdArg(a)}`;
+      }
+    else {
+      cmd += toolPath;
+      for (let a of args)
+        cmd += ` ${a}`;
+    }
+    return cmd;
+  }
+  _processLineBuffer(data, strBuffer, onLine) {
+    try {
+      let s = strBuffer + data.toString(), n = s.indexOf(os2.EOL);
+      for (; n > -1; ) {
+        let line = s.substring(0, n);
+        onLine(line), s = s.substring(n + os2.EOL.length), n = s.indexOf(os2.EOL);
+      }
+      return s;
+    } catch (err) {
+      return this._debug(`error processing line. Failed with error ${err}`), "";
+    }
+  }
+  _getSpawnFileName() {
+    return IS_WINDOWS2 && this._isCmdFile() ? process.env.COMSPEC || "cmd.exe" : this.toolPath;
+  }
+  _getSpawnArgs(options) {
+    if (IS_WINDOWS2 && this._isCmdFile()) {
+      let argline = `/D /S /C "${this._windowsQuoteCmdArg(this.toolPath)}`;
+      for (let a of this.args)
+        argline += " ", argline += options.windowsVerbatimArguments ? a : this._windowsQuoteCmdArg(a);
+      return argline += '"', [argline];
+    }
+    return this.args;
+  }
+  _endsWith(str, end) {
+    return str.endsWith(end);
+  }
+  _isCmdFile() {
+    let upperToolPath = this.toolPath.toUpperCase();
+    return this._endsWith(upperToolPath, ".CMD") || this._endsWith(upperToolPath, ".BAT");
+  }
+  _windowsQuoteCmdArg(arg) {
+    if (!this._isCmdFile())
+      return this._uvQuoteCmdArg(arg);
+    if (!arg)
+      return '""';
+    let cmdSpecialChars = [
+      " ",
+      "	",
+      "&",
+      "(",
+      ")",
+      "[",
+      "]",
+      "{",
+      "}",
+      "^",
+      "=",
+      ";",
+      "!",
+      "'",
+      "+",
+      ",",
+      "`",
+      "~",
+      "|",
+      "<",
+      ">",
+      '"'
+    ], needsQuotes = !1;
+    for (let char of arg)
+      if (cmdSpecialChars.some((x) => x === char)) {
+        needsQuotes = !0;
+        break;
+      }
+    if (!needsQuotes)
+      return arg;
+    let reverse = '"', quoteHit = !0;
+    for (let i = arg.length; i > 0; i--)
+      reverse += arg[i - 1], quoteHit && arg[i - 1] === "\\" ? reverse += "\\" : arg[i - 1] === '"' ? (quoteHit = !0, reverse += '"') : quoteHit = !1;
+    return reverse += '"', reverse.split("").reverse().join("");
+  }
+  _uvQuoteCmdArg(arg) {
+    if (!arg)
+      return '""';
+    if (!arg.includes(" ") && !arg.includes("	") && !arg.includes('"'))
+      return arg;
+    if (!arg.includes('"') && !arg.includes("\\"))
+      return `"${arg}"`;
+    let reverse = '"', quoteHit = !0;
+    for (let i = arg.length; i > 0; i--)
+      reverse += arg[i - 1], quoteHit && arg[i - 1] === "\\" ? reverse += "\\" : arg[i - 1] === '"' ? (quoteHit = !0, reverse += "\\") : quoteHit = !1;
+    return reverse += '"', reverse.split("").reverse().join("");
+  }
+  _cloneExecOptions(options) {
+    options = options || {};
+    let result = {
+      cwd: options.cwd || process.cwd(),
+      env: options.env || process.env,
+      silent: options.silent || !1,
+      windowsVerbatimArguments: options.windowsVerbatimArguments || !1,
+      failOnStdErr: options.failOnStdErr || !1,
+      ignoreReturnCode: options.ignoreReturnCode || !1,
+      delay: options.delay || 1e4
+    };
+    return result.outStream = options.outStream || process.stdout, result.errStream = options.errStream || process.stderr, result;
+  }
+  _getSpawnOptions(options, toolPath) {
+    options = options || {};
+    let result = {};
+    return result.cwd = options.cwd, result.env = options.env, result.windowsVerbatimArguments = options.windowsVerbatimArguments || this._isCmdFile(), options.windowsVerbatimArguments && (result.argv0 = `"${toolPath}"`), result;
+  }
+  /**
+   * Exec a tool.
+   * Output will be streamed to the live console.
+   * Returns promise with return code
+   *
+   * @param     tool     path to tool to exec
+   * @param     options  optional exec options.  See ExecOptions
+   * @returns   number
+   */
+  exec() {
+    return __awaiter4(this, void 0, void 0, function* () {
+      return !isRooted(this.toolPath) && (this.toolPath.includes("/") || IS_WINDOWS2 && this.toolPath.includes("\\")) && (this.toolPath = path3.resolve(process.cwd(), this.options.cwd || process.cwd(), this.toolPath)), this.toolPath = yield which(this.toolPath, !0), new Promise((resolve2, reject) => __awaiter4(this, void 0, void 0, function* () {
+        this._debug(`exec tool: ${this.toolPath}`), this._debug("arguments:");
+        for (let arg of this.args)
+          this._debug(`   ${arg}`);
+        let optionsNonNull = this._cloneExecOptions(this.options);
+        !optionsNonNull.silent && optionsNonNull.outStream && optionsNonNull.outStream.write(this._getCommandString(optionsNonNull) + os2.EOL);
+        let state = new ExecState(optionsNonNull, this.toolPath);
+        if (state.on("debug", (message) => {
+          this._debug(message);
+        }), this.options.cwd && !(yield exists(this.options.cwd)))
+          return reject(new Error(`The cwd: ${this.options.cwd} does not exist!`));
+        let fileName = this._getSpawnFileName(), cp = child.spawn(fileName, this._getSpawnArgs(optionsNonNull), this._getSpawnOptions(this.options, fileName)), stdbuffer = "";
+        cp.stdout && cp.stdout.on("data", (data) => {
+          this.options.listeners && this.options.listeners.stdout && this.options.listeners.stdout(data), !optionsNonNull.silent && optionsNonNull.outStream && optionsNonNull.outStream.write(data), stdbuffer = this._processLineBuffer(data, stdbuffer, (line) => {
+            this.options.listeners && this.options.listeners.stdline && this.options.listeners.stdline(line);
+          });
+        });
+        let errbuffer = "";
+        if (cp.stderr && cp.stderr.on("data", (data) => {
+          state.processStderr = !0, this.options.listeners && this.options.listeners.stderr && this.options.listeners.stderr(data), !optionsNonNull.silent && optionsNonNull.errStream && optionsNonNull.outStream && (optionsNonNull.failOnStdErr ? optionsNonNull.errStream : optionsNonNull.outStream).write(data), errbuffer = this._processLineBuffer(data, errbuffer, (line) => {
+            this.options.listeners && this.options.listeners.errline && this.options.listeners.errline(line);
+          });
+        }), cp.on("error", (err) => {
+          state.processError = err.message, state.processExited = !0, state.processClosed = !0, state.CheckComplete();
+        }), cp.on("exit", (code) => {
+          state.processExitCode = code, state.processExited = !0, this._debug(`Exit code ${code} received from tool '${this.toolPath}'`), state.CheckComplete();
+        }), cp.on("close", (code) => {
+          state.processExitCode = code, state.processExited = !0, state.processClosed = !0, this._debug(`STDIO streams have closed for tool '${this.toolPath}'`), state.CheckComplete();
+        }), state.on("done", (error, exitCode) => {
+          stdbuffer.length > 0 && this.emit("stdline", stdbuffer), errbuffer.length > 0 && this.emit("errline", errbuffer), cp.removeAllListeners(), error ? reject(error) : resolve2(exitCode);
+        }), this.options.input) {
+          if (!cp.stdin)
+            throw new Error("child process missing stdin");
+          cp.stdin.end(this.options.input);
+        }
+      }));
+    });
+  }
+};
+function argStringToArray(argString) {
+  let args = [], inQuotes = !1, escaped = !1, arg = "";
+  function append(c) {
+    escaped && c !== '"' && (arg += "\\"), arg += c, escaped = !1;
+  }
+  for (let i = 0; i < argString.length; i++) {
+    let c = argString.charAt(i);
+    if (c === '"') {
+      escaped ? append(c) : inQuotes = !inQuotes;
+      continue;
+    }
+    if (c === "\\" && escaped) {
+      append(c);
+      continue;
+    }
+    if (c === "\\" && inQuotes) {
+      escaped = !0;
+      continue;
+    }
+    if (c === " " && !inQuotes) {
+      arg.length > 0 && (args.push(arg), arg = "");
+      continue;
+    }
+    append(c);
+  }
+  return arg.length > 0 && args.push(arg.trim()), args;
+}
+var ExecState = class _ExecState extends events.EventEmitter {
+  constructor(options, toolPath) {
+    if (super(), this.processClosed = !1, this.processError = "", this.processExitCode = 0, this.processExited = !1, this.processStderr = !1, this.delay = 1e4, this.done = !1, this.timeout = null, !toolPath)
+      throw new Error("toolPath must not be empty");
+    this.options = options, this.toolPath = toolPath, options.delay && (this.delay = options.delay);
+  }
+  CheckComplete() {
+    this.done || (this.processClosed ? this._setResult() : this.processExited && (this.timeout = setTimeout2(_ExecState.HandleTimeout, this.delay, this)));
+  }
+  _debug(message) {
+    this.emit("debug", message);
+  }
+  _setResult() {
+    let error;
+    this.processExited && (this.processError ? error = new Error(`There was an error when attempting to execute the process '${this.toolPath}'. This may indicate the process failed to start. Error: ${this.processError}`) : this.processExitCode !== 0 && !this.options.ignoreReturnCode ? error = new Error(`The process '${this.toolPath}' failed with exit code ${this.processExitCode}`) : this.processStderr && this.options.failOnStdErr && (error = new Error(`The process '${this.toolPath}' failed because one or more lines were written to the STDERR stream`))), this.timeout && (clearTimeout(this.timeout), this.timeout = null), this.done = !0, this.emit("done", error, this.processExitCode);
+  }
+  static HandleTimeout(state) {
+    if (!state.done) {
+      if (!state.processClosed && state.processExited) {
+        let message = `The STDIO streams did not close within ${state.delay / 1e3} seconds of the exit event from process '${state.toolPath}'. This may indicate a child process inherited the STDIO streams and has not yet exited.`;
+        state._debug(message);
+      }
+      state._setResult();
+    }
+  }
+};
+
+// node_modules/@actions/exec/lib/exec.js
+var __awaiter5 = function(thisArg, _arguments, P, generator) {
+  function adopt(value) {
+    return value instanceof P ? value : new P(function(resolve2) {
+      resolve2(value);
+    });
+  }
+  return new (P || (P = Promise))(function(resolve2, reject) {
+    function fulfilled(value) {
+      try {
+        step(generator.next(value));
+      } catch (e) {
+        reject(e);
+      }
+    }
+    function rejected(value) {
+      try {
+        step(generator.throw(value));
+      } catch (e) {
+        reject(e);
+      }
+    }
+    function step(result) {
+      result.done ? resolve2(result.value) : adopt(result.value).then(fulfilled, rejected);
+    }
+    step((generator = generator.apply(thisArg, _arguments || [])).next());
+  });
+};
+function exec(commandLine, args, options) {
+  return __awaiter5(this, void 0, void 0, function* () {
+    let commandArgs = argStringToArray(commandLine);
+    if (commandArgs.length === 0)
+      throw new Error("Parameter 'commandLine' cannot be null or empty.");
+    let toolPath = commandArgs[0];
+    return args = commandArgs.slice(1).concat(args || []), new ToolRunner(toolPath, args, options).exec();
+  });
+}
+function getExecOutput(commandLine, args, options) {
+  return __awaiter5(this, void 0, void 0, function* () {
+    var _a, _b;
+    let stdout = "", stderr = "", stdoutDecoder = new StringDecoder("utf8"), stderrDecoder = new StringDecoder("utf8"), originalStdoutListener = (_a = options?.listeners) === null || _a === void 0 ? void 0 : _a.stdout, originalStdErrListener = (_b = options?.listeners) === null || _b === void 0 ? void 0 : _b.stderr, stdErrListener = (data) => {
+      stderr += stderrDecoder.write(data), originalStdErrListener && originalStdErrListener(data);
+    }, stdOutListener = (data) => {
+      stdout += stdoutDecoder.write(data), originalStdoutListener && originalStdoutListener(data);
+    }, listeners = Object.assign(Object.assign({}, options?.listeners), { stdout: stdOutListener, stderr: stdErrListener }), exitCode = yield exec(commandLine, args, Object.assign(Object.assign({}, options), { listeners }));
+    return stdout += stdoutDecoder.end(), stderr += stderrDecoder.end(), {
+      exitCode,
+      stdout,
+      stderr
+    };
+  });
+}
 
 // node_modules/@actions/core/lib/platform.js
-var platform = os2.platform(), arch = os2.arch();
+var platform = os3.platform(), arch = os3.arch();
 
 // node_modules/@actions/core/lib/core.js
 var ExitCode;
@@ -13293,7 +13784,23 @@ function getState(name) {
 
 // packages/build/src/post.ts
 import { rm as rm2 } from "node:fs/promises";
+async function tearDownKeychains() {
+  let raw = getState("macosKeychains");
+  if (raw !== "")
+    for (let path4 of raw.split(`
+`).filter((s) => s.length > 0))
+      try {
+        debug(`[pkg-action] deleting keychain ${path4}`);
+        let result = await getExecOutput("security", ["delete-keychain", path4], {
+          ignoreReturnCode: !0
+        });
+        result.exitCode !== 0 && warning(`[pkg-action] security delete-keychain ${path4} exited ${result.exitCode}.`);
+      } catch (err) {
+        warning(`[pkg-action] keychain teardown for ${path4} failed: ${String(err)}`);
+      }
+}
 async function post() {
+  await tearDownKeychains();
   let invocationDir = getState("invocationDir");
   if (invocationDir !== "") {
     debug(`[pkg-action] cleaning invocation dir ${invocationDir}`);

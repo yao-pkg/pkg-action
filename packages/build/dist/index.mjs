@@ -14363,6 +14363,9 @@ function saveState(name, value) {
     return issueFileCommand("STATE", prepareKeyValueMessage(name, value));
   issueCommand("save-state", { name }, toCommandValue(value));
 }
+function getState(name) {
+  return process.env[`STATE_${name}`] || "";
+}
 var ExitCode, init_core = __esm({
   "node_modules/@actions/core/lib/core.js"() {
     init_command();
@@ -53773,8 +53776,8 @@ GFS4: `), console.error(m);
         }
       }
       var fs$writeFile = fs9.writeFile;
-      fs9.writeFile = writeFile3;
-      function writeFile3(path7, data, options, cb) {
+      fs9.writeFile = writeFile4;
+      function writeFile4(path7, data, options, cb) {
         return typeof options == "function" && (cb = options, options = null), go$writeFile(path7, data, options, cb);
         function go$writeFile(path8, data2, options2, cb2, startTime) {
           return fs$writeFile(path8, data2, options2, function(err) {
@@ -79345,10 +79348,227 @@ var RT_MANIFEST, defaultDeps, init_windows_metadata_apply = __esm({
         return readFile2(p);
       },
       writeFile: async (p, d) => {
-        let { writeFile: writeFile3 } = await import("node:fs/promises");
-        await writeFile3(p, d);
+        let { writeFile: writeFile4 } = await import("node:fs/promises");
+        await writeFile4(p, d);
       }
     };
+  }
+});
+
+// packages/core/src/signing.ts
+import { writeFile as writeFile3 } from "node:fs/promises";
+import { join as join7 } from "node:path";
+import { randomBytes } from "node:crypto";
+function parseSigningInputs(opts = {}) {
+  let env = opts.env ?? process.env, registerSecret = opts.registerSecret ?? (() => {
+  }), macosIdentity = readInputRaw(env, "macos-sign-identity"), macosCert = readInputRaw(env, "macos-sign-certificate"), macosKeychainPw = readInputRaw(env, "macos-keychain-password"), macosEntitlements = readInputRaw(env, "macos-entitlements"), macosNotarize = parseBool(readInputRaw(env, "macos-notarize"), "macos-notarize", !1), macosAppleId = readInputRaw(env, "macos-apple-id"), macosTeamId = readInputRaw(env, "macos-team-id"), macosAppPw = readInputRaw(env, "macos-app-password");
+  macosCert !== void 0 && registerSecret(macosCert), macosKeychainPw !== void 0 && registerSecret(macosKeychainPw), macosAppleId !== void 0 && registerSecret(macosAppleId), macosTeamId !== void 0 && registerSecret(macosTeamId), macosAppPw !== void 0 && registerSecret(macosAppPw);
+  let macos;
+  if (macosIdentity !== void 0 || macosCert !== void 0 || macosKeychainPw !== void 0) {
+    if (macosIdentity === void 0 || macosCert === void 0 || macosKeychainPw === void 0)
+      throw new ValidationError(
+        "macOS signing requires all of macos-sign-identity, macos-sign-certificate, macos-keychain-password."
+      );
+    if (macosNotarize && (macosAppleId === void 0 || macosTeamId === void 0 || macosAppPw === void 0))
+      throw new ValidationError(
+        "macos-notarize=true requires macos-apple-id, macos-team-id, macos-app-password."
+      );
+    macos = {
+      identity: macosIdentity,
+      certificate: macosCert,
+      keychainPassword: macosKeychainPw,
+      entitlements: macosEntitlements,
+      notarize: macosNotarize,
+      appleId: macosAppleId,
+      teamId: macosTeamId,
+      appPassword: macosAppPw
+    };
+  }
+  let windowsMode = parseWindowsSignMode(readInputRaw(env, "windows-sign-mode") ?? "none"), signtoolCert = readInputRaw(env, "windows-sign-cert"), signtoolPw = readInputRaw(env, "windows-sign-password"), signtoolTimestamp = readInputRaw(env, "windows-sign-rfc3161-url") ?? "http://timestamp.digicert.com", signDescription = readInputRaw(env, "windows-sign-description"), azureTenant = readInputRaw(env, "azure-tenant-id"), azureClient = readInputRaw(env, "azure-client-id"), azureSecret = readInputRaw(env, "azure-client-secret"), azureEndpoint = readInputRaw(env, "azure-endpoint"), azureProfile = readInputRaw(env, "azure-cert-profile");
+  signtoolCert !== void 0 && registerSecret(signtoolCert), signtoolPw !== void 0 && registerSecret(signtoolPw), azureTenant !== void 0 && registerSecret(azureTenant), azureClient !== void 0 && registerSecret(azureClient), azureSecret !== void 0 && registerSecret(azureSecret);
+  let windowsSigntool, windowsTrusted;
+  if (windowsMode === "signtool") {
+    if (signtoolCert === void 0 || signtoolPw === void 0)
+      throw new ValidationError(
+        "windows-sign-mode=signtool requires windows-sign-cert and windows-sign-password."
+      );
+    if (azureTenant !== void 0 || azureClient !== void 0 || azureEndpoint !== void 0)
+      throw new ValidationError(
+        "windows-sign-mode=signtool cannot be combined with azure-* inputs. Set windows-sign-mode=trusted-signing instead."
+      );
+    windowsSigntool = {
+      certificate: signtoolCert,
+      password: signtoolPw,
+      timestampUrl: signtoolTimestamp,
+      description: signDescription
+    };
+  } else if (windowsMode === "trusted-signing") {
+    if (azureTenant === void 0 || azureClient === void 0 || azureSecret === void 0 || azureEndpoint === void 0 || azureProfile === void 0)
+      throw new ValidationError(
+        "windows-sign-mode=trusted-signing requires all of azure-tenant-id, azure-client-id, azure-client-secret, azure-endpoint, azure-cert-profile."
+      );
+    if (signtoolCert !== void 0 || signtoolPw !== void 0)
+      throw new ValidationError(
+        "windows-sign-mode=trusted-signing cannot be combined with windows-sign-cert/password."
+      );
+    windowsTrusted = {
+      tenantId: azureTenant,
+      clientId: azureClient,
+      clientSecret: azureSecret,
+      endpoint: azureEndpoint,
+      certProfile: azureProfile,
+      description: signDescription
+    };
+  }
+  return macos === void 0 && windowsMode === "none" ? null : { macos, windowsMode, windowsSigntool, windowsTrusted };
+}
+function parseBool(value, name, fallback) {
+  if (value === void 0) return fallback;
+  let v = value.toLowerCase();
+  if (v === "true" || v === "1" || v === "yes") return !0;
+  if (v === "false" || v === "0" || v === "no") return !1;
+  throw new ValidationError(`Input "${name}" expected a boolean, got "${value}".`);
+}
+function parseWindowsSignMode(raw) {
+  if (raw === "none" || raw === "signtool" || raw === "trusted-signing") return raw;
+  throw new ValidationError(
+    `windows-sign-mode must be one of: none | signtool | trusted-signing. Got "${raw}".`
+  );
+}
+async function runCheckedTool(deps, command, args, label, opts = {}) {
+  deps.logger.info(`[pkg-action] ${label}: ${command} ${args.join(" ")}`);
+  let result = await deps.exec(command, args, {
+    ignoreReturnCode: !0,
+    ...opts.env !== void 0 ? { env: opts.env } : {}
+  });
+  if (result.exitCode !== 0)
+    throw new SignError(`${label} failed (exit ${String(result.exitCode)}). See stderr above.`);
+}
+async function writeSecretBase64(deps, tempDir, base64, extension) {
+  let path7 = join7(tempDir, `${randomBytes(8).toString("hex")}.${extension}`), bytes = Buffer.from(base64, "base64");
+  return await (deps.writeFile ?? ((p, d) => writeFile3(p, d, { mode: 384 })))(path7, bytes), path7;
+}
+async function signMacos(binaryPath, cfg, deps) {
+  let keychainPath = join7(
+    deps.tempDir,
+    `pkg-action-${randomBytes(6).toString("hex")}.keychain-db`
+  ), p12Path = await writeSecretBase64(deps, deps.tempDir, cfg.certificate, "p12");
+  await runCheckedTool(
+    deps,
+    "security",
+    ["create-keychain", "-p", cfg.keychainPassword, keychainPath],
+    "security create-keychain"
+  ), await runCheckedTool(
+    deps,
+    "security",
+    ["set-keychain-settings", "-lut", "21600", keychainPath],
+    "security set-keychain-settings"
+  ), await runCheckedTool(
+    deps,
+    "security",
+    ["unlock-keychain", "-p", cfg.keychainPassword, keychainPath],
+    "security unlock-keychain"
+  ), await runCheckedTool(
+    deps,
+    "security",
+    [
+      "import",
+      p12Path,
+      "-k",
+      keychainPath,
+      "-P",
+      cfg.keychainPassword,
+      "-T",
+      "/usr/bin/codesign",
+      "-T",
+      "/usr/bin/security"
+    ],
+    "security import"
+  ), await runCheckedTool(
+    deps,
+    "security",
+    [
+      "set-key-partition-list",
+      "-S",
+      "apple-tool:,apple:,codesign:",
+      "-s",
+      "-k",
+      cfg.keychainPassword,
+      keychainPath
+    ],
+    "security set-key-partition-list"
+  );
+  let codesignArgs = [
+    "--force",
+    "--timestamp",
+    "--options",
+    "runtime",
+    "--keychain",
+    keychainPath,
+    "--sign",
+    cfg.identity
+  ];
+  return cfg.entitlements !== void 0 && codesignArgs.push("--entitlements", cfg.entitlements), codesignArgs.push(binaryPath), await runCheckedTool(deps, "codesign", codesignArgs, "codesign"), cfg.notarize && (await runCheckedTool(
+    deps,
+    "xcrun",
+    [
+      "notarytool",
+      "submit",
+      binaryPath,
+      "--apple-id",
+      cfg.appleId,
+      "--team-id",
+      cfg.teamId,
+      "--password",
+      cfg.appPassword,
+      "--wait"
+    ],
+    "xcrun notarytool submit"
+  ), deps.logger.info(
+    "[pkg-action] notarytool submit succeeded. Note: bare binaries cannot be stapled; Gatekeeper queries Apple at first launch."
+  )), { keychainPath };
+}
+async function signWindowsSigntool(binaryPath, cfg, deps) {
+  let pfxPath = await writeSecretBase64(deps, deps.tempDir, cfg.certificate, "pfx"), args = [
+    "sign",
+    "/fd",
+    "sha256",
+    "/td",
+    "sha256",
+    "/tr",
+    cfg.timestampUrl,
+    "/f",
+    pfxPath,
+    "/p",
+    cfg.password
+  ];
+  cfg.description !== void 0 && args.push("/d", cfg.description), args.push(binaryPath), await runCheckedTool(deps, "signtool", args, "signtool sign");
+}
+async function signWindowsTrustedSigning(binaryPath, cfg, deps) {
+  let env = {
+    AZURE_TENANT_ID: cfg.tenantId,
+    AZURE_CLIENT_ID: cfg.clientId,
+    AZURE_CLIENT_SECRET: cfg.clientSecret
+  }, args = [
+    "sign",
+    "-kvu",
+    cfg.endpoint,
+    "-kvc",
+    cfg.certProfile,
+    "-tr",
+    "http://timestamp.acs.microsoft.com",
+    "-td",
+    "sha256",
+    "-fd",
+    "sha256"
+  ];
+  cfg.description !== void 0 && args.push("-d", cfg.description), args.push(binaryPath), await runCheckedTool(deps, "azuresigntool", args, "azuresigntool sign", { env });
+}
+var init_signing = __esm({
+  "packages/core/src/signing.ts"() {
+    "use strict";
+    init_errors();
+    init_inputs();
   }
 });
 
@@ -79397,6 +79617,7 @@ __export(src_exports, {
   padVersionQuad: () => padVersionQuad,
   parseIconSpec: () => parseIconSpec,
   parseInputs: () => parseInputs,
+  parseSigningInputs: () => parseSigningInputs,
   parseTarget: () => parseTarget,
   parseTargetList: () => parseTargetList,
   parseWindowsMetadataInputs: () => parseWindowsMetadataInputs,
@@ -79408,6 +79629,9 @@ __export(src_exports, {
   resolveRepoFromEnv: () => resolveRepoFromEnv,
   runPkg: () => runPkg,
   runnerFor: () => runnerFor,
+  signMacos: () => signMacos,
+  signWindowsSigntool: () => signWindowsSigntool,
+  signWindowsTrustedSigning: () => signWindowsTrustedSigning,
   specFor: () => specFor,
   tokensForTarget: () => tokensForTarget,
   uploadArtifacts: () => uploadArtifacts,
@@ -79434,6 +79658,7 @@ var VERSION9, init_src4 = __esm({
     init_project_info();
     init_windows_metadata();
     init_windows_metadata_apply();
+    init_signing();
     VERSION9 = "0.0.0";
   }
 });
@@ -79443,7 +79668,7 @@ init_core();
 init_src4();
 init_exec();
 import { mkdir as mkdir3, rename as rename3, stat as stat5 } from "node:fs/promises";
-import { basename as pathBasename, dirname as dirname4, join as join7, resolve as pathResolve } from "node:path";
+import { basename as pathBasename, dirname as dirname4, join as join8, resolve as pathResolve } from "node:path";
 var execBridge = async (command, args, options) => {
   let opts = {};
   if (options.ignoreReturnCode !== void 0 && (opts.ignoreReturnCode = options.ignoreReturnCode), options.cwd !== void 0 && (opts.cwd = options.cwd), options.env !== void 0) {
@@ -79490,7 +79715,7 @@ async function main() {
   logger7.info(`[pkg-action] targets: ${resolvedTargets.map(formatTarget).join(", ")}`);
   let runnerTemp = process.env.RUNNER_TEMP ?? (await import("node:os")).tmpdir(), invocationDir = await createInvocationTemp(runnerTemp);
   saveState("invocationDir", invocationDir);
-  let pkgOutputDir = join7(invocationDir, "pkg-out");
+  let pkgOutputDir = join8(invocationDir, "pkg-out");
   await mkdir3(pkgOutputDir, { recursive: !0 });
   let pkgCommand = inputs.build.pkgPath ?? "pkg", pkgBuildInputs = inputs.build.config !== void 0 && pathBasename(inputs.build.config).toLowerCase() === "package.json" ? { ...inputs.build, config: void 0 } : inputs.build, pkgArgs = buildPkgArgs({
     build: pkgBuildInputs,
@@ -79510,11 +79735,15 @@ async function main() {
   );
   let pkgDurationMs = Date.now() - started, pkgOutputs = await mapPkgOutputs(resolvedTargets, project.name, pkgOutputDir), windowsMeta = await parseWindowsMetadataInputs();
   windowsMeta !== null && logger7.info("[pkg-action] Windows metadata detected \u2014 will patch win-* binaries post-rename.");
-  let finalDir = join7(invocationDir, "final");
+  let signing = parseSigningInputs({ registerSecret: (v) => setSecret(v) });
+  signing !== null && logger7.info(
+    `[pkg-action] Signing configured \u2014 macOS=${String(signing.macos !== void 0)}, windows=${signing.windowsMode}.`
+  );
+  let finalDir = join8(invocationDir, "final");
   await mkdir3(finalDir, { recursive: !0 });
   let finalizedBinaries = [], finalizedArtifacts = [], shasumEntries = [], summaryRows = [];
   for (let out of pkgOutputs) {
-    let tokens = tokensForTarget(out.target, project, process.env), renamedBase = render(inputs.postBuild.filename, tokens), renamed = out.target.os === "win" && !renamedBase.toLowerCase().endsWith(".exe") ? `${renamedBase}.exe` : renamedBase, renamedPath = join7(finalDir, renamed);
+    let tokens = tokensForTarget(out.target, project, process.env), renamedBase = render(inputs.postBuild.filename, tokens), renamed = out.target.os === "win" && !renamedBase.toLowerCase().endsWith(".exe") ? `${renamedBase}.exe` : renamedBase, renamedPath = join8(finalDir, renamed);
     if (await rename3(out.path, renamedPath), windowsMeta !== null && out.target.os === "win") {
       let perBinary = {
         ...windowsMeta,
@@ -79522,7 +79751,11 @@ async function main() {
       };
       await applyWindowsMetadata(renamedPath, renamedPath, perBinary), logger7.info(`[pkg-action] Patched Windows resources on ${renamedPath}.`);
     }
-    finalizedBinaries.push(renamedPath);
+    signing !== null && await signOneTarget({ targetOs: out.target.os, binaryPath: renamedPath }, signing, {
+      exec: execBridge,
+      logger: logger7,
+      tempDir: invocationDir
+    }), finalizedBinaries.push(renamedPath);
     let finalPath = inputs.postBuild.compress === "none" ? renamedPath : await archiveBinary(out, renamedPath, inputs, tokens);
     finalizedArtifacts.push(finalPath);
     let rowDigest = await finalizeChecksums(finalPath, inputs.postBuild.checksum);
@@ -79539,7 +79772,7 @@ async function main() {
     for (let algo of inputs.postBuild.checksum) {
       let entries = shasumEntries.filter((e) => e.algo === algo);
       if (entries.length === 0) continue;
-      let shasumPath = join7(finalDir, `SHASUMS${algo.toUpperCase()}.txt`);
+      let shasumPath = join8(finalDir, `SHASUMS${algo.toUpperCase()}.txt`);
       await writeShasumsFile(shasumPath, entries), shasumsFiles.push(shasumPath);
     }
   if (inputs.publishing.uploadArtifact && finalizedArtifacts.length > 0) {
@@ -79564,6 +79797,24 @@ async function main() {
     });
   }
   setOutput("binaries", JSON.stringify(finalizedBinaries)), setOutput("artifacts", JSON.stringify(finalizedArtifacts)), setOutput("checksums", JSON.stringify(shasumsFiles)), setOutput("version", project.version), logger7.info(`pkg-action build \u2014 done (${String(pkgOutputs.length)} binary/binaries produced)`);
+}
+async function signOneTarget(spec, signing, deps) {
+  if (spec.targetOs === "macos" && signing.macos !== void 0) {
+    let cleanup = await signMacos(spec.binaryPath, signing.macos, deps), prior = getState("macosKeychains"), next = prior === "" ? cleanup.keychainPath : `${prior}
+${cleanup.keychainPath}`;
+    saveState("macosKeychains", next);
+    return;
+  }
+  if (spec.targetOs === "win") {
+    if (signing.windowsMode === "signtool" && signing.windowsSigntool !== void 0) {
+      await signWindowsSigntool(spec.binaryPath, signing.windowsSigntool, deps);
+      return;
+    }
+    if (signing.windowsMode === "trusted-signing" && signing.windowsTrusted !== void 0) {
+      await signWindowsTrustedSigning(spec.binaryPath, signing.windowsTrusted, deps);
+      return;
+    }
+  }
 }
 async function archiveBinary(out, renamedPath, inputs, tokens) {
   let baseName = renamedPath.substring(0, renamedPath.length - extSuffix(renamedPath).length), archiveExt = archiveExtFor(inputs.postBuild.compress);

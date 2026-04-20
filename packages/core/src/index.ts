@@ -15,5 +15,6 @@ export * from './uploader.ts';
 export * from './project-info.ts';
 export * from './windows-metadata.ts';
 export * from './windows-metadata-apply.ts';
+export * from './signing.ts';
 
 export const VERSION = '0.0.0';

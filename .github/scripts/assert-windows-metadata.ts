@@ -62,7 +62,7 @@ async function main(): Promise<void> {
   }
 
   if (failures > 0) process.exit(1);
-  console.log(`OK — VersionInfo round-trip verified on ${exePath}`);
+  process.stdout.write(`OK — VersionInfo round-trip verified on ${exePath}\n`);
 }
 
 main().catch((err: unknown) => {

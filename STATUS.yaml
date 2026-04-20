@@ -12,7 +12,7 @@ meta:
   last-updated: '2026-04-20'
   action-status: PRE-ALPHA — do not consume from a workflow
   ci-status: green
-  e2e-status: green on ubuntu-latest / macos-latest / windows-latest (tiny-app-cjs: tar.gz + zip + sha256 sidecar round-trip verified); matrix plan→fanout job added — awaits first CI run
+  e2e-status: green on ubuntu-latest / macos-latest / windows-latest (tiny-app-cjs: tar.gz + zip + sha256 sidecar round-trip verified); matrix plan→fanout + multi-target-linux + windows-metadata jobs added — await first CI run. Signing e2e deferred until real certs can be supplied via org secrets.
 
 milestones:
   M-1:
@@ -79,8 +79,15 @@ milestones:
 
   M4:
     title: Signing & notarization
-    status: pending
+    status: done (all three drivers shipped behind ExecFn DI; e2e blocked on real certs — dev loop proven by 17 unit tests)
     depends-on: M1
+    sub-chunks:
+      '4.1 signing inputs + types (parseSigningInputs — macos/signtool/trusted-signing, mutex validation, secret registration)': done
+      '4.2 macOS — ephemeral keychain + codesign + (optional) notarytool; stapler skipped for bare binaries (Gatekeeper still queries Apple at launch)': done
+      '4.3 Windows — signtool driver (base64 .pfx written to tempDir, /tr timestamp, /d description)': done
+      '4.4 Windows — Azure Trusted Signing driver (azuresigntool CLI, AZURE_* via env — never argv)': done
+      '4.5 orchestrator wire-up (signOneTarget dispatcher between windows-metadata and archive; keychain path handed to post.ts via saveState)': done
+      '4.6 unit tests — 17 cases covering parser mutex rules, exact argv shape per driver, secret-never-in-argv invariant, SignError surfacing': done (228 total green)
 
   M5:
     title: Release attach + step-summary polish + docs + dependabot-bundle.yml
