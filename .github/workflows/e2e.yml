@@ -69,16 +69,15 @@ jobs:
             echo "::error::no artifacts produced"; exit 1
           fi
 
-      - name: Assert checksum sidecar matches binary (non-Windows)
-        if: runner.os != 'Windows'
+      - name: Assert checksum sidecar matches the archived artifact
         shell: bash
         run: |
-          first_bin=$(echo '${{ steps.build.outputs.binaries }}' | jq -r '.[0]')
-          sidecar="${first_bin}.sha256"
+          first_artifact=$(echo '${{ steps.build.outputs.artifacts }}' | jq -r '.[0]')
+          sidecar="${first_artifact}.sha256"
           if [ ! -f "$sidecar" ]; then
             echo "::error::missing checksum sidecar at $sidecar"; exit 1
           fi
-          # The sidecar is <digest>  <basename>\n — verify it parses.
+          # The sidecar is <digest>  <basename>\n — verify the digest parses as 64 hex chars.
           awk 'NR==1 { if (length($1) != 64) exit 1 }' "$sidecar"
           echo "sidecar OK: $(cat "$sidecar")"
 
