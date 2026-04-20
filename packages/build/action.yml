@@ -16,10 +16,10 @@ inputs:
     description: 'standard | sea — selects pkg Standard or SEA mode.'
     default: 'standard'
   node-version:
-    description: "pkg's bundled Node.js major (e.g. 22, 24). Does not affect the action's own Node runtime."
+    description: 'pkg''s bundled Node.js major (e.g. 22, 24). Does not affect the action''s own Node runtime.'
     default: '22'
   compress-node:
-    description: "pkg's bundled-binary compression: Brotli | GZip | None."
+    description: 'pkg''s bundled-binary compression: Brotli | GZip | None.'
     default: 'None'
   fallback-to-source:
     description: 'Pass pkg --fallback-to-source for bytecode-fabricator failures.'

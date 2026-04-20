@@ -19,10 +19,10 @@ inputs:
     description: 'standard | sea — selects pkg Standard or SEA mode.'
     default: 'standard'
   node-version:
-    description: "pkg's bundled Node.js major (e.g. 22, 24). Does not affect the action's own Node runtime."
+    description: 'pkg''s bundled Node.js major (e.g. 22, 24). Does not affect the action''s own Node runtime.'
     default: '22'
   compress-node:
-    description: "pkg's bundled-binary compression: Brotli | GZip | None."
+    description: 'pkg''s bundled-binary compression: Brotli | GZip | None.'
     default: 'None'
   fallback-to-source:
     description: 'Pass pkg --fallback-to-source for bytecode-fabricator failures.'
@@ -208,69 +208,69 @@ runs:
       id: pkg-action-build
       uses: ./packages/build
       with:
-        config: ${{ inputs.config }}
-        entry: ${{ inputs.entry }}
-        targets: ${{ inputs.targets }}
-        mode: ${{ inputs.mode }}
-        node-version: ${{ inputs.node-version }}
-        compress-node: ${{ inputs.compress-node }}
-        fallback-to-source: ${{ inputs.fallback-to-source }}
-        public: ${{ inputs.public }}
-        public-packages: ${{ inputs.public-packages }}
-        options: ${{ inputs.options }}
-        no-bytecode: ${{ inputs.no-bytecode }}
-        no-dict: ${{ inputs.no-dict }}
-        debug: ${{ inputs.debug }}
-        extra-args: ${{ inputs.extra-args }}
-        pkg-version: ${{ inputs.pkg-version }}
-        pkg-path: ${{ inputs.pkg-path }}
-        strip: ${{ inputs.strip }}
-        compress: ${{ inputs.compress }}
-        filename: ${{ inputs.filename }}
-        checksum: ${{ inputs.checksum }}
-        windows-metadata-file: ${{ inputs.windows-metadata-file }}
-        windows-icon: ${{ inputs.windows-icon }}
-        windows-product-name: ${{ inputs.windows-product-name }}
-        windows-product-version: ${{ inputs.windows-product-version }}
-        windows-file-version: ${{ inputs.windows-file-version }}
-        windows-file-description: ${{ inputs.windows-file-description }}
-        windows-company-name: ${{ inputs.windows-company-name }}
-        windows-legal-copyright: ${{ inputs.windows-legal-copyright }}
-        windows-original-filename: ${{ inputs.windows-original-filename }}
-        windows-internal-name: ${{ inputs.windows-internal-name }}
-        windows-comments: ${{ inputs.windows-comments }}
-        windows-manifest: ${{ inputs.windows-manifest }}
-        windows-lang: ${{ inputs.windows-lang }}
-        windows-codepage: ${{ inputs.windows-codepage }}
-        macos-sign-identity: ${{ inputs.macos-sign-identity }}
-        macos-sign-certificate: ${{ inputs.macos-sign-certificate }}
-        macos-keychain-password: ${{ inputs.macos-keychain-password }}
-        macos-entitlements: ${{ inputs.macos-entitlements }}
-        macos-notarize: ${{ inputs.macos-notarize }}
-        macos-apple-id: ${{ inputs.macos-apple-id }}
-        macos-team-id: ${{ inputs.macos-team-id }}
-        macos-app-password: ${{ inputs.macos-app-password }}
-        windows-sign-mode: ${{ inputs.windows-sign-mode }}
-        windows-sign-cert: ${{ inputs.windows-sign-cert }}
-        windows-sign-password: ${{ inputs.windows-sign-password }}
-        windows-sign-rfc3161-url: ${{ inputs.windows-sign-rfc3161-url }}
-        windows-sign-description: ${{ inputs.windows-sign-description }}
-        azure-tenant-id: ${{ inputs.azure-tenant-id }}
-        azure-client-id: ${{ inputs.azure-client-id }}
-        azure-client-secret: ${{ inputs.azure-client-secret }}
-        azure-endpoint: ${{ inputs.azure-endpoint }}
-        azure-cert-profile: ${{ inputs.azure-cert-profile }}
-        upload-artifact: ${{ inputs.upload-artifact }}
-        artifact-name: ${{ inputs.artifact-name }}
-        attach-to-release: ${{ inputs.attach-to-release }}
-        release-tag: ${{ inputs.release-tag }}
-        release-name: ${{ inputs.release-name }}
-        release-body: ${{ inputs.release-body }}
-        release-draft: ${{ inputs.release-draft }}
-        release-prerelease: ${{ inputs.release-prerelease }}
-        generate-release-table: ${{ inputs.generate-release-table }}
-        cache: ${{ inputs.cache }}
-        cache-key: ${{ inputs.cache-key }}
-        step-summary: ${{ inputs.step-summary }}
-        sbom: ${{ inputs.sbom }}
-        provenance: ${{ inputs.provenance }}
+          config: ${{ inputs.config }}
+          entry: ${{ inputs.entry }}
+          targets: ${{ inputs.targets }}
+          mode: ${{ inputs.mode }}
+          node-version: ${{ inputs.node-version }}
+          compress-node: ${{ inputs.compress-node }}
+          fallback-to-source: ${{ inputs.fallback-to-source }}
+          public: ${{ inputs.public }}
+          public-packages: ${{ inputs.public-packages }}
+          options: ${{ inputs.options }}
+          no-bytecode: ${{ inputs.no-bytecode }}
+          no-dict: ${{ inputs.no-dict }}
+          debug: ${{ inputs.debug }}
+          extra-args: ${{ inputs.extra-args }}
+          pkg-version: ${{ inputs.pkg-version }}
+          pkg-path: ${{ inputs.pkg-path }}
+          strip: ${{ inputs.strip }}
+          compress: ${{ inputs.compress }}
+          filename: ${{ inputs.filename }}
+          checksum: ${{ inputs.checksum }}
+          windows-metadata-file: ${{ inputs.windows-metadata-file }}
+          windows-icon: ${{ inputs.windows-icon }}
+          windows-product-name: ${{ inputs.windows-product-name }}
+          windows-product-version: ${{ inputs.windows-product-version }}
+          windows-file-version: ${{ inputs.windows-file-version }}
+          windows-file-description: ${{ inputs.windows-file-description }}
+          windows-company-name: ${{ inputs.windows-company-name }}
+          windows-legal-copyright: ${{ inputs.windows-legal-copyright }}
+          windows-original-filename: ${{ inputs.windows-original-filename }}
+          windows-internal-name: ${{ inputs.windows-internal-name }}
+          windows-comments: ${{ inputs.windows-comments }}
+          windows-manifest: ${{ inputs.windows-manifest }}
+          windows-lang: ${{ inputs.windows-lang }}
+          windows-codepage: ${{ inputs.windows-codepage }}
+          macos-sign-identity: ${{ inputs.macos-sign-identity }}
+          macos-sign-certificate: ${{ inputs.macos-sign-certificate }}
+          macos-keychain-password: ${{ inputs.macos-keychain-password }}
+          macos-entitlements: ${{ inputs.macos-entitlements }}
+          macos-notarize: ${{ inputs.macos-notarize }}
+          macos-apple-id: ${{ inputs.macos-apple-id }}
+          macos-team-id: ${{ inputs.macos-team-id }}
+          macos-app-password: ${{ inputs.macos-app-password }}
+          windows-sign-mode: ${{ inputs.windows-sign-mode }}
+          windows-sign-cert: ${{ inputs.windows-sign-cert }}
+          windows-sign-password: ${{ inputs.windows-sign-password }}
+          windows-sign-rfc3161-url: ${{ inputs.windows-sign-rfc3161-url }}
+          windows-sign-description: ${{ inputs.windows-sign-description }}
+          azure-tenant-id: ${{ inputs.azure-tenant-id }}
+          azure-client-id: ${{ inputs.azure-client-id }}
+          azure-client-secret: ${{ inputs.azure-client-secret }}
+          azure-endpoint: ${{ inputs.azure-endpoint }}
+          azure-cert-profile: ${{ inputs.azure-cert-profile }}
+          upload-artifact: ${{ inputs.upload-artifact }}
+          artifact-name: ${{ inputs.artifact-name }}
+          attach-to-release: ${{ inputs.attach-to-release }}
+          release-tag: ${{ inputs.release-tag }}
+          release-name: ${{ inputs.release-name }}
+          release-body: ${{ inputs.release-body }}
+          release-draft: ${{ inputs.release-draft }}
+          release-prerelease: ${{ inputs.release-prerelease }}
+          generate-release-table: ${{ inputs.generate-release-table }}
+          cache: ${{ inputs.cache }}
+          cache-key: ${{ inputs.cache-key }}
+          step-summary: ${{ inputs.step-summary }}
+          sbom: ${{ inputs.sbom }}
+          provenance: ${{ inputs.provenance }}
