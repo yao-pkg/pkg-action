@@ -11688,13 +11688,13 @@ var require_util7 = __commonJS({
           failWebsocketConnection(ws, "Received invalid UTF-8 in text frame.");
           return;
         }
-      else type === opcodes.BINARY && (ws[kBinaryType] === "blob" ? dataForEvent = new Blob([data]) : dataForEvent = toArrayBuffer(data));
+      else type === opcodes.BINARY && (ws[kBinaryType] === "blob" ? dataForEvent = new Blob([data]) : dataForEvent = toArrayBuffer2(data));
       fireEvent("message", ws, createFastMessageEvent, {
         origin: ws[kWebSocketURL].origin,
         data: dataForEvent
       });
     }
-    function toArrayBuffer(buffer2) {
+    function toArrayBuffer2(buffer2) {
       return buffer2.byteLength === buffer2.buffer.byteLength ? buffer2.buffer : buffer2.buffer.slice(buffer2.byteOffset, buffer2.byteOffset + buffer2.byteLength);
     }
     function isValidSubprotocol(protocol) {
@@ -54162,7 +54162,7 @@ var require_BufferList = __commonJS({
         throw new TypeError("Cannot call a class as a function");
     }
     var Buffer3 = require_safe_buffer().Buffer, util3 = __require("util");
-    function copyBuffer(src, target, offset) {
+    function copyBuffer3(src, target, offset) {
       src.copy(target, offset);
     }
     module.exports = (function() {
@@ -54190,7 +54190,7 @@ var require_BufferList = __commonJS({
       }, BufferList.prototype.concat = function(n) {
         if (this.length === 0) return Buffer3.alloc(0);
         for (var ret = Buffer3.allocUnsafe(n >>> 0), p = this.head, i = 0; p; )
-          copyBuffer(p.data, ret, i), i += p.data.length, p = p.next;
+          copyBuffer3(p.data, ret, i), i += p.data.length, p = p.next;
         return ret;
       }, BufferList;
     })();
@@ -75496,6 +75496,3862 @@ var init_project_info = __esm({
   }
 });
 
+// packages/core/src/windows-metadata.ts
+function parseIconSpec(raw) {
+  let pieces = raw.split(/[\n,]/).map((s) => s.trim()).filter((s) => s.length > 0), byId = /* @__PURE__ */ new Map();
+  for (let piece of pieces) {
+    let eq = piece.indexOf("="), id, path7;
+    if (eq === -1)
+      id = 1, path7 = piece;
+    else {
+      let idRaw = piece.slice(0, eq);
+      if (path7 = piece.slice(eq + 1).trim(), !/^\d+$/.test(idRaw))
+        throw new ValidationError(
+          `windows-icon entry "${piece}" has invalid id "${idRaw}" \u2014 expected a positive integer before "=".`
+        );
+      id = Number(idRaw);
+    }
+    if (!Number.isInteger(id) || id < 1 || id > 65535)
+      throw new ValidationError(
+        `windows-icon entry "${piece}" id ${String(id)} is out of range (1..65535).`
+      );
+    if (path7 === "")
+      throw new ValidationError(`windows-icon entry "${piece}" is missing a path.`);
+    byId.set(id, { id, path: path7 });
+  }
+  return [...byId.values()].sort((a, b) => a.id - b.id);
+}
+function padVersionQuad(raw) {
+  let trimmed = raw.trim();
+  if (!/^\d+(?:\.\d+){0,3}$/.test(trimmed))
+    throw new ValidationError(
+      `Version "${raw}" must match x[.y[.z[.w]]] with each part being a non-negative integer.`
+    );
+  let parts = trimmed.split(".").map((p) => Number(p));
+  for (let n of parts)
+    if (!Number.isInteger(n) || n < 0 || n > 65535)
+      throw new ValidationError(
+        `Version "${raw}" has component ${String(n)} out of uint16 range (0..65535).`
+      );
+  return [parts[0] ?? 0, parts[1] ?? 0, parts[2] ?? 0, parts[3] ?? 0];
+}
+function mergeMetadataFile(env, file) {
+  let fileIcons = normalizeFileIcons(file), icons = env.icons.length > 0 ? env.icons : fileIcons, pick = (envValue, fileValue) => envValue ?? fileValue, lang = env.lang ?? file?.lang ?? 1033, codepage = env.codepage ?? file?.codepage ?? 1200;
+  if (!Number.isInteger(lang) || lang < 0 || lang > 65535)
+    throw new ValidationError(`windows-lang must be a uint16, got ${String(lang)}.`);
+  if (!Number.isInteger(codepage) || codepage < 0 || codepage > 65535)
+    throw new ValidationError(`windows-codepage must be a uint16, got ${String(codepage)}.`);
+  return {
+    icons,
+    productName: pick(env.productName, file?.productName),
+    productVersion: pick(env.productVersion, file?.productVersion),
+    fileVersion: pick(env.fileVersion, file?.fileVersion),
+    fileDescription: pick(env.fileDescription, file?.fileDescription),
+    companyName: pick(env.companyName, file?.companyName),
+    legalCopyright: pick(env.legalCopyright, file?.legalCopyright),
+    originalFilename: pick(env.originalFilename, file?.originalFilename),
+    internalName: pick(env.internalName, file?.internalName),
+    comments: pick(env.comments, file?.comments),
+    manifestPath: pick(env.manifestPath, file?.manifest),
+    lang,
+    codepage
+  };
+}
+function normalizeFileIcons(file) {
+  if (file === void 0) return [];
+  let out = /* @__PURE__ */ new Map();
+  if (typeof file.icon == "string" && file.icon.trim() !== "" && out.set(1, { id: 1, path: file.icon.trim() }), Array.isArray(file.icons))
+    for (let entry of file.icons) {
+      if (typeof entry == "string") {
+        let trimmed = entry.trim();
+        if (trimmed === "") continue;
+        out.set(1, { id: 1, path: trimmed });
+        continue;
+      }
+      if (typeof entry == "object" && entry !== null && typeof entry.id == "number" && typeof entry.path == "string") {
+        if (!Number.isInteger(entry.id) || entry.id < 1 || entry.id > 65535)
+          throw new ValidationError(
+            `windows-metadata-file: icon id ${String(entry.id)} is out of range (1..65535).`
+          );
+        let path7 = entry.path.trim();
+        if (path7 === "")
+          throw new ValidationError("windows-metadata-file: icon entry missing path.");
+        out.set(entry.id, { id: entry.id, path: path7 });
+        continue;
+      }
+      throw new ValidationError(
+        `windows-metadata-file: icons[] entry is neither a string nor {id, path}: ${JSON.stringify(entry)}.`
+      );
+    }
+  return [...out.values()].sort((a, b) => a.id - b.id);
+}
+async function parseWindowsMetadataInputs(opts = {}) {
+  let env = opts.env ?? process.env, readFile2 = opts.readFile ?? ((path7) => import("node:fs/promises").then((m) => m.readFile(path7, "utf8"))), prefix2 = opts.prefix ?? "windows-", read = (name) => readInputRaw(env, `${prefix2}${name}`), fileRaw = read("metadata-file"), iconRaw = read("icon"), productName = read("product-name"), productVersion = read("product-version"), fileVersion = read("file-version"), fileDescription = read("file-description"), companyName = read("company-name"), legalCopyright = read("legal-copyright"), originalFilename = read("original-filename"), internalName = read("internal-name"), comments = read("comments"), manifestPath = read("manifest"), langRaw = read("lang"), codepageRaw = read("codepage");
+  if (!(fileRaw !== void 0 || iconRaw !== void 0 || productName !== void 0 || productVersion !== void 0 || fileVersion !== void 0 || fileDescription !== void 0 || companyName !== void 0 || legalCopyright !== void 0 || originalFilename !== void 0 || internalName !== void 0 || comments !== void 0 || manifestPath !== void 0)) return null;
+  let fileData;
+  if (fileRaw !== void 0) {
+    let contents;
+    try {
+      contents = await readFile2(fileRaw);
+    } catch (err) {
+      throw new ValidationError(`Failed to read windows-metadata-file "${fileRaw}".`, {
+        cause: err
+      });
+    }
+    try {
+      let parsed = JSON.parse(contents);
+      if (parsed === null || typeof parsed != "object" || Array.isArray(parsed))
+        throw new ValidationError(
+          `windows-metadata-file "${fileRaw}" must contain a JSON object at the top level.`
+        );
+      fileData = parsed;
+    } catch (err) {
+      throw err instanceof ValidationError ? err : new ValidationError(
+        `windows-metadata-file "${fileRaw}" is not valid JSON: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
+  }
+  let envBag = {
+    icons: iconRaw === void 0 ? [] : parseIconSpec(iconRaw),
+    productName,
+    productVersion,
+    fileVersion,
+    fileDescription,
+    companyName,
+    legalCopyright,
+    originalFilename,
+    internalName,
+    comments,
+    manifestPath,
+    lang: langRaw === void 0 ? void 0 : parseUint16(langRaw, `${prefix2}lang`),
+    codepage: codepageRaw === void 0 ? void 0 : parseUint16(codepageRaw, `${prefix2}codepage`)
+  };
+  return mergeMetadataFile(envBag, fileData);
+}
+function parseUint16(raw, inputName) {
+  let n = Number(raw);
+  if (!Number.isInteger(n) || n < 0 || n > 65535)
+    throw new ValidationError(`${inputName} must be a uint16 integer, got "${raw}".`);
+  return n;
+}
+var init_windows_metadata = __esm({
+  "packages/core/src/windows-metadata.ts"() {
+    "use strict";
+    init_errors();
+    init_inputs();
+  }
+});
+
+// node_modules/pe-library/dist/format/FormatBase.js
+var FormatBase, FormatBase_default, init_FormatBase = __esm({
+  "node_modules/pe-library/dist/format/FormatBase.js"() {
+    FormatBase = /** @class */
+    (function() {
+      function FormatBase2(view) {
+        this.view = view;
+      }
+      return FormatBase2.prototype.copyTo = function(bin, offset) {
+        new Uint8Array(bin, offset, this.view.byteLength).set(new Uint8Array(this.view.buffer, this.view.byteOffset, this.view.byteLength));
+      }, Object.defineProperty(FormatBase2.prototype, "byteLength", {
+        get: function() {
+          return this.view.byteLength;
+        },
+        enumerable: !1,
+        configurable: !0
+      }), FormatBase2;
+    })(), FormatBase_default = FormatBase;
+  }
+});
+
+// node_modules/pe-library/dist/format/ArrayFormatBase.js
+var __extends, ArrayFormatBase, ArrayFormatBase_default, init_ArrayFormatBase = __esm({
+  "node_modules/pe-library/dist/format/ArrayFormatBase.js"() {
+    init_FormatBase();
+    __extends = /* @__PURE__ */ (function() {
+      var extendStatics = function(d, b) {
+        return extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
+          d2.__proto__ = b2;
+        } || function(d2, b2) {
+          for (var p in b2) Object.prototype.hasOwnProperty.call(b2, p) && (d2[p] = b2[p]);
+        }, extendStatics(d, b);
+      };
+      return function(d, b) {
+        if (typeof b != "function" && b !== null)
+          throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        extendStatics(d, b);
+        function __() {
+          this.constructor = d;
+        }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+      };
+    })(), ArrayFormatBase = /** @class */
+    (function(_super) {
+      __extends(ArrayFormatBase2, _super);
+      function ArrayFormatBase2(view) {
+        return _super.call(this, view) || this;
+      }
+      return ArrayFormatBase2.prototype.forEach = function(callback) {
+        var len = this.length, a = [];
+        a.length = len;
+        for (var i = 0; i < len; ++i)
+          a[i] = this.get(i);
+        for (var i = 0; i < len; ++i)
+          callback(a[i], i, this);
+      }, ArrayFormatBase2.prototype._iterator = function() {
+        return new /** @class */
+        ((function() {
+          function class_1(base) {
+            this.base = base, this.i = 0;
+          }
+          return class_1.prototype.next = function() {
+            return this.i === this.base.length ? {
+              value: void 0,
+              done: !0
+            } : {
+              value: this.base.get(this.i++),
+              done: !1
+            };
+          }, class_1;
+        })())(this);
+      }, ArrayFormatBase2;
+    })(FormatBase_default);
+    typeof Symbol < "u" && (ArrayFormatBase.prototype[Symbol.iterator] = // eslint-disable-next-line @typescript-eslint/unbound-method
+    ArrayFormatBase.prototype._iterator);
+    ArrayFormatBase_default = ArrayFormatBase;
+  }
+});
+
+// node_modules/pe-library/dist/format/ImageDataDirectoryArray.js
+var __extends2, ImageDataDirectoryArray, ImageDataDirectoryArray_default, init_ImageDataDirectoryArray = __esm({
+  "node_modules/pe-library/dist/format/ImageDataDirectoryArray.js"() {
+    init_ArrayFormatBase();
+    __extends2 = /* @__PURE__ */ (function() {
+      var extendStatics = function(d, b) {
+        return extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
+          d2.__proto__ = b2;
+        } || function(d2, b2) {
+          for (var p in b2) Object.prototype.hasOwnProperty.call(b2, p) && (d2[p] = b2[p]);
+        }, extendStatics(d, b);
+      };
+      return function(d, b) {
+        if (typeof b != "function" && b !== null)
+          throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        extendStatics(d, b);
+        function __() {
+          this.constructor = d;
+        }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+      };
+    })(), ImageDataDirectoryArray = /** @class */
+    (function(_super) {
+      __extends2(ImageDataDirectoryArray2, _super);
+      function ImageDataDirectoryArray2(view) {
+        var _this = _super.call(this, view) || this;
+        return _this.length = 16, _this;
+      }
+      return ImageDataDirectoryArray2.from = function(bin, offset) {
+        return offset === void 0 && (offset = 0), new ImageDataDirectoryArray2(new DataView(bin, offset, 128));
+      }, ImageDataDirectoryArray2.prototype.get = function(index) {
+        return {
+          virtualAddress: this.view.getUint32(index * 8, !0),
+          size: this.view.getUint32(4 + index * 8, !0)
+        };
+      }, ImageDataDirectoryArray2.prototype.set = function(index, data) {
+        this.view.setUint32(index * 8, data.virtualAddress, !0), this.view.setUint32(4 + index * 8, data.size, !0);
+      }, ImageDataDirectoryArray2.prototype.findIndexByVirtualAddress = function(virtualAddress) {
+        for (var i = 0; i < 16; ++i) {
+          var va = this.view.getUint32(i * 8, !0), vs = this.view.getUint32(4 + i * 8, !0);
+          if (virtualAddress >= va && virtualAddress < va + vs)
+            return i;
+        }
+        return null;
+      }, ImageDataDirectoryArray2.size = 128, ImageDataDirectoryArray2.itemSize = 8, ImageDataDirectoryArray2;
+    })(ArrayFormatBase_default), ImageDataDirectoryArray_default = ImageDataDirectoryArray;
+  }
+});
+
+// node_modules/pe-library/dist/format/ImageDirectoryEntry.js
+var ImageDirectoryEntry, ImageDirectoryEntry_default, init_ImageDirectoryEntry = __esm({
+  "node_modules/pe-library/dist/format/ImageDirectoryEntry.js"() {
+    ImageDirectoryEntry = {
+      Export: 0,
+      Import: 1,
+      Resource: 2,
+      Exception: 3,
+      Certificate: 4,
+      Security: 4,
+      BaseRelocation: 5,
+      Debug: 6,
+      Architecture: 7,
+      GlobalPointer: 8,
+      Tls: 9,
+      TLS: 9,
+      LoadConfig: 10,
+      BoundImport: 11,
+      Iat: 12,
+      IAT: 12,
+      DelayImport: 13,
+      ComDescriptor: 14,
+      COMDescriptor: 14
+      // alias
+    }, ImageDirectoryEntry_default = ImageDirectoryEntry;
+  }
+});
+
+// node_modules/pe-library/dist/util/functions.js
+function cloneObject(object) {
+  var r = {};
+  return Object.keys(object).forEach(function(key) {
+    r[key] = object[key];
+  }), r;
+}
+function createDataView(bin, byteOffset, byteLength) {
+  if ("buffer" in bin) {
+    var newOffset = bin.byteOffset, newLength = bin.byteLength;
+    return typeof byteOffset < "u" && (newOffset += byteOffset, newLength -= byteOffset), typeof byteLength < "u" && (newLength = byteLength), new DataView(bin.buffer, newOffset, newLength);
+  } else
+    return new DataView(bin, byteOffset, byteLength);
+}
+function calculateCheckSumForPE(bin, storeToBinary) {
+  for (var dosHeader = ImageDosHeader_default.from(bin), view = new DataView(bin), checkSumOffset = dosHeader.newHeaderAddress + 88, result = 0, limit = 4294967296, update3 = function(dword) {
+    result += dword, result >= limit && (result = result % limit + (result / limit | 0));
+  }, len = view.byteLength, lenExtra = len % 4, lenAlign = len - lenExtra, i = 0; i < lenAlign; i += 4)
+    i !== checkSumOffset && update3(view.getUint32(i, !0));
+  if (lenExtra !== 0) {
+    for (var extra = 0, i = 0; i < lenExtra; i++)
+      extra |= view.getUint8(lenAlign + i) << (3 - i) * 8;
+    update3(extra);
+  }
+  return result = (result & 65535) + (result >>> 16), result += result >>> 16, result = (result & 65535) + len, storeToBinary && view.setUint32(checkSumOffset, result, !0), result;
+}
+function roundUp(val, align) {
+  return Math.floor((val + align - 1) / align) * align;
+}
+function copyBuffer(dest, destOffset, src, srcOffset, length) {
+  var ua8Dest = "buffer" in dest ? new Uint8Array(dest.buffer, dest.byteOffset + (destOffset || 0), length) : new Uint8Array(dest, destOffset, length), ua8Src = "buffer" in src ? new Uint8Array(src.buffer, src.byteOffset + (srcOffset || 0), length) : new Uint8Array(src, srcOffset, length);
+  ua8Dest.set(ua8Src);
+}
+function allocatePartialBinary(binBase, offset, length) {
+  var b = new ArrayBuffer(length);
+  return copyBuffer(b, 0, binBase, offset, length), b;
+}
+function cloneToArrayBuffer(binBase) {
+  if ("buffer" in binBase) {
+    var b = new ArrayBuffer(binBase.byteLength);
+    return new Uint8Array(b).set(new Uint8Array(binBase.buffer, binBase.byteOffset, binBase.byteLength)), b;
+  } else {
+    var b = new ArrayBuffer(binBase.byteLength);
+    return new Uint8Array(b).set(new Uint8Array(binBase)), b;
+  }
+}
+function getFixedString(view, offset, length) {
+  for (var actualLen = 0, i = 0; i < length && view.getUint8(offset + i) !== 0; ++i)
+    ++actualLen;
+  if (typeof Buffer < "u")
+    return Buffer.from(view.buffer, view.byteOffset + offset, actualLen).toString("utf8");
+  if (typeof decodeURIComponent < "u") {
+    for (var s = "", i = 0; i < actualLen; ++i) {
+      var c = view.getUint8(offset + i);
+      c < 16 ? s += "%0" + c.toString(16) : s += "%" + c.toString(16);
+    }
+    return decodeURIComponent(s);
+  } else {
+    for (var s = "", i = 0; i < actualLen; ++i) {
+      var c = view.getUint8(offset + i);
+      s += String.fromCharCode(c);
+    }
+    return s;
+  }
+}
+function setFixedString(view, offset, length, text) {
+  if (typeof Buffer < "u") {
+    var u = new Uint8Array(view.buffer, view.byteOffset + offset, length);
+    u.set(new Uint8Array(length)), u.set(Buffer.from(text, "utf8").subarray(0, length));
+  } else if (typeof encodeURIComponent < "u")
+    for (var s = encodeURIComponent(text), i = 0, j = 0; i < length; ++i)
+      if (j >= s.length)
+        view.setUint8(i + offset, 0);
+      else {
+        var c = s.charCodeAt(j);
+        if (c === 37) {
+          var n = parseInt(s.substr(j + 1, 2), 16);
+          typeof n == "number" && !isNaN(n) ? view.setUint8(i + offset, n) : view.setUint8(i + offset, 0), j += 3;
+        } else
+          view.setUint8(i + offset, c);
+      }
+  else
+    for (var i = 0, j = 0; i < length; ++i)
+      if (j >= text.length)
+        view.setUint8(i + offset, 0);
+      else {
+        var c = text.charCodeAt(j);
+        view.setUint8(i + offset, c & 255);
+      }
+}
+function binaryToString(bin) {
+  if (typeof TextDecoder < "u") {
+    var dec = new TextDecoder();
+    return dec.decode(bin);
+  } else if (typeof Buffer < "u") {
+    var b = void 0;
+    return "buffer" in bin ? b = Buffer.from(bin.buffer, bin.byteOffset, bin.byteLength) : b = Buffer.from(bin), b.toString("utf8");
+  } else {
+    var view = void 0;
+    if ("buffer" in bin ? view = new Uint8Array(bin.buffer, bin.byteOffset, bin.byteLength) : view = new Uint8Array(bin), typeof decodeURIComponent < "u") {
+      for (var s = "", i = 0; i < view.length; ++i) {
+        var c = view[i];
+        c < 16 ? s += "%0" + c.toString(16) : s += "%" + c.toString(16);
+      }
+      return decodeURIComponent(s);
+    } else {
+      for (var s = "", i = 0; i < view.length; ++i) {
+        var c = view[i];
+        s += String.fromCharCode(c);
+      }
+      return s;
+    }
+  }
+}
+function stringToBinary(string) {
+  if (typeof TextEncoder < "u") {
+    var enc = new TextEncoder();
+    return cloneToArrayBuffer(enc.encode(string));
+  } else {
+    if (typeof Buffer < "u")
+      return cloneToArrayBuffer(Buffer.from(string, "utf8"));
+    if (typeof encodeURIComponent < "u") {
+      for (var data = encodeURIComponent(string), len = 0, i = 0; i < data.length; ++len) {
+        var c = data.charCodeAt(i);
+        c === 37 ? i += 3 : ++i;
+      }
+      for (var bin = new ArrayBuffer(len), view = new Uint8Array(bin), i = 0, j = 0; i < data.length; ++j) {
+        var c = data.charCodeAt(i);
+        if (c === 37) {
+          var n = parseInt(data.substring(i + 1, i + 3), 16);
+          view[j] = n, i += 3;
+        } else
+          view[j] = c, ++i;
+      }
+      return bin;
+    } else {
+      var bin = new ArrayBuffer(string.length);
+      return new Uint8Array(bin).set([].map.call(string, function(c2) {
+        return c2.charCodeAt(0);
+      })), bin;
+    }
+  }
+}
+var init_functions = __esm({
+  "node_modules/pe-library/dist/util/functions.js"() {
+    init_ImageDosHeader();
+  }
+});
+
+// node_modules/pe-library/dist/format/ImageDosHeader.js
+var __extends3, ImageDosHeader, ImageDosHeader_default, init_ImageDosHeader = __esm({
+  "node_modules/pe-library/dist/format/ImageDosHeader.js"() {
+    init_functions();
+    init_FormatBase();
+    __extends3 = /* @__PURE__ */ (function() {
+      var extendStatics = function(d, b) {
+        return extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
+          d2.__proto__ = b2;
+        } || function(d2, b2) {
+          for (var p in b2) Object.prototype.hasOwnProperty.call(b2, p) && (d2[p] = b2[p]);
+        }, extendStatics(d, b);
+      };
+      return function(d, b) {
+        if (typeof b != "function" && b !== null)
+          throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        extendStatics(d, b);
+        function __() {
+          this.constructor = d;
+        }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+      };
+    })(), ImageDosHeader = /** @class */
+    (function(_super) {
+      __extends3(ImageDosHeader2, _super);
+      function ImageDosHeader2(view) {
+        return _super.call(this, view) || this;
+      }
+      return ImageDosHeader2.from = function(bin, offset) {
+        return offset === void 0 && (offset = 0), new ImageDosHeader2(createDataView(bin, offset, 64));
+      }, ImageDosHeader2.prototype.isValid = function() {
+        return this.magic === ImageDosHeader2.DEFAULT_MAGIC;
+      }, Object.defineProperty(ImageDosHeader2.prototype, "magic", {
+        get: function() {
+          return this.view.getUint16(0, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(0, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageDosHeader2.prototype, "lastPageSize", {
+        get: function() {
+          return this.view.getUint16(2, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(2, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageDosHeader2.prototype, "pages", {
+        get: function() {
+          return this.view.getUint16(4, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(4, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageDosHeader2.prototype, "relocations", {
+        get: function() {
+          return this.view.getUint16(6, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(6, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageDosHeader2.prototype, "headerSizeInParagraph", {
+        get: function() {
+          return this.view.getUint16(8, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(8, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageDosHeader2.prototype, "minAllocParagraphs", {
+        get: function() {
+          return this.view.getUint16(10, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(10, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageDosHeader2.prototype, "maxAllocParagraphs", {
+        get: function() {
+          return this.view.getUint16(12, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(12, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageDosHeader2.prototype, "initialSS", {
+        get: function() {
+          return this.view.getUint16(14, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(14, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageDosHeader2.prototype, "initialSP", {
+        get: function() {
+          return this.view.getUint16(16, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(16, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageDosHeader2.prototype, "checkSum", {
+        get: function() {
+          return this.view.getUint16(18, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(18, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageDosHeader2.prototype, "initialIP", {
+        get: function() {
+          return this.view.getUint16(20, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(20, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageDosHeader2.prototype, "initialCS", {
+        get: function() {
+          return this.view.getUint16(22, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(22, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageDosHeader2.prototype, "relocationTableAddress", {
+        get: function() {
+          return this.view.getUint16(24, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(24, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageDosHeader2.prototype, "overlayNum", {
+        get: function() {
+          return this.view.getUint16(26, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(26, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageDosHeader2.prototype, "oemId", {
+        // WORD e_res[4] (28,30,32,34)
+        get: function() {
+          return this.view.getUint16(36, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(36, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageDosHeader2.prototype, "oemInfo", {
+        get: function() {
+          return this.view.getUint16(38, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(38, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageDosHeader2.prototype, "newHeaderAddress", {
+        // WORD e_res2[10] (40,42,44,46,48,50,52,54,56,58)
+        get: function() {
+          return this.view.getUint32(60, !0);
+        },
+        set: function(val) {
+          this.view.setUint32(60, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), ImageDosHeader2.size = 64, ImageDosHeader2.DEFAULT_MAGIC = 23117, ImageDosHeader2;
+    })(FormatBase_default), ImageDosHeader_default = ImageDosHeader;
+  }
+});
+
+// node_modules/pe-library/dist/format/ImageFileHeader.js
+var __extends4, ImageFileHeader, ImageFileHeader_default, init_ImageFileHeader = __esm({
+  "node_modules/pe-library/dist/format/ImageFileHeader.js"() {
+    init_FormatBase();
+    __extends4 = /* @__PURE__ */ (function() {
+      var extendStatics = function(d, b) {
+        return extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
+          d2.__proto__ = b2;
+        } || function(d2, b2) {
+          for (var p in b2) Object.prototype.hasOwnProperty.call(b2, p) && (d2[p] = b2[p]);
+        }, extendStatics(d, b);
+      };
+      return function(d, b) {
+        if (typeof b != "function" && b !== null)
+          throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        extendStatics(d, b);
+        function __() {
+          this.constructor = d;
+        }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+      };
+    })(), ImageFileHeader = /** @class */
+    (function(_super) {
+      __extends4(ImageFileHeader2, _super);
+      function ImageFileHeader2(view) {
+        return _super.call(this, view) || this;
+      }
+      return ImageFileHeader2.from = function(bin, offset) {
+        return offset === void 0 && (offset = 0), new ImageFileHeader2(new DataView(bin, offset, 20));
+      }, Object.defineProperty(ImageFileHeader2.prototype, "machine", {
+        get: function() {
+          return this.view.getUint16(0, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(0, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageFileHeader2.prototype, "numberOfSections", {
+        get: function() {
+          return this.view.getUint16(2, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(2, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageFileHeader2.prototype, "timeDateStamp", {
+        get: function() {
+          return this.view.getUint32(4, !0);
+        },
+        set: function(val) {
+          this.view.setUint32(4, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageFileHeader2.prototype, "pointerToSymbolTable", {
+        get: function() {
+          return this.view.getUint32(8, !0);
+        },
+        set: function(val) {
+          this.view.setUint32(8, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageFileHeader2.prototype, "numberOfSymbols", {
+        get: function() {
+          return this.view.getUint32(12, !0);
+        },
+        set: function(val) {
+          this.view.setUint32(12, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageFileHeader2.prototype, "sizeOfOptionalHeader", {
+        get: function() {
+          return this.view.getUint16(16, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(16, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageFileHeader2.prototype, "characteristics", {
+        get: function() {
+          return this.view.getUint16(18, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(18, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), ImageFileHeader2.size = 20, ImageFileHeader2;
+    })(FormatBase_default), ImageFileHeader_default = ImageFileHeader;
+  }
+});
+
+// node_modules/pe-library/dist/format/ImageOptionalHeader.js
+var __extends5, ImageOptionalHeader, ImageOptionalHeader_default, init_ImageOptionalHeader = __esm({
+  "node_modules/pe-library/dist/format/ImageOptionalHeader.js"() {
+    init_FormatBase();
+    __extends5 = /* @__PURE__ */ (function() {
+      var extendStatics = function(d, b) {
+        return extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
+          d2.__proto__ = b2;
+        } || function(d2, b2) {
+          for (var p in b2) Object.prototype.hasOwnProperty.call(b2, p) && (d2[p] = b2[p]);
+        }, extendStatics(d, b);
+      };
+      return function(d, b) {
+        if (typeof b != "function" && b !== null)
+          throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        extendStatics(d, b);
+        function __() {
+          this.constructor = d;
+        }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+      };
+    })(), ImageOptionalHeader = /** @class */
+    (function(_super) {
+      __extends5(ImageOptionalHeader2, _super);
+      function ImageOptionalHeader2(view) {
+        return _super.call(this, view) || this;
+      }
+      return ImageOptionalHeader2.from = function(bin, offset) {
+        return offset === void 0 && (offset = 0), new ImageOptionalHeader2(new DataView(bin, offset, 96));
+      }, Object.defineProperty(ImageOptionalHeader2.prototype, "magic", {
+        get: function() {
+          return this.view.getUint16(0, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(0, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader2.prototype, "majorLinkerVersion", {
+        get: function() {
+          return this.view.getUint8(2);
+        },
+        set: function(val) {
+          this.view.setUint8(2, val);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader2.prototype, "minorLinkerVersion", {
+        get: function() {
+          return this.view.getUint8(3);
+        },
+        set: function(val) {
+          this.view.setUint8(3, val);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader2.prototype, "sizeOfCode", {
+        get: function() {
+          return this.view.getUint32(4, !0);
+        },
+        set: function(val) {
+          this.view.setUint32(4, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader2.prototype, "sizeOfInitializedData", {
+        get: function() {
+          return this.view.getUint32(8, !0);
+        },
+        set: function(val) {
+          this.view.setUint32(8, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader2.prototype, "sizeOfUninitializedData", {
+        get: function() {
+          return this.view.getUint32(12, !0);
+        },
+        set: function(val) {
+          this.view.setUint32(12, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader2.prototype, "addressOfEntryPoint", {
+        get: function() {
+          return this.view.getUint32(16, !0);
+        },
+        set: function(val) {
+          this.view.setUint32(16, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader2.prototype, "baseOfCode", {
+        get: function() {
+          return this.view.getUint32(20, !0);
+        },
+        set: function(val) {
+          this.view.setUint32(20, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader2.prototype, "baseOfData", {
+        get: function() {
+          return this.view.getUint32(24, !0);
+        },
+        set: function(val) {
+          this.view.setUint32(24, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader2.prototype, "imageBase", {
+        get: function() {
+          return this.view.getUint32(28, !0);
+        },
+        set: function(val) {
+          this.view.setUint32(28, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader2.prototype, "sectionAlignment", {
+        get: function() {
+          return this.view.getUint32(32, !0);
+        },
+        set: function(val) {
+          this.view.setUint32(32, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader2.prototype, "fileAlignment", {
+        get: function() {
+          return this.view.getUint32(36, !0);
+        },
+        set: function(val) {
+          this.view.setUint32(36, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader2.prototype, "majorOperatingSystemVersion", {
+        get: function() {
+          return this.view.getUint16(40, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(40, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader2.prototype, "minorOperatingSystemVersion", {
+        get: function() {
+          return this.view.getUint16(42, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(42, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader2.prototype, "majorImageVersion", {
+        get: function() {
+          return this.view.getUint16(44, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(44, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader2.prototype, "minorImageVersion", {
+        get: function() {
+          return this.view.getUint16(46, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(46, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader2.prototype, "majorSubsystemVersion", {
+        get: function() {
+          return this.view.getUint16(48, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(48, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader2.prototype, "minorSubsystemVersion", {
+        get: function() {
+          return this.view.getUint16(50, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(50, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader2.prototype, "win32VersionValue", {
+        get: function() {
+          return this.view.getUint32(52, !0);
+        },
+        set: function(val) {
+          this.view.setUint32(52, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader2.prototype, "sizeOfImage", {
+        get: function() {
+          return this.view.getUint32(56, !0);
+        },
+        set: function(val) {
+          this.view.setUint32(56, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader2.prototype, "sizeOfHeaders", {
+        get: function() {
+          return this.view.getUint32(60, !0);
+        },
+        set: function(val) {
+          this.view.setUint32(60, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader2.prototype, "checkSum", {
+        get: function() {
+          return this.view.getUint32(64, !0);
+        },
+        set: function(val) {
+          this.view.setUint32(64, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader2.prototype, "subsystem", {
+        get: function() {
+          return this.view.getUint16(68, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(68, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader2.prototype, "dllCharacteristics", {
+        get: function() {
+          return this.view.getUint16(70, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(70, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader2.prototype, "sizeOfStackReserve", {
+        get: function() {
+          return this.view.getUint32(72, !0);
+        },
+        set: function(val) {
+          this.view.setUint32(72, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader2.prototype, "sizeOfStackCommit", {
+        get: function() {
+          return this.view.getUint32(76, !0);
+        },
+        set: function(val) {
+          this.view.setUint32(76, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader2.prototype, "sizeOfHeapReserve", {
+        get: function() {
+          return this.view.getUint32(80, !0);
+        },
+        set: function(val) {
+          this.view.setUint32(80, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader2.prototype, "sizeOfHeapCommit", {
+        get: function() {
+          return this.view.getUint32(84, !0);
+        },
+        set: function(val) {
+          this.view.setUint32(84, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader2.prototype, "loaderFlags", {
+        get: function() {
+          return this.view.getUint32(88, !0);
+        },
+        set: function(val) {
+          this.view.setUint32(88, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader2.prototype, "numberOfRvaAndSizes", {
+        get: function() {
+          return this.view.getUint32(92, !0);
+        },
+        set: function(val) {
+          this.view.setUint32(92, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), ImageOptionalHeader2.size = 96, ImageOptionalHeader2.DEFAULT_MAGIC = 267, ImageOptionalHeader2;
+    })(FormatBase_default), ImageOptionalHeader_default = ImageOptionalHeader;
+  }
+});
+
+// node_modules/pe-library/dist/format/ImageOptionalHeader64.js
+function getUint64LE(view, offset) {
+  return view.getUint32(offset + 4, !0) * 4294967296 + view.getUint32(offset, !0);
+}
+function setUint64LE(view, offset, val) {
+  view.setUint32(offset, val & 4294967295, !0), view.setUint32(offset + 4, Math.floor(val / 4294967296), !0);
+}
+function getUint64LEBigInt(view, offset) {
+  if (typeof BigInt > "u")
+    throw new Error("BigInt not supported");
+  return BigInt(4294967296) * BigInt(view.getUint32(offset + 4, !0)) + BigInt(view.getUint32(offset, !0));
+}
+function setUint64LEBigInt(view, offset, val) {
+  if (typeof BigInt > "u")
+    throw new Error("BigInt not supported");
+  view.setUint32(offset, Number(val & BigInt(4294967295)), !0), view.setUint32(offset + 4, Math.floor(Number(val / BigInt(4294967296) & BigInt(4294967295))), !0);
+}
+var __extends6, ImageOptionalHeader64, ImageOptionalHeader64_default, init_ImageOptionalHeader64 = __esm({
+  "node_modules/pe-library/dist/format/ImageOptionalHeader64.js"() {
+    init_FormatBase();
+    __extends6 = /* @__PURE__ */ (function() {
+      var extendStatics = function(d, b) {
+        return extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
+          d2.__proto__ = b2;
+        } || function(d2, b2) {
+          for (var p in b2) Object.prototype.hasOwnProperty.call(b2, p) && (d2[p] = b2[p]);
+        }, extendStatics(d, b);
+      };
+      return function(d, b) {
+        if (typeof b != "function" && b !== null)
+          throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        extendStatics(d, b);
+        function __() {
+          this.constructor = d;
+        }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+      };
+    })();
+    ImageOptionalHeader64 = /** @class */
+    (function(_super) {
+      __extends6(ImageOptionalHeader642, _super);
+      function ImageOptionalHeader642(view) {
+        return _super.call(this, view) || this;
+      }
+      return ImageOptionalHeader642.from = function(bin, offset) {
+        return offset === void 0 && (offset = 0), new ImageOptionalHeader642(new DataView(bin, offset, 112));
+      }, Object.defineProperty(ImageOptionalHeader642.prototype, "magic", {
+        get: function() {
+          return this.view.getUint16(0, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(0, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader642.prototype, "majorLinkerVersion", {
+        get: function() {
+          return this.view.getUint8(2);
+        },
+        set: function(val) {
+          this.view.setUint8(2, val);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader642.prototype, "minorLinkerVersion", {
+        get: function() {
+          return this.view.getUint8(3);
+        },
+        set: function(val) {
+          this.view.setUint8(3, val);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfCode", {
+        get: function() {
+          return this.view.getUint32(4, !0);
+        },
+        set: function(val) {
+          this.view.setUint32(4, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfInitializedData", {
+        get: function() {
+          return this.view.getUint32(8, !0);
+        },
+        set: function(val) {
+          this.view.setUint32(8, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfUninitializedData", {
+        get: function() {
+          return this.view.getUint32(12, !0);
+        },
+        set: function(val) {
+          this.view.setUint32(12, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader642.prototype, "addressOfEntryPoint", {
+        get: function() {
+          return this.view.getUint32(16, !0);
+        },
+        set: function(val) {
+          this.view.setUint32(16, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader642.prototype, "baseOfCode", {
+        get: function() {
+          return this.view.getUint32(20, !0);
+        },
+        set: function(val) {
+          this.view.setUint32(20, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader642.prototype, "imageBase", {
+        get: function() {
+          return getUint64LE(this.view, 24);
+        },
+        set: function(val) {
+          setUint64LE(this.view, 24, val);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader642.prototype, "imageBaseBigInt", {
+        get: function() {
+          return getUint64LEBigInt(this.view, 24);
+        },
+        set: function(val) {
+          setUint64LEBigInt(this.view, 24, val);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader642.prototype, "sectionAlignment", {
+        get: function() {
+          return this.view.getUint32(32, !0);
+        },
+        set: function(val) {
+          this.view.setUint32(32, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader642.prototype, "fileAlignment", {
+        get: function() {
+          return this.view.getUint32(36, !0);
+        },
+        set: function(val) {
+          this.view.setUint32(36, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader642.prototype, "majorOperatingSystemVersion", {
+        get: function() {
+          return this.view.getUint16(40, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(40, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader642.prototype, "minorOperatingSystemVersion", {
+        get: function() {
+          return this.view.getUint16(42, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(42, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader642.prototype, "majorImageVersion", {
+        get: function() {
+          return this.view.getUint16(44, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(44, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader642.prototype, "minorImageVersion", {
+        get: function() {
+          return this.view.getUint16(46, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(46, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader642.prototype, "majorSubsystemVersion", {
+        get: function() {
+          return this.view.getUint16(48, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(48, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader642.prototype, "minorSubsystemVersion", {
+        get: function() {
+          return this.view.getUint16(50, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(50, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader642.prototype, "win32VersionValue", {
+        get: function() {
+          return this.view.getUint32(52, !0);
+        },
+        set: function(val) {
+          this.view.setUint32(52, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfImage", {
+        get: function() {
+          return this.view.getUint32(56, !0);
+        },
+        set: function(val) {
+          this.view.setUint32(56, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfHeaders", {
+        get: function() {
+          return this.view.getUint32(60, !0);
+        },
+        set: function(val) {
+          this.view.setUint32(60, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader642.prototype, "checkSum", {
+        get: function() {
+          return this.view.getUint32(64, !0);
+        },
+        set: function(val) {
+          this.view.setUint32(64, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader642.prototype, "subsystem", {
+        get: function() {
+          return this.view.getUint16(68, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(68, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader642.prototype, "dllCharacteristics", {
+        get: function() {
+          return this.view.getUint16(70, !0);
+        },
+        set: function(val) {
+          this.view.setUint16(70, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfStackReserve", {
+        get: function() {
+          return getUint64LE(this.view, 72);
+        },
+        set: function(val) {
+          setUint64LE(this.view, 72, val);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfStackReserveBigInt", {
+        get: function() {
+          return getUint64LEBigInt(this.view, 72);
+        },
+        set: function(val) {
+          setUint64LEBigInt(this.view, 72, val);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfStackCommit", {
+        get: function() {
+          return getUint64LE(this.view, 80);
+        },
+        set: function(val) {
+          setUint64LE(this.view, 80, val);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfStackCommitBigInt", {
+        get: function() {
+          return getUint64LEBigInt(this.view, 80);
+        },
+        set: function(val) {
+          setUint64LEBigInt(this.view, 80, val);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfHeapReserve", {
+        get: function() {
+          return getUint64LE(this.view, 88);
+        },
+        set: function(val) {
+          setUint64LE(this.view, 88, val);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfHeapReserveBigInt", {
+        get: function() {
+          return getUint64LEBigInt(this.view, 88);
+        },
+        set: function(val) {
+          setUint64LEBigInt(this.view, 88, val);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfHeapCommit", {
+        get: function() {
+          return getUint64LE(this.view, 96);
+        },
+        set: function(val) {
+          setUint64LE(this.view, 96, val);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfHeapCommitBigInt", {
+        get: function() {
+          return getUint64LEBigInt(this.view, 96);
+        },
+        set: function(val) {
+          setUint64LEBigInt(this.view, 96, val);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader642.prototype, "loaderFlags", {
+        get: function() {
+          return this.view.getUint32(104, !0);
+        },
+        set: function(val) {
+          this.view.setUint32(104, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageOptionalHeader642.prototype, "numberOfRvaAndSizes", {
+        get: function() {
+          return this.view.getUint32(108, !0);
+        },
+        set: function(val) {
+          this.view.setUint32(108, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), ImageOptionalHeader642.size = 112, ImageOptionalHeader642.DEFAULT_MAGIC = 523, ImageOptionalHeader642;
+    })(FormatBase_default), ImageOptionalHeader64_default = ImageOptionalHeader64;
+  }
+});
+
+// node_modules/pe-library/dist/format/ImageNtHeaders.js
+var __extends7, ImageNtHeaders, ImageNtHeaders_default, init_ImageNtHeaders = __esm({
+  "node_modules/pe-library/dist/format/ImageNtHeaders.js"() {
+    init_functions();
+    init_FormatBase();
+    init_ImageDataDirectoryArray();
+    init_ImageFileHeader();
+    init_ImageOptionalHeader();
+    init_ImageOptionalHeader64();
+    __extends7 = /* @__PURE__ */ (function() {
+      var extendStatics = function(d, b) {
+        return extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
+          d2.__proto__ = b2;
+        } || function(d2, b2) {
+          for (var p in b2) Object.prototype.hasOwnProperty.call(b2, p) && (d2[p] = b2[p]);
+        }, extendStatics(d, b);
+      };
+      return function(d, b) {
+        if (typeof b != "function" && b !== null)
+          throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        extendStatics(d, b);
+        function __() {
+          this.constructor = d;
+        }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+      };
+    })(), ImageNtHeaders = /** @class */
+    (function(_super) {
+      __extends7(ImageNtHeaders2, _super);
+      function ImageNtHeaders2(view) {
+        return _super.call(this, view) || this;
+      }
+      return ImageNtHeaders2.from = function(bin, offset) {
+        offset === void 0 && (offset = 0);
+        var magic = createDataView(bin, offset + ImageFileHeader_default.size, 6).getUint16(4, !0), len = 4 + ImageFileHeader_default.size + ImageDataDirectoryArray_default.size;
+        return magic === ImageOptionalHeader64_default.DEFAULT_MAGIC ? len += ImageOptionalHeader64_default.size : len += ImageOptionalHeader_default.size, new ImageNtHeaders2(createDataView(bin, offset, len));
+      }, ImageNtHeaders2.prototype.isValid = function() {
+        return this.signature === ImageNtHeaders2.DEFAULT_SIGNATURE;
+      }, ImageNtHeaders2.prototype.is32bit = function() {
+        return this.view.getUint16(ImageFileHeader_default.size + 4, !0) === ImageOptionalHeader_default.DEFAULT_MAGIC;
+      }, Object.defineProperty(ImageNtHeaders2.prototype, "signature", {
+        get: function() {
+          return this.view.getUint32(0, !0);
+        },
+        set: function(val) {
+          this.view.setUint32(0, val, !0);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageNtHeaders2.prototype, "fileHeader", {
+        get: function() {
+          return ImageFileHeader_default.from(this.view.buffer, this.view.byteOffset + 4);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageNtHeaders2.prototype, "optionalHeader", {
+        get: function() {
+          var off = ImageFileHeader_default.size + 4, magic = this.view.getUint16(off, !0);
+          return magic === ImageOptionalHeader64_default.DEFAULT_MAGIC ? ImageOptionalHeader64_default.from(this.view.buffer, this.view.byteOffset + off) : ImageOptionalHeader_default.from(this.view.buffer, this.view.byteOffset + off);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(ImageNtHeaders2.prototype, "optionalHeaderDataDirectory", {
+        get: function() {
+          return ImageDataDirectoryArray_default.from(this.view.buffer, this.view.byteOffset + this.getDataDirectoryOffset());
+        },
+        enumerable: !1,
+        configurable: !0
+      }), ImageNtHeaders2.prototype.getDataDirectoryOffset = function() {
+        var off = ImageFileHeader_default.size + 4, magic = this.view.getUint16(off, !0);
+        return magic === ImageOptionalHeader64_default.DEFAULT_MAGIC ? off += ImageOptionalHeader64_default.size : off += ImageOptionalHeader_default.size, off;
+      }, ImageNtHeaders2.prototype.getSectionHeaderOffset = function() {
+        return this.getDataDirectoryOffset() + ImageDataDirectoryArray_default.size;
+      }, ImageNtHeaders2.DEFAULT_SIGNATURE = 17744, ImageNtHeaders2;
+    })(FormatBase_default), ImageNtHeaders_default = ImageNtHeaders;
+  }
+});
+
+// node_modules/pe-library/dist/format/ImageSectionHeaderArray.js
+var __extends8, ImageSectionHeaderArray, ImageSectionHeaderArray_default, init_ImageSectionHeaderArray = __esm({
+  "node_modules/pe-library/dist/format/ImageSectionHeaderArray.js"() {
+    init_functions();
+    init_ArrayFormatBase();
+    __extends8 = /* @__PURE__ */ (function() {
+      var extendStatics = function(d, b) {
+        return extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
+          d2.__proto__ = b2;
+        } || function(d2, b2) {
+          for (var p in b2) Object.prototype.hasOwnProperty.call(b2, p) && (d2[p] = b2[p]);
+        }, extendStatics(d, b);
+      };
+      return function(d, b) {
+        if (typeof b != "function" && b !== null)
+          throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        extendStatics(d, b);
+        function __() {
+          this.constructor = d;
+        }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+      };
+    })(), ImageSectionHeaderArray = /** @class */
+    (function(_super) {
+      __extends8(ImageSectionHeaderArray2, _super);
+      function ImageSectionHeaderArray2(view, length) {
+        var _this = _super.call(this, view) || this;
+        return _this.length = length, _this;
+      }
+      return ImageSectionHeaderArray2.from = function(bin, length, offset) {
+        offset === void 0 && (offset = 0);
+        var size = length * 40;
+        return new ImageSectionHeaderArray2(new DataView(bin, offset, size), length);
+      }, ImageSectionHeaderArray2.prototype.get = function(index) {
+        return {
+          name: getFixedString(this.view, index * 40, 8),
+          virtualSize: this.view.getUint32(8 + index * 40, !0),
+          virtualAddress: this.view.getUint32(12 + index * 40, !0),
+          sizeOfRawData: this.view.getUint32(16 + index * 40, !0),
+          pointerToRawData: this.view.getUint32(20 + index * 40, !0),
+          pointerToRelocations: this.view.getUint32(24 + index * 40, !0),
+          pointerToLineNumbers: this.view.getUint32(28 + index * 40, !0),
+          numberOfRelocations: this.view.getUint16(32 + index * 40, !0),
+          numberOfLineNumbers: this.view.getUint16(34 + index * 40, !0),
+          characteristics: this.view.getUint32(36 + index * 40, !0)
+        };
+      }, ImageSectionHeaderArray2.prototype.set = function(index, data) {
+        setFixedString(this.view, index * 40, 8, data.name), this.view.setUint32(8 + index * 40, data.virtualSize, !0), this.view.setUint32(12 + index * 40, data.virtualAddress, !0), this.view.setUint32(16 + index * 40, data.sizeOfRawData, !0), this.view.setUint32(20 + index * 40, data.pointerToRawData, !0), this.view.setUint32(24 + index * 40, data.pointerToRelocations, !0), this.view.setUint32(28 + index * 40, data.pointerToLineNumbers, !0), this.view.setUint16(32 + index * 40, data.numberOfRelocations, !0), this.view.setUint16(34 + index * 40, data.numberOfLineNumbers, !0), this.view.setUint32(36 + index * 40, data.characteristics, !0);
+      }, ImageSectionHeaderArray2.itemSize = 40, ImageSectionHeaderArray2;
+    })(ArrayFormatBase_default), ImageSectionHeaderArray_default = ImageSectionHeaderArray;
+  }
+});
+
+// node_modules/pe-library/dist/format/index.js
+var init_format = __esm({
+  "node_modules/pe-library/dist/format/index.js"() {
+    init_ArrayFormatBase();
+    init_FormatBase();
+    init_ImageDataDirectoryArray();
+    init_ImageDirectoryEntry();
+    init_ImageDosHeader();
+    init_ImageFileHeader();
+    init_ImageNtHeaders();
+    init_ImageOptionalHeader();
+    init_ImageOptionalHeader64();
+    init_ImageSectionHeaderArray();
+  }
+});
+
+// node_modules/pe-library/dist/util/generate.js
+function fillDosStubData(bin) {
+  var dos = ImageDosHeader_default.from(bin);
+  dos.magic = ImageDosHeader_default.DEFAULT_MAGIC, dos.lastPageSize = DOS_STUB_SIZE % 512, dos.pages = Math.ceil(DOS_STUB_SIZE / 512), dos.relocations = 0, dos.headerSizeInParagraph = Math.ceil(ImageDosHeader_default.size / 16), dos.minAllocParagraphs = 0, dos.maxAllocParagraphs = 65535, dos.initialSS = 0, dos.initialSP = 128, dos.relocationTableAddress = ImageDosHeader_default.size, dos.newHeaderAddress = DOS_STUB_SIZE, copyBuffer(bin, ImageDosHeader_default.size, DOS_STUB_PROGRAM, 0, DOS_STUB_PROGRAM.length);
+}
+function estimateNewHeaderSize(is32Bit) {
+  return (
+    // magic
+    4 + ImageFileHeader_default.size + (is32Bit ? ImageOptionalHeader_default.size : ImageOptionalHeader64_default.size) + ImageDataDirectoryArray_default.size
+  );
+}
+function fillPeHeaderEmptyData(bin, offset, totalBinSize, is32Bit, isDLL) {
+  var _bin, _offset;
+  "buffer" in bin ? (_bin = bin.buffer, _offset = bin.byteOffset + offset) : (_bin = bin, _offset = offset), new DataView(_bin, _offset).setUint32(0, ImageNtHeaders_default.DEFAULT_SIGNATURE, !0);
+  var fh = ImageFileHeader_default.from(_bin, _offset + 4);
+  fh.machine = is32Bit ? 332 : 34404, fh.numberOfSections = 0, fh.timeDateStamp = 0, fh.pointerToSymbolTable = 0, fh.numberOfSymbols = 0, fh.sizeOfOptionalHeader = (is32Bit ? ImageOptionalHeader_default.size : ImageOptionalHeader64_default.size) + ImageDataDirectoryArray_default.size, fh.characteristics = isDLL ? 8450 : 258;
+  var oh = (is32Bit ? ImageOptionalHeader_default : ImageOptionalHeader64_default).from(_bin, _offset + 4 + ImageFileHeader_default.size);
+  oh.magic = is32Bit ? ImageOptionalHeader_default.DEFAULT_MAGIC : ImageOptionalHeader64_default.DEFAULT_MAGIC, oh.sizeOfCode = 0, oh.sizeOfInitializedData = 0, oh.sizeOfUninitializedData = 0, oh.addressOfEntryPoint = 0, oh.baseOfCode = 4096, oh.imageBase = is32Bit ? 16777216 : 6442450944, oh.sectionAlignment = 4096, oh.fileAlignment = DEFAULT_FILE_ALIGNMENT, oh.majorOperatingSystemVersion = 6, oh.minorOperatingSystemVersion = 0, oh.majorSubsystemVersion = 6, oh.minorSubsystemVersion = 0, oh.sizeOfHeaders = roundUp(totalBinSize, oh.fileAlignment), oh.subsystem = 2, oh.dllCharacteristics = (is32Bit ? 0 : 32) + // IMAGE_DLL_CHARACTERISTICS_HIGH_ENTROPY_VA
+  64 + // IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE
+  256, oh.sizeOfStackReserve = 1048576, oh.sizeOfStackCommit = 4096, oh.sizeOfHeapReserve = 1048576, oh.sizeOfHeapCommit = 4096, oh.numberOfRvaAndSizes = ImageDataDirectoryArray_default.size / ImageDataDirectoryArray_default.itemSize;
+}
+function makeEmptyNtExecutableBinary(is32Bit, isDLL) {
+  var bufferSize = roundUp(DOS_STUB_SIZE + estimateNewHeaderSize(is32Bit), DEFAULT_FILE_ALIGNMENT), bin = new ArrayBuffer(bufferSize);
+  return fillDosStubData(bin), fillPeHeaderEmptyData(bin, DOS_STUB_SIZE, bufferSize, is32Bit, isDLL), bin;
+}
+var DOS_STUB_PROGRAM, DOS_STUB_SIZE, DEFAULT_FILE_ALIGNMENT, init_generate = __esm({
+  "node_modules/pe-library/dist/util/generate.js"() {
+    init_ImageDataDirectoryArray();
+    init_ImageDosHeader();
+    init_ImageFileHeader();
+    init_ImageNtHeaders();
+    init_ImageOptionalHeader();
+    init_ImageOptionalHeader64();
+    init_functions();
+    DOS_STUB_PROGRAM = new Uint8Array([
+      14,
+      31,
+      186,
+      14,
+      0,
+      180,
+      9,
+      205,
+      33,
+      184,
+      1,
+      76,
+      205,
+      33,
+      68,
+      79,
+      83,
+      32,
+      109,
+      111,
+      100,
+      101,
+      32,
+      110,
+      111,
+      116,
+      32,
+      115,
+      117,
+      112,
+      112,
+      111,
+      114,
+      116,
+      101,
+      100,
+      46,
+      13,
+      13,
+      10,
+      36,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ]), DOS_STUB_SIZE = roundUp(ImageDosHeader_default.size + DOS_STUB_PROGRAM.length, 128), DEFAULT_FILE_ALIGNMENT = 512;
+  }
+});
+
+// node_modules/pe-library/dist/NtExecutable.js
+var NtExecutable, NtExecutable_default, init_NtExecutable = __esm({
+  "node_modules/pe-library/dist/NtExecutable.js"() {
+    init_ImageDataDirectoryArray();
+    init_ImageDirectoryEntry();
+    init_ImageDosHeader();
+    init_ImageNtHeaders();
+    init_ImageSectionHeaderArray();
+    init_functions();
+    init_generate();
+    NtExecutable = /** @class */
+    (function() {
+      function NtExecutable2(_headers, _sections, _ex) {
+        this._headers = _headers, this._sections = _sections, this._ex = _ex;
+        var dh = ImageDosHeader_default.from(_headers), nh = ImageNtHeaders_default.from(_headers, dh.newHeaderAddress);
+        this._dh = dh, this._nh = nh, this._dda = nh.optionalHeaderDataDirectory, _sections.sort(function(a, b) {
+          var ra = a.info.pointerToRawData, rb = a.info.pointerToRawData;
+          if (ra !== rb)
+            return ra - rb;
+          var va = a.info.virtualAddress, vb = b.info.virtualAddress;
+          return va === vb ? a.info.virtualSize - b.info.virtualSize : va - vb;
+        });
+      }
+      return NtExecutable2.createEmpty = function(is32Bit, isDLL) {
+        return is32Bit === void 0 && (is32Bit = !1), isDLL === void 0 && (isDLL = !0), this.from(makeEmptyNtExecutableBinary(is32Bit, isDLL));
+      }, NtExecutable2.from = function(bin, options) {
+        var dh = ImageDosHeader_default.from(bin), nh = ImageNtHeaders_default.from(bin, dh.newHeaderAddress);
+        if (!dh.isValid() || !nh.isValid())
+          throw new TypeError("Invalid binary format");
+        if (nh.fileHeader.numberOfSymbols > 0)
+          throw new Error("Binary with symbols is not supported now");
+        var fileAlignment = nh.optionalHeader.fileAlignment, securityEntry = nh.optionalHeaderDataDirectory.get(ImageDirectoryEntry_default.Certificate);
+        if (securityEntry.size > 0 && !options?.ignoreCert)
+          throw new Error("Parsing signed executable binary is not allowed by default.");
+        var secOff = dh.newHeaderAddress + nh.getSectionHeaderOffset(), secCount = nh.fileHeader.numberOfSections, sections = [], tempSectionHeaderBinary = allocatePartialBinary(bin, secOff, secCount * ImageSectionHeaderArray_default.itemSize), secArray = ImageSectionHeaderArray_default.from(tempSectionHeaderBinary, secCount, 0), lastOffset = roundUp(secOff + secCount * ImageSectionHeaderArray_default.itemSize, fileAlignment);
+        secArray.forEach(function(info2) {
+          if (!info2.pointerToRawData || !info2.sizeOfRawData)
+            info2.pointerToRawData = 0, info2.sizeOfRawData = 0, sections.push({
+              info: info2,
+              data: null
+            });
+          else {
+            var secBin = allocatePartialBinary(bin, info2.pointerToRawData, info2.sizeOfRawData);
+            sections.push({
+              info: info2,
+              data: secBin
+            });
+            var secEndOffset = roundUp(info2.pointerToRawData + info2.sizeOfRawData, fileAlignment);
+            secEndOffset > lastOffset && (lastOffset = secEndOffset);
+          }
+        });
+        var headers = allocatePartialBinary(bin, 0, secOff), exData = null, lastExDataOffset = bin.byteLength;
+        return securityEntry.size > 0 && (lastExDataOffset = securityEntry.virtualAddress), lastOffset < lastExDataOffset && (exData = allocatePartialBinary(bin, lastOffset, lastExDataOffset - lastOffset)), new NtExecutable2(headers, sections, exData);
+      }, NtExecutable2.prototype.is32bit = function() {
+        return this._nh.is32bit();
+      }, NtExecutable2.prototype.getTotalHeaderSize = function() {
+        return this._headers.byteLength;
+      }, Object.defineProperty(NtExecutable2.prototype, "dosHeader", {
+        get: function() {
+          return this._dh;
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(NtExecutable2.prototype, "newHeader", {
+        get: function() {
+          return this._nh;
+        },
+        enumerable: !1,
+        configurable: !0
+      }), NtExecutable2.prototype.getRawHeader = function() {
+        return this._headers;
+      }, NtExecutable2.prototype.getImageBase = function() {
+        return this._nh.optionalHeader.imageBase;
+      }, NtExecutable2.prototype.getFileAlignment = function() {
+        return this._nh.optionalHeader.fileAlignment;
+      }, NtExecutable2.prototype.getSectionAlignment = function() {
+        return this._nh.optionalHeader.sectionAlignment;
+      }, NtExecutable2.prototype.getAllSections = function() {
+        return this._sections;
+      }, NtExecutable2.prototype.getSectionByEntry = function(entry) {
+        var dd = this._dda.get(entry), r = this._sections.filter(function(sec) {
+          var vaEnd = sec.info.virtualAddress + sec.info.virtualSize;
+          return dd.virtualAddress >= sec.info.virtualAddress && dd.virtualAddress < vaEnd;
+        }).shift();
+        return r !== void 0 ? r : null;
+      }, NtExecutable2.prototype.setSectionByEntry = function(entry, section) {
+        var sec = section ? { data: section.data, info: section.info } : null, dd = this._dda.get(entry), hasEntry = dd.size > 0;
+        if (sec) {
+          var rawSize = sec.data ? sec.data.byteLength : 0, fileAlign = this._nh.optionalHeader.fileAlignment, secAlign = this._nh.optionalHeader.sectionAlignment, alignedFileSize = sec.data ? roundUp(rawSize, fileAlign) : 0, alignedSecSize = sec.data ? roundUp(sec.info.virtualSize, secAlign) : 0;
+          if (sec.info.sizeOfRawData < alignedFileSize ? sec.info.sizeOfRawData = alignedFileSize : alignedFileSize = sec.info.sizeOfRawData, hasEntry)
+            this.replaceSectionImpl(dd.virtualAddress, sec.info, sec.data);
+          else {
+            var virtAddr_1 = 0, rawAddr_1 = roundUp(this._headers.byteLength, fileAlign);
+            this._sections.forEach(function(secExist) {
+              secExist.info.pointerToRawData && rawAddr_1 <= secExist.info.pointerToRawData && (rawAddr_1 = secExist.info.pointerToRawData + secExist.info.sizeOfRawData), virtAddr_1 <= secExist.info.virtualAddress && (virtAddr_1 = secExist.info.virtualAddress + secExist.info.virtualSize);
+            }), alignedFileSize || (rawAddr_1 = 0), virtAddr_1 || (virtAddr_1 = this.newHeader.optionalHeader.baseOfCode), virtAddr_1 = roundUp(virtAddr_1, secAlign), sec.info.pointerToRawData = rawAddr_1, sec.info.virtualAddress = virtAddr_1, this._dda.set(entry, {
+              size: rawSize,
+              virtualAddress: virtAddr_1
+            }), this._sections.push(sec), this._nh.fileHeader.numberOfSections = this._sections.length, this._nh.optionalHeader.sizeOfImage = roundUp(virtAddr_1 + alignedSecSize, this._nh.optionalHeader.sectionAlignment);
+          }
+        } else if (hasEntry) {
+          this._dda.set(entry, { size: 0, virtualAddress: 0 });
+          for (var len = this._sections.length, i = 0; i < len; ++i) {
+            var sec_1 = this._sections[i], vaStart = sec_1.info.virtualAddress, vaLast = vaStart + sec_1.info.virtualSize;
+            if (dd.virtualAddress >= vaStart && dd.virtualAddress < vaLast) {
+              this._sections.splice(i, 1), this._nh.fileHeader.numberOfSections = this._sections.length;
+              break;
+            }
+          }
+        }
+      }, NtExecutable2.prototype.getExtraData = function() {
+        return this._ex;
+      }, NtExecutable2.prototype.setExtraData = function(bin) {
+        bin === null ? this._ex = null : this._ex = cloneToArrayBuffer(bin);
+      }, NtExecutable2.prototype.generate = function(paddingSize) {
+        var dh = this._dh, nh = this._nh, secOff = dh.newHeaderAddress + nh.getSectionHeaderOffset(), size = secOff;
+        size += this._sections.length * ImageSectionHeaderArray_default.itemSize;
+        var align = nh.optionalHeader.fileAlignment;
+        size = roundUp(size, align), this._sections.forEach(function(sec) {
+          if (sec.info.pointerToRawData) {
+            var lastOff = sec.info.pointerToRawData + sec.info.sizeOfRawData;
+            size < lastOff && (size = lastOff, size = roundUp(size, align));
+          }
+        });
+        var lastPosition = size;
+        this._ex !== null && (size += this._ex.byteLength), typeof paddingSize == "number" && (size += paddingSize);
+        var bin = new ArrayBuffer(size), u8bin = new Uint8Array(bin);
+        u8bin.set(new Uint8Array(this._headers, 0, secOff)), ImageDataDirectoryArray_default.from(bin, dh.newHeaderAddress + nh.getDataDirectoryOffset()).set(ImageDirectoryEntry_default.Certificate, {
+          size: 0,
+          virtualAddress: 0
+        });
+        var secArray = ImageSectionHeaderArray_default.from(bin, this._sections.length, secOff);
+        return this._sections.forEach(function(sec, i) {
+          sec.data || (sec.info.pointerToRawData = 0, sec.info.sizeOfRawData = 0), secArray.set(i, sec.info), !(!sec.data || !sec.info.pointerToRawData) && u8bin.set(new Uint8Array(sec.data), sec.info.pointerToRawData);
+        }), this._ex !== null && u8bin.set(new Uint8Array(this._ex), lastPosition), nh.optionalHeader.checkSum !== 0 && calculateCheckSumForPE(bin, !0), bin;
+      }, NtExecutable2.prototype.rearrangeSections = function(rawAddressStart, rawDiff, virtualAddressStart, virtualDiff) {
+        if (!(!rawDiff && !virtualDiff)) {
+          for (var nh = this._nh, secAlign = nh.optionalHeader.sectionAlignment, dirs = this._dda, len = this._sections.length, lastVirtAddress = 0, i = 0; i < len; ++i) {
+            var sec = this._sections[i], virtAddr = sec.info.virtualAddress;
+            if (virtualDiff && virtAddr >= virtualAddressStart) {
+              var iDir = dirs.findIndexByVirtualAddress(virtAddr);
+              virtAddr += virtualDiff, iDir !== null && dirs.set(iDir, {
+                virtualAddress: virtAddr,
+                size: sec.info.virtualSize
+              }), sec.info.virtualAddress = virtAddr;
+            }
+            var fileAddr = sec.info.pointerToRawData;
+            rawDiff && fileAddr >= rawAddressStart && (sec.info.pointerToRawData = fileAddr + rawDiff), lastVirtAddress = roundUp(sec.info.virtualAddress + sec.info.virtualSize, secAlign);
+          }
+          nh.optionalHeader.sizeOfImage = lastVirtAddress;
+        }
+      }, NtExecutable2.prototype.replaceSectionImpl = function(virtualAddress, info2, data) {
+        for (var len = this._sections.length, i = 0; i < len; ++i) {
+          var s = this._sections[i];
+          if (s.info.virtualAddress === virtualAddress) {
+            var secAlign = this._nh.optionalHeader.sectionAlignment, fileAddr = s.info.pointerToRawData, oldFileAddr = fileAddr + s.info.sizeOfRawData, oldVirtAddr = virtualAddress + roundUp(s.info.virtualSize, secAlign);
+            s.info = cloneObject(info2), s.info.virtualAddress = virtualAddress, s.info.pointerToRawData = fileAddr, s.data = data;
+            var newFileAddr = fileAddr + info2.sizeOfRawData, newVirtAddr = virtualAddress + roundUp(info2.virtualSize, secAlign);
+            this.rearrangeSections(oldFileAddr, newFileAddr - oldFileAddr, oldVirtAddr, newVirtAddr - oldVirtAddr);
+            {
+              var dirs = this._dda, iDir = dirs.findIndexByVirtualAddress(virtualAddress);
+              iDir !== null && dirs.set(iDir, {
+                virtualAddress,
+                size: info2.virtualSize
+              });
+            }
+            break;
+          }
+        }
+      }, NtExecutable2;
+    })(), NtExecutable_default = NtExecutable;
+  }
+});
+
+// node_modules/pe-library/dist/NtExecutableResource.js
+function removeDuplicates(a) {
+  return a.reduce(function(p, c) {
+    return p.indexOf(c) >= 0 ? p : p.concat(c);
+  }, []);
+}
+function readString(view, offset) {
+  var length = view.getUint16(offset, !0), r = "";
+  offset += 2;
+  for (var i = 0; i < length; ++i)
+    r += String.fromCharCode(view.getUint16(offset, !0)), offset += 2;
+  return r;
+}
+function readLanguageTable(view, typeEntry, name, languageTable, cb) {
+  var off = languageTable, nameEntry = {
+    name,
+    languageTable,
+    characteristics: view.getUint32(off, !0),
+    dateTime: view.getUint32(off + 4, !0),
+    majorVersion: view.getUint16(off + 8, !0),
+    minorVersion: view.getUint16(off + 10, !0)
+  }, nameCount = view.getUint16(off + 12, !0), idCount = view.getUint16(off + 14, !0);
+  off += 16;
+  for (var i = 0; i < nameCount; ++i) {
+    var nameOffset = view.getUint32(off, !0) & 2147483647, dataOffset = view.getUint32(off + 4, !0);
+    if ((dataOffset & 2147483648) !== 0) {
+      off += 8;
+      continue;
+    }
+    var name_1 = readString(view, nameOffset);
+    cb(typeEntry, nameEntry, { lang: name_1, dataOffset }), off += 8;
+  }
+  for (var i = 0; i < idCount; ++i) {
+    var id = view.getUint32(off, !0) & 2147483647, dataOffset = view.getUint32(off + 4, !0);
+    if ((dataOffset & 2147483648) !== 0) {
+      off += 8;
+      continue;
+    }
+    cb(typeEntry, nameEntry, { lang: id, dataOffset }), off += 8;
+  }
+}
+function readNameTable(view, type, nameTable, cb) {
+  var off = nameTable, typeEntry = {
+    type,
+    nameTable,
+    characteristics: view.getUint32(off, !0),
+    dateTime: view.getUint32(off + 4, !0),
+    majorVersion: view.getUint16(off + 8, !0),
+    minorVersion: view.getUint16(off + 10, !0)
+  }, nameCount = view.getUint16(off + 12, !0), idCount = view.getUint16(off + 14, !0);
+  off += 16;
+  for (var i = 0; i < nameCount; ++i) {
+    var nameOffset = view.getUint32(off, !0) & 2147483647, nextTable = view.getUint32(off + 4, !0);
+    if (!(nextTable & 2147483648)) {
+      off += 8;
+      continue;
+    }
+    nextTable &= 2147483647;
+    var name_2 = readString(view, nameOffset);
+    readLanguageTable(view, typeEntry, name_2, nextTable, cb), off += 8;
+  }
+  for (var i = 0; i < idCount; ++i) {
+    var id = view.getUint32(off, !0) & 2147483647, nextTable = view.getUint32(off + 4, !0);
+    if (!(nextTable & 2147483648)) {
+      off += 8;
+      continue;
+    }
+    nextTable &= 2147483647, readLanguageTable(view, typeEntry, id, nextTable, cb), off += 8;
+  }
+}
+function divideEntriesImplByID(r, names, entries) {
+  var entriesByString = {}, entriesByNumber = {};
+  entries.forEach(function(e) {
+    typeof e.lang == "string" ? (entriesByString[e.lang] = e, names.push(e.lang)) : entriesByNumber[e.lang] = e;
+  });
+  var strKeys = Object.keys(entriesByString);
+  strKeys.sort().forEach(function(type) {
+    r.s.push(entriesByString[type]);
+  });
+  var numKeys = Object.keys(entriesByNumber);
+  return numKeys.map(function(k) {
+    return Number(k);
+  }).sort(function(a, b) {
+    return a - b;
+  }).forEach(function(type) {
+    r.n.push(entriesByNumber[type]);
+  }), 16 + 8 * (strKeys.length + numKeys.length);
+}
+function divideEntriesImplByName(r, names, entries) {
+  var entriesByString = {}, entriesByNumber = {};
+  entries.forEach(function(e) {
+    var _a, _b;
+    if (typeof e.id == "string") {
+      var a = (_a = entriesByString[e.id]) !== null && _a !== void 0 ? _a : entriesByString[e.id] = [];
+      names.push(e.id), a.push(e);
+    } else {
+      var a = (_b = entriesByNumber[e.id]) !== null && _b !== void 0 ? _b : entriesByNumber[e.id] = [];
+      a.push(e);
+    }
+  });
+  var sSum = Object.keys(entriesByString).sort().map(function(id) {
+    var o = {
+      id,
+      s: [],
+      n: []
+    };
+    return r.s.push(o), divideEntriesImplByID(o, names, entriesByString[id]);
+  }).reduce(function(p, c) {
+    return p + 8 + c;
+  }, 0), nSum = Object.keys(entriesByNumber).map(function(k) {
+    return Number(k);
+  }).sort(function(a, b) {
+    return a - b;
+  }).map(function(id) {
+    var o = {
+      id,
+      s: [],
+      n: []
+    };
+    return r.n.push(o), divideEntriesImplByID(o, names, entriesByNumber[id]);
+  }).reduce(function(p, c) {
+    return p + 8 + c;
+  }, 0);
+  return 16 + sSum + nSum;
+}
+function divideEntriesImplByType(r, names, entries) {
+  var entriesByString = {}, entriesByNumber = {};
+  entries.forEach(function(e) {
+    var _a, _b;
+    if (typeof e.type == "string") {
+      var a = (_a = entriesByString[e.type]) !== null && _a !== void 0 ? _a : entriesByString[e.type] = [];
+      names.push(e.type), a.push(e);
+    } else {
+      var a = (_b = entriesByNumber[e.type]) !== null && _b !== void 0 ? _b : entriesByNumber[e.type] = [];
+      a.push(e);
+    }
+  });
+  var sSum = Object.keys(entriesByString).sort().map(function(type) {
+    var o = { type, s: [], n: [] };
+    return r.s.push(o), divideEntriesImplByName(o, names, entriesByString[type]);
+  }).reduce(function(p, c) {
+    return p + 8 + c;
+  }, 0), nSum = Object.keys(entriesByNumber).map(function(k) {
+    return Number(k);
+  }).sort(function(a, b) {
+    return a - b;
+  }).map(function(type) {
+    var o = { type, s: [], n: [] };
+    return r.n.push(o), divideEntriesImplByName(o, names, entriesByNumber[type]);
+  }).reduce(function(p, c) {
+    return p + 8 + c;
+  }, 0);
+  return 16 + sSum + nSum;
+}
+function calculateStringLengthForWrite(text) {
+  var length = text.length;
+  return length > 65535 ? 65535 : length;
+}
+function getStringOffset(target, strings) {
+  for (var l = strings.length, i = 0; i < l; ++i) {
+    var s = strings[i];
+    if (s.text === target)
+      return s.offset;
+  }
+  throw new Error("Unexpected");
+}
+function writeString(view, offset, text) {
+  var length = calculateStringLengthForWrite(text);
+  view.setUint16(offset, length, !0), offset += 2;
+  for (var i = 0; i < length; ++i)
+    view.setUint16(offset, text.charCodeAt(i), !0), offset += 2;
+  return offset;
+}
+function writeLanguageTable(view, offset, strings, data) {
+  return view.setUint32(offset, 0, !0), view.setUint32(offset + 4, 0, !0), view.setUint32(offset + 8, 0, !0), view.setUint16(offset + 12, data.s.length, !0), view.setUint16(offset + 14, data.n.length, !0), offset += 16, data.s.forEach(function(e) {
+    var strOff = getStringOffset(e.lang, strings);
+    view.setUint32(offset, strOff, !0), view.setUint32(offset + 4, e.offset, !0), offset += 8;
+  }), data.n.forEach(function(e) {
+    view.setUint32(offset, e.lang, !0), view.setUint32(offset + 4, e.offset, !0), offset += 8;
+  }), offset;
+}
+function writeNameTable(view, offset, leafOffset, strings, data) {
+  return view.setUint32(offset, 0, !0), view.setUint32(offset + 4, 0, !0), view.setUint32(offset + 8, 0, !0), view.setUint16(offset + 12, data.s.length, !0), view.setUint16(offset + 14, data.n.length, !0), offset += 16, data.s.forEach(function(e) {
+    e.offset = leafOffset, leafOffset = writeLanguageTable(view, leafOffset, strings, e);
+  }), data.n.forEach(function(e) {
+    e.offset = leafOffset, leafOffset = writeLanguageTable(view, leafOffset, strings, e);
+  }), data.s.forEach(function(e) {
+    var strOff = getStringOffset(e.id, strings);
+    view.setUint32(offset, strOff + 2147483648, !0), view.setUint32(offset + 4, e.offset + 2147483648, !0), offset += 8;
+  }), data.n.forEach(function(e) {
+    view.setUint32(offset, e.id, !0), view.setUint32(offset + 4, e.offset + 2147483648, !0), offset += 8;
+  }), leafOffset;
+}
+function writeTypeTable(view, offset, strings, data) {
+  view.setUint32(offset, 0, !0), view.setUint32(offset + 4, 0, !0), view.setUint32(offset + 8, 0, !0), view.setUint16(offset + 12, data.s.length, !0), view.setUint16(offset + 14, data.n.length, !0), offset += 16;
+  var nextTableOffset = offset + 8 * (data.s.length + data.n.length);
+  return data.s.forEach(function(e) {
+    e.offset = nextTableOffset, nextTableOffset += 16 + 8 * (e.s.length + e.n.length);
+  }), data.n.forEach(function(e) {
+    e.offset = nextTableOffset, nextTableOffset += 16 + 8 * (e.s.length + e.n.length);
+  }), data.s.forEach(function(e) {
+    var strOff = getStringOffset(e.type, strings);
+    view.setUint32(offset, strOff + 2147483648, !0), view.setUint32(offset + 4, e.offset + 2147483648, !0), offset += 8, nextTableOffset = writeNameTable(view, e.offset, nextTableOffset, strings, e);
+  }), data.n.forEach(function(e) {
+    view.setUint32(offset, e.type, !0), view.setUint32(offset + 4, e.offset + 2147483648, !0), offset += 8, nextTableOffset = writeNameTable(view, e.offset, nextTableOffset, strings, e);
+  }), nextTableOffset;
+}
+var NtExecutableResource, NtExecutableResource_default, init_NtExecutableResource = __esm({
+  "node_modules/pe-library/dist/NtExecutableResource.js"() {
+    init_ImageDirectoryEntry();
+    init_functions();
+    NtExecutableResource = /** @class */
+    (function() {
+      function NtExecutableResource2() {
+        this.dateTime = 0, this.majorVersion = 0, this.minorVersion = 0, this.entries = [], this.sectionDataHeader = null, this.originalSize = 0;
+      }
+      return NtExecutableResource2.prototype.parse = function(section, ignoreUnparsableData) {
+        if (section.data) {
+          var view = new DataView(section.data);
+          this.dateTime = view.getUint32(4, !0), this.majorVersion = view.getUint16(8, !0), this.minorVersion = view.getUint16(10, !0);
+          for (var nameCount = view.getUint16(12, !0), idCount = view.getUint16(14, !0), off = 16, res = [], cb = function(t, n, l) {
+            var off2 = view.getUint32(l.dataOffset, !0) - section.info.virtualAddress, size = view.getUint32(l.dataOffset + 4, !0), cp = view.getUint32(l.dataOffset + 8, !0);
+            if (off2 >= 0) {
+              var bin = new Uint8Array(size);
+              bin.set(new Uint8Array(section.data, off2, size)), res.push({
+                type: t.type,
+                id: n.name,
+                lang: l.lang,
+                codepage: cp,
+                bin: bin.buffer
+              });
+            } else {
+              if (!ignoreUnparsableData)
+                throw new Error("Cannot parse resource directory entry; RVA seems to be invalid.");
+              res.push({
+                type: t.type,
+                id: n.name,
+                lang: l.lang,
+                codepage: cp,
+                bin: new ArrayBuffer(0),
+                rva: l.dataOffset
+              });
+            }
+          }, i = 0; i < nameCount; ++i) {
+            var nameOffset = view.getUint32(off, !0) & 2147483647, nextTable = view.getUint32(off + 4, !0);
+            if (!(nextTable & 2147483648)) {
+              off += 8;
+              continue;
+            }
+            nextTable &= 2147483647;
+            var name_3 = readString(view, nameOffset);
+            readNameTable(view, name_3, nextTable, cb), off += 8;
+          }
+          for (var i = 0; i < idCount; ++i) {
+            var typeId = view.getUint32(off, !0) & 2147483647, nextTable = view.getUint32(off + 4, !0);
+            if (!(nextTable & 2147483648)) {
+              off += 8;
+              continue;
+            }
+            nextTable &= 2147483647, readNameTable(view, typeId, nextTable, cb), off += 8;
+          }
+          this.entries = res, this.originalSize = section.data.byteLength;
+        }
+      }, NtExecutableResource2.from = function(exe, ignoreUnparsableData) {
+        ignoreUnparsableData === void 0 && (ignoreUnparsableData = !1);
+        var secs = [].concat(exe.getAllSections()).sort(function(a, b) {
+          return a.info.virtualAddress - b.info.virtualAddress;
+        }), entry = exe.getSectionByEntry(ImageDirectoryEntry_default.Resource);
+        if (entry)
+          for (var reloc = exe.getSectionByEntry(ImageDirectoryEntry_default.BaseRelocation), i = 0; i < secs.length; ++i) {
+            var s = secs[i];
+            if (s === entry) {
+              for (var j = i + 1; j < secs.length; ++j)
+                if (!reloc || secs[j] !== reloc)
+                  throw new Error("After Resource section, sections except for relocation are not supported");
+              break;
+            }
+          }
+        var r = new NtExecutableResource2();
+        return r.sectionDataHeader = entry ? cloneObject(entry.info) : null, entry && r.parse(entry, ignoreUnparsableData), r;
+      }, NtExecutableResource2.prototype.replaceResourceEntry = function(entry) {
+        for (var len = this.entries.length, i = 0; i < len; ++i) {
+          var e = this.entries[i];
+          if (e.type === entry.type && e.id === entry.id && e.lang === entry.lang) {
+            this.entries[i] = entry;
+            return;
+          }
+        }
+        this.entries.push(entry);
+      }, NtExecutableResource2.prototype.getResourceEntriesAsString = function(type, id) {
+        return this.entries.filter(function(entry) {
+          return entry.type === type && entry.id === id;
+        }).map(function(entry) {
+          return [entry.lang, binaryToString(entry.bin)];
+        });
+      }, NtExecutableResource2.prototype.replaceResourceEntryFromString = function(type, id, lang, value) {
+        var entry = {
+          type,
+          id,
+          lang,
+          codepage: 1200,
+          bin: stringToBinary(value)
+        };
+        this.replaceResourceEntry(entry);
+      }, NtExecutableResource2.prototype.removeResourceEntry = function(type, id, lang) {
+        this.entries = this.entries.filter(function(entry) {
+          return !(entry.type === type && entry.id === id && (typeof lang > "u" || entry.lang === lang));
+        });
+      }, NtExecutableResource2.prototype.generateResourceData = function(virtualAddress, alignment, noGrow, allowShrink) {
+        noGrow === void 0 && (noGrow = !1), allowShrink === void 0 && (allowShrink = !1);
+        var r = {
+          s: [],
+          n: []
+        }, strings = [], size = divideEntriesImplByType(r, strings, this.entries);
+        strings = removeDuplicates(strings);
+        var stringsOffset = size;
+        size += strings.reduce(function(prev, cur) {
+          return prev + 2 + calculateStringLengthForWrite(cur) * 2;
+        }, 0), size = roundUp(size, 8);
+        var descOffset = size;
+        size = this.entries.reduce(function(p, e) {
+          return e.offset = p, p + 16;
+        }, descOffset);
+        var dataOffset = size;
+        size = this.entries.reduce(function(p, e) {
+          return roundUp(p, 8) + e.bin.byteLength;
+        }, dataOffset);
+        var alignedSize = roundUp(size, alignment), originalAlignedSize = roundUp(this.originalSize, alignment);
+        if (noGrow && alignedSize > originalAlignedSize)
+          throw new Error("New resource data is larger than original");
+        allowShrink || alignedSize < originalAlignedSize && (alignedSize = originalAlignedSize);
+        var bin = new ArrayBuffer(alignedSize), view = new DataView(bin), o = descOffset, va = virtualAddress + dataOffset;
+        this.entries.forEach(function(e) {
+          var len = e.bin.byteLength;
+          typeof e.rva < "u" ? view.setUint32(o, e.rva, !0) : (va = roundUp(va, 8), view.setUint32(o, va, !0), va += len), view.setUint32(o + 4, len, !0), view.setUint32(o + 8, e.codepage, !0), view.setUint32(o + 12, 0, !0), o += 16;
+        }), o = dataOffset, this.entries.forEach(function(e) {
+          var len = e.bin.byteLength;
+          copyBuffer(bin, o, e.bin, 0, len), o += roundUp(len, 8);
+        });
+        var stringsData = [];
+        if (o = stringsOffset, strings.forEach(function(s) {
+          stringsData.push({
+            offset: o,
+            text: s
+          }), o = writeString(view, o, s);
+        }), writeTypeTable(view, 0, stringsData, r), alignedSize > size)
+          for (var pad = "PADDINGX", i = size, j = 0; i < alignedSize; ++i, ++j)
+            j === 8 && (j = 0), view.setUint8(i, pad.charCodeAt(j));
+        return {
+          bin,
+          rawSize: size,
+          dataOffset,
+          descEntryOffset: descOffset,
+          descEntryCount: this.entries.length
+        };
+      }, NtExecutableResource2.prototype.outputResource = function(exeDest, noGrow, allowShrink) {
+        noGrow === void 0 && (noGrow = !1), allowShrink === void 0 && (allowShrink = !1);
+        var fileAlign = exeDest.getFileAlignment(), sectionData;
+        this.sectionDataHeader ? sectionData = {
+          data: null,
+          info: cloneObject(this.sectionDataHeader)
+        } : sectionData = {
+          data: null,
+          info: {
+            name: ".rsrc",
+            virtualSize: 0,
+            virtualAddress: 0,
+            sizeOfRawData: 0,
+            pointerToRawData: 0,
+            pointerToRelocations: 0,
+            pointerToLineNumbers: 0,
+            numberOfRelocations: 0,
+            numberOfLineNumbers: 0,
+            characteristics: 1073741888
+            // read access and initialized data
+          }
+        };
+        var data = this.generateResourceData(0, fileAlign, noGrow, allowShrink);
+        sectionData.data = data.bin, sectionData.info.sizeOfRawData = data.bin.byteLength, sectionData.info.virtualSize = data.rawSize, exeDest.setSectionByEntry(ImageDirectoryEntry_default.Resource, sectionData);
+        for (var generatedSection = exeDest.getSectionByEntry(ImageDirectoryEntry_default.Resource), view = new DataView(generatedSection.data), o = data.descEntryOffset, va = generatedSection.info.virtualAddress + data.dataOffset, i = 0; i < data.descEntryCount; ++i) {
+          var len = view.getUint32(o + 4, !0);
+          va = roundUp(va, 8), view.setUint32(o, va, !0), va += len, o += 16;
+        }
+      }, NtExecutableResource2;
+    })(), NtExecutableResource_default = NtExecutableResource;
+  }
+});
+
+// node_modules/pe-library/dist/version.js
+var init_version4 = __esm({
+  "node_modules/pe-library/dist/version.js"() {
+  }
+});
+
+// node_modules/pe-library/dist/index.js
+var init_dist = __esm({
+  "node_modules/pe-library/dist/index.js"() {
+    init_format();
+    init_NtExecutable();
+    init_NtExecutableResource();
+    init_functions();
+    init_version4();
+  }
+});
+
+// node_modules/resedit/dist/util/functions.js
+function cloneObject2(object) {
+  var r = {};
+  return Object.keys(object).forEach(function(key) {
+    r[key] = object[key];
+  }), r;
+}
+function createDataView2(bin, byteOffset, byteLength) {
+  if ("buffer" in bin) {
+    var newOffset = bin.byteOffset, newLength = bin.byteLength;
+    return typeof byteOffset < "u" && (newOffset += byteOffset, newLength -= byteOffset), typeof byteLength < "u" && (newLength = byteLength), new DataView(bin.buffer, newOffset, newLength);
+  } else
+    return new DataView(bin, byteOffset, byteLength);
+}
+function roundUp2(val, align) {
+  return Math.floor((val + align - 1) / align) * align;
+}
+function copyBuffer2(dest, destOffset, src, srcOffset, length) {
+  var ua8Dest = "buffer" in dest ? new Uint8Array(dest.buffer, dest.byteOffset + (destOffset || 0), length) : new Uint8Array(dest, destOffset, length), ua8Src = "buffer" in src ? new Uint8Array(src.buffer, src.byteOffset + (srcOffset || 0), length) : new Uint8Array(src, srcOffset, length);
+  ua8Dest.set(ua8Src);
+}
+function allocatePartialBinary2(binBase, offset, length) {
+  var b = new ArrayBuffer(length);
+  return copyBuffer2(b, 0, binBase, offset, length), b;
+}
+function readInt32WithLastOffset(view, offset, last) {
+  return offset + 4 <= last ? view.getInt32(offset, !0) : 0;
+}
+function readUint8WithLastOffset(view, offset, last) {
+  return offset < last ? view.getUint8(offset) : 0;
+}
+function readUint16WithLastOffset(view, offset, last) {
+  return offset + 2 <= last ? view.getUint16(offset, !0) : 0;
+}
+function readUint32WithLastOffset(view, offset, last) {
+  return offset + 4 <= last ? view.getUint32(offset, !0) : 0;
+}
+var init_functions2 = __esm({
+  "node_modules/resedit/dist/util/functions.js"() {
+  }
+});
+
+// node_modules/resedit/dist/data/IconItem.js
+function calcMaskSize(width, height) {
+  var actualWidthBytes = roundUp2(Math.abs(width), 32) / 8;
+  return actualWidthBytes * Math.abs(height);
+}
+var IconItem, IconItem_default, init_IconItem = __esm({
+  "node_modules/resedit/dist/data/IconItem.js"() {
+    init_functions2();
+    IconItem = /** @class */
+    (function() {
+      function IconItem2(width, height, bin, byteOffset, byteLength) {
+        var view = createDataView2(bin, byteOffset, byteLength), totalSize = view.byteLength, headerSize = view.getUint32(0, !0);
+        headerSize > totalSize && (headerSize = totalSize);
+        var sizeImage = readUint32WithLastOffset(view, 20, headerSize), bi = {
+          width: readInt32WithLastOffset(view, 4, headerSize),
+          height: readInt32WithLastOffset(view, 8, headerSize),
+          planes: readUint16WithLastOffset(view, 12, headerSize),
+          bitCount: readUint16WithLastOffset(view, 14, headerSize),
+          compression: readUint32WithLastOffset(view, 16, headerSize),
+          sizeImage,
+          xPelsPerMeter: readInt32WithLastOffset(view, 24, headerSize),
+          yPelsPerMeter: readInt32WithLastOffset(view, 28, headerSize),
+          colorUsed: readUint32WithLastOffset(view, 32, headerSize),
+          colorImportant: readUint32WithLastOffset(view, 36, headerSize),
+          colors: []
+        }, offset = 40, colors = bi.colorUsed;
+        if (!colors)
+          switch (bi.bitCount) {
+            case 1:
+              colors = 2;
+              break;
+            case 4:
+              colors = 16;
+              break;
+            case 8:
+              colors = 256;
+              break;
+          }
+        for (var i = 0; i < colors; ++i)
+          bi.colors.push({
+            b: readUint8WithLastOffset(view, offset, totalSize),
+            g: readUint8WithLastOffset(view, offset + 1, totalSize),
+            r: readUint8WithLastOffset(view, offset + 2, totalSize)
+          }), offset += 4;
+        this.width = width, this.height = height, this.bitmapInfo = bi;
+        var widthBytes = roundUp2(bi.bitCount * Math.abs(bi.width), 32) / 8, absActualHeight = Math.abs(bi.height) / 2, size = bi.compression !== 0 && sizeImage !== 0 ? sizeImage : widthBytes * absActualHeight;
+        if (size + offset > totalSize)
+          throw new Error("Unexpected bitmap data in icon: bitmap size ".concat(size, " is larger than ").concat(totalSize, " - ").concat(offset));
+        this._pixels = allocatePartialBinary2(view, offset, size), offset += size;
+        var maskSize = calcMaskSize(bi.width, absActualHeight);
+        maskSize + offset <= totalSize ? this.masks = allocatePartialBinary2(view, offset, maskSize) : this.masks = new ArrayBuffer(maskSize);
+      }
+      return Object.defineProperty(IconItem2.prototype, "pixels", {
+        /**
+         * Bitmap pixel data.
+         * @note
+         * On set, if `bitmapInfo.sizeImage` is non-zero, `bitmapInfo.sizeImage` will be updated.
+         */
+        get: function() {
+          return this._pixels;
+        },
+        /**
+         * Bitmap pixel data.
+         * @note
+         * On set, if `bitmapInfo.sizeImage` is non-zero, `bitmapInfo.sizeImage` will be updated.
+         */
+        set: function(newValue) {
+          this._pixels = newValue, this.bitmapInfo.sizeImage !== 0 && (this.bitmapInfo.sizeImage = newValue.byteLength);
+        },
+        enumerable: !1,
+        configurable: !0
+      }), IconItem2.from = function(arg1, arg2, arg3, byteOffset, byteLength) {
+        var width, height, bin;
+        return typeof arg3 == "object" ? (width = arg1, height = arg2, bin = arg3) : (width = null, height = null, bin = arg1, byteOffset = arg2, byteLength = arg3), new IconItem2(width, height, bin, byteOffset, byteLength);
+      }, IconItem2.prototype.isIcon = function() {
+        return !0;
+      }, IconItem2.prototype.isRaw = function() {
+        return !1;
+      }, IconItem2.prototype.generate = function() {
+        var bi = this.bitmapInfo, absWidth = Math.abs(bi.width), absWidthBytes = roundUp2(bi.bitCount * absWidth, 32) / 8, absActualHeight = Math.abs(bi.height) / 2, actualSizeImage = absWidthBytes * absActualHeight, sizeMask = calcMaskSize(bi.width, absActualHeight), colorCount = bi.colors.length, totalSize = 40 + 4 * colorCount + actualSizeImage + sizeMask, bin = new ArrayBuffer(totalSize), view = new DataView(bin);
+        view.setUint32(0, 40, !0), view.setInt32(4, bi.width, !0), view.setInt32(8, bi.height, !0), view.setUint16(12, bi.planes, !0), view.setUint16(14, bi.bitCount, !0), view.setUint32(16, bi.compression, !0), view.setUint32(20, bi.sizeImage, !0), view.setInt32(24, bi.xPelsPerMeter, !0), view.setInt32(28, bi.yPelsPerMeter, !0), view.setUint32(32, bi.colorUsed, !0), view.setUint32(36, bi.colorImportant > colorCount ? colorCount : bi.colorImportant, !0);
+        var offset = 40;
+        return bi.colors.forEach(function(c) {
+          view.setUint8(offset, c.b), view.setUint8(offset + 1, c.g), view.setUint8(offset + 2, c.r), offset += 4;
+        }), copyBuffer2(bin, offset, this.pixels, 0, actualSizeImage), copyBuffer2(bin, offset + actualSizeImage, this.masks, 0, sizeMask), bin;
+      }, IconItem2;
+    })(), IconItem_default = IconItem;
+  }
+});
+
+// node_modules/resedit/dist/data/RawIconItem.js
+var RawIconItem, RawIconItem_default, init_RawIconItem = __esm({
+  "node_modules/resedit/dist/data/RawIconItem.js"() {
+    init_functions2();
+    RawIconItem = /** @class */
+    (function() {
+      function RawIconItem2(bin, width, height, bitCount, byteOffset, byteLength) {
+        this.width = width, this.height = height, this.bitCount = bitCount, typeof byteOffset != "number" ? (byteOffset = 0, byteLength = bin.byteLength) : typeof byteLength != "number" && (byteLength = bin.byteLength - byteOffset), this.bin = allocatePartialBinary2(bin, byteOffset, byteLength);
+      }
+      return RawIconItem2.from = function(bin, width, height, bitCount, byteOffset, byteLength) {
+        return new RawIconItem2(bin, width, height, bitCount, byteOffset, byteLength);
+      }, RawIconItem2.prototype.isIcon = function() {
+        return !1;
+      }, RawIconItem2.prototype.isRaw = function() {
+        return !0;
+      }, RawIconItem2;
+    })(), RawIconItem_default = RawIconItem;
+  }
+});
+
+// node_modules/resedit/dist/data/IconFile.js
+function generateEntryBinary(icons) {
+  var count = icons.length;
+  count > 65535 && (count = 65535);
+  var tmpIcons = icons.map(function(item) {
+    return item.data.isIcon() ? {
+      item,
+      bin: item.data.generate(),
+      offset: 0
+    } : {
+      item,
+      bin: item.data.bin,
+      offset: 0
+    };
+  }), size = tmpIcons.reduce(function(p, icon) {
+    return icon.offset = p, p + icon.bin.byteLength;
+  }, 6 + 16 * count), bin = new ArrayBuffer(size), view = new DataView(bin);
+  view.setUint16(0, 0, !0), view.setUint16(2, 1, !0), view.setUint16(4, count, !0);
+  var offset = 6;
+  return tmpIcons.forEach(function(icon) {
+    var item = icon.item, width, height, colors, planes, bitCount;
+    if (item.data.isIcon()) {
+      var bi = item.data.bitmapInfo;
+      width = typeof item.width < "u" ? item.width : Math.abs(bi.width), height = typeof item.height < "u" ? item.height : Math.abs(bi.height / 2), colors = typeof item.colors < "u" ? item.colors : bi.colorUsed || bi.colors.length, planes = typeof item.planes < "u" ? item.planes : bi.planes, bitCount = typeof item.bitCount < "u" ? item.bitCount : bi.bitCount;
+    } else
+      width = typeof item.width < "u" ? item.width : Math.abs(item.data.width), height = typeof item.height < "u" ? item.height : Math.abs(item.data.height), colors = typeof item.colors < "u" ? item.colors : 0, planes = typeof item.planes < "u" ? item.planes : 1, bitCount = typeof item.bitCount < "u" ? item.bitCount : item.data.bitCount;
+    var dataSize = icon.bin.byteLength;
+    view.setUint8(offset, width >= 256 ? 0 : width), view.setUint8(offset + 1, height >= 256 ? 0 : height), view.setUint8(offset + 2, colors >= 256 ? 0 : colors), view.setUint8(offset + 3, 0), view.setUint16(offset + 4, planes, !0), view.setUint16(offset + 6, bitCount, !0), view.setUint32(offset + 8, dataSize, !0), view.setUint32(offset + 12, icon.offset, !0), offset += 16, copyBuffer2(bin, icon.offset, icon.bin, 0, dataSize);
+  }), bin;
+}
+var IconFile, IconFile_default, init_IconFile = __esm({
+  "node_modules/resedit/dist/data/IconFile.js"() {
+    init_functions2();
+    init_IconItem();
+    init_RawIconItem();
+    IconFile = /** @class */
+    (function() {
+      function IconFile2(bin) {
+        if (!bin) {
+          this.icons = [];
+          return;
+        }
+        var view = createDataView2(bin), totalSize = view.byteLength, icons = [];
+        if (view.getUint16(2, !0) === 1)
+          for (var count = view.getUint16(4, !0), offset = 6, i = 0; i < count; ++i) {
+            var dataSize = readUint32WithLastOffset(view, offset + 8, totalSize), dataOffset = readUint32WithLastOffset(view, offset + 12, totalSize), width = readUint8WithLastOffset(view, offset, totalSize), height = readUint8WithLastOffset(view, offset + 1, totalSize), bitCount = readUint8WithLastOffset(view, offset + 6, totalSize), data = void 0;
+            view.getUint32(dataOffset, !0) === 40 ? data = IconItem_default.from(width, height, bin, dataOffset, dataSize) : data = RawIconItem_default.from(bin, width || 256, height || 256, bitCount, dataOffset, dataSize), icons.push({
+              width,
+              height,
+              colors: readUint8WithLastOffset(view, offset + 2, totalSize),
+              planes: readUint16WithLastOffset(view, offset + 4, totalSize),
+              bitCount,
+              data
+            }), offset += 16;
+          }
+        this.icons = icons;
+      }
+      return IconFile2.from = function(bin) {
+        return new IconFile2(bin);
+      }, IconFile2.prototype.generate = function() {
+        return generateEntryBinary(this.icons);
+      }, IconFile2;
+    })(), IconFile_default = IconFile;
+  }
+});
+
+// node_modules/resedit/dist/data/index.js
+var data_exports = {};
+__export(data_exports, {
+  IconFile: () => IconFile_default,
+  IconItem: () => IconItem_default,
+  RawIconItem: () => RawIconItem_default
+});
+var init_data = __esm({
+  "node_modules/resedit/dist/data/index.js"() {
+    init_IconFile();
+    init_IconItem();
+    init_RawIconItem();
+  }
+});
+
+// node_modules/resedit/dist/resource/IconGroupEntry.js
+function generateEntryBinary2(icons) {
+  var count = icons.length;
+  count > 65535 && (count = 65535);
+  var size = 6 + 14 * icons.length, bin = new ArrayBuffer(size), view = new DataView(bin);
+  view.setUint16(0, 0, !0), view.setUint16(2, 1, !0), view.setUint16(4, count, !0);
+  var offset = 6;
+  return icons.forEach(function(icon) {
+    view.setUint8(offset, icon.width >= 256 ? 0 : icon.width), view.setUint8(offset + 1, icon.height >= 256 ? 0 : icon.height), view.setUint8(offset + 2, icon.colors >= 256 ? 0 : icon.colors), view.setUint8(offset + 3, 0), view.setUint16(offset + 4, icon.planes, !0), view.setUint16(offset + 6, icon.bitCount, !0), view.setUint32(offset + 8, icon.dataSize, !0), view.setUint16(offset + 12, icon.iconID, !0), offset += 14;
+  }), bin;
+}
+function findUnusedIconID(entries, lang, isCursor) {
+  for (var type = isCursor ? 1 : 3, filteredIDs = entries.filter(function(e) {
+    return e.type === type && e.lang === lang && typeof e.id == "number";
+  }).map(function(e) {
+    return e.id;
+  }).sort(function(a, b) {
+    return a - b;
+  }), idCurrent = 1, _i = 0, filteredIDs_1 = filteredIDs; _i < filteredIDs_1.length; _i++) {
+    var id = filteredIDs_1[_i];
+    if (idCurrent < id)
+      return {
+        id: idCurrent,
+        last: !1
+      };
+    idCurrent === id && ++idCurrent;
+  }
+  return {
+    id: idCurrent,
+    last: !0
+  };
+}
+var IconGroupEntry, IconGroupEntry_default, init_IconGroupEntry = __esm({
+  "node_modules/resedit/dist/resource/IconGroupEntry.js"() {
+    init_IconItem();
+    init_RawIconItem();
+    init_functions2();
+    IconGroupEntry = /** @class */
+    (function() {
+      function IconGroupEntry2(groupEntry) {
+        var view = new DataView(groupEntry.bin), totalSize = view.byteLength, icons = [];
+        if (view.getUint16(2, !0) === 1)
+          for (var count = view.getUint16(4, !0), offset = 6, i = 0; i < count; ++i)
+            icons.push({
+              width: readUint8WithLastOffset(view, offset, totalSize),
+              height: readUint8WithLastOffset(view, offset + 1, totalSize),
+              colors: readUint8WithLastOffset(view, offset + 2, totalSize),
+              planes: readUint16WithLastOffset(view, offset + 4, totalSize),
+              bitCount: readUint16WithLastOffset(view, offset + 6, totalSize),
+              dataSize: readUint32WithLastOffset(view, offset + 8, totalSize),
+              iconID: readUint16WithLastOffset(view, offset + 12, totalSize)
+            }), offset += 14;
+        this.id = groupEntry.id, this.lang = groupEntry.lang, this.icons = icons;
+      }
+      return IconGroupEntry2.fromEntries = function(entries) {
+        return entries.filter(function(e) {
+          return e.type === 14;
+        }).map(function(e) {
+          return new IconGroupEntry2(e);
+        });
+      }, IconGroupEntry2.prototype.generateEntry = function() {
+        var bin = generateEntryBinary2(this.icons);
+        return {
+          type: 14,
+          id: this.id,
+          lang: this.lang,
+          codepage: 0,
+          bin
+        };
+      }, IconGroupEntry2.prototype.getIconItemsFromEntries = function(entries) {
+        var _this = this;
+        return entries.map(function(e) {
+          if (e.type !== 3 || e.lang !== _this.lang)
+            return null;
+          var c = _this.icons.filter(function(icon) {
+            return e.id === icon.iconID;
+          }).shift();
+          return c ? {
+            entry: e,
+            icon: c
+          } : null;
+        }).filter(function(item) {
+          return !!item;
+        }).map(function(item) {
+          var bin = item.entry.bin, view = new DataView(bin);
+          if (view.getUint32(0, !0) === 40)
+            return IconItem_default.from(bin);
+          var c = item.icon;
+          return RawIconItem_default.from(bin, c.width, c.height, c.bitCount);
+        });
+      }, IconGroupEntry2.replaceIconsForResource = function(destEntries, iconGroupID, lang, icons) {
+        var entry = destEntries.filter(function(e2) {
+          return e2.type === 14 && e2.id === iconGroupID && e2.lang === lang;
+        }).shift(), tmpIconArray = icons.map(function(icon) {
+          if (icon.isIcon()) {
+            var width = icon.width, height = icon.height;
+            return width === null && (width = icon.bitmapInfo.width), height === null && (height = icon.bitmapInfo.height, icon.masks !== null && (height = Math.floor(height / 2))), {
+              base: icon,
+              bm: {
+                width,
+                height,
+                planes: icon.bitmapInfo.planes,
+                bitCount: icon.bitmapInfo.bitCount
+              },
+              bin: icon.generate(),
+              id: 0
+            };
+          } else
+            return {
+              base: icon,
+              bm: {
+                width: icon.width,
+                height: icon.height,
+                planes: 1,
+                bitCount: icon.bitCount
+              },
+              bin: icon.bin,
+              id: 0
+            };
+        });
+        if (entry)
+          for (var i = destEntries.length - 1; i >= 0; --i) {
+            var e = destEntries[i];
+            e != null && e.type === 3 && (isIconUsed(e, destEntries, entry) || destEntries.splice(i, 1));
+          }
+        else
+          entry = {
+            type: 14,
+            id: iconGroupID,
+            lang,
+            codepage: 0,
+            // set later
+            bin: null
+          }, destEntries.push(entry);
+        var idInfo;
+        tmpIconArray.forEach(function(icon) {
+          idInfo?.last ? ++idInfo.id : idInfo = findUnusedIconID(destEntries, lang, !1), destEntries.push({
+            type: 3,
+            id: idInfo.id,
+            lang,
+            codepage: 0,
+            bin: icon.bin
+          }), icon.id = idInfo.id;
+        });
+        var binEntry = generateEntryBinary2(tmpIconArray.map(function(icon) {
+          var width = Math.abs(icon.bm.width);
+          width >= 256 && (width = 0);
+          var height = Math.abs(icon.bm.height);
+          height >= 256 && (height = 0);
+          var colors = 0;
+          if (icon.base.isIcon()) {
+            var bmBase = icon.base.bitmapInfo;
+            if (colors = bmBase.colorUsed || bmBase.colors.length, !colors)
+              switch (bmBase.bitCount) {
+                case 1:
+                  colors = 2;
+                  break;
+                case 4:
+                  colors = 16;
+                  break;
+              }
+            colors >= 256 && (colors = 0);
+          }
+          return {
+            width,
+            height,
+            colors,
+            planes: icon.bm.planes,
+            bitCount: icon.bm.bitCount,
+            dataSize: icon.bin.byteLength,
+            iconID: icon.id
+          };
+        }));
+        entry.bin = binEntry;
+        function isIconUsed(icon, allEntries, excludeGroup) {
+          return allEntries.some(function(e2) {
+            if (e2.type !== 14 || e2.id === excludeGroup.id && e2.lang === excludeGroup.lang)
+              return !1;
+            var g = new IconGroupEntry2(e2);
+            return g.icons.some(function(c) {
+              return c.iconID === icon.id;
+            });
+          });
+        }
+      }, IconGroupEntry2;
+    })(), IconGroupEntry_default = IconGroupEntry;
+  }
+});
+
+// node_modules/resedit/dist/resource/StringTableItem.js
+var StringTableItem, StringTableItem_default, init_StringTableItem = __esm({
+  "node_modules/resedit/dist/resource/StringTableItem.js"() {
+    StringTableItem = /** @class */
+    (function() {
+      function StringTableItem2() {
+        this.length = 16, this._a = [], this._a.length = 16;
+        for (var i = 0; i < 16; ++i)
+          this._a[i] = "";
+      }
+      return StringTableItem2.fromEntry = function(bin, offset, byteLength) {
+        for (var view = new DataView(bin, offset, byteLength), ret = new StringTableItem2(), o = 0, i = 0; i < 16; ++i) {
+          var len = view.getUint16(o, !0);
+          o += 2;
+          for (var s = "", j = 0; j < len; ++j)
+            s += String.fromCharCode(view.getUint16(o, !0)), o += 2;
+          ret._a[i] = s;
+        }
+        return ret;
+      }, StringTableItem2.prototype.get = function(index) {
+        var value = this._a[index];
+        return value != null && value !== "" ? value : null;
+      }, StringTableItem2.prototype.getAll = function() {
+        return this._a.map(function(s) {
+          return s || null;
+        });
+      }, StringTableItem2.prototype.set = function(index, val) {
+        this._a[index] = "".concat(val ?? "").substr(0, 4097);
+      }, StringTableItem2.prototype.calcByteLength = function() {
+        for (var len = 0, i = 0; i < 16; ++i) {
+          var item = this._a[i];
+          len += 2, item != null && (len += 2 * item.length);
+        }
+        return Math.floor((len + 15) / 16) * 16;
+      }, StringTableItem2.prototype.generate = function(bin, offset) {
+        for (var out = new DataView(bin, offset), len = 0, i = 0; i < 16; ++i) {
+          var s = this._a[i], l = s == null ? 0 : s.length > 4097 ? 4097 : s.length;
+          if (out.setUint16(len, l, !0), len += 2, s != null)
+            for (var j = 0; j < l; ++j)
+              out.setUint16(len, s.charCodeAt(j), !0), len += 2;
+        }
+        return Math.floor((len + 15) / 16) * 16;
+      }, StringTableItem2;
+    })(), StringTableItem_default = StringTableItem;
+  }
+});
+
+// node_modules/resedit/dist/resource/StringTable.js
+var StringTable, StringTable_default, init_StringTable = __esm({
+  "node_modules/resedit/dist/resource/StringTable.js"() {
+    init_StringTableItem();
+    StringTable = /** @class */
+    (function() {
+      function StringTable2() {
+        this.lang = 0, this.items = [];
+      }
+      return StringTable2.fromEntries = function(lang, entries) {
+        var r = new StringTable2();
+        return entries.forEach(function(e) {
+          e.type !== 6 || e.lang !== lang || typeof e.id != "number" || e.id <= 0 || (r.items[e.id - 1] = StringTableItem_default.fromEntry(e.bin, 0, e.bin.byteLength));
+        }), r.lang = lang, r;
+      }, StringTable2.prototype.getAllStrings = function() {
+        return this.items.map(function(e, i) {
+          return e.getAll().map(function(x, j) {
+            return x !== null && x !== "" ? { id: (i << 4) + j, text: x } : null;
+          }).filter(function(x) {
+            return !!x;
+          });
+        }).reduce(function(p, c) {
+          return p.concat(c);
+        }, []);
+      }, StringTable2.prototype.getById = function(id) {
+        var _a;
+        if (id < 0)
+          return null;
+        var entryIndex = id >> 4, entryPos = id & 15, e = this.items[entryIndex];
+        return (_a = e?.get(entryPos)) !== null && _a !== void 0 ? _a : null;
+      }, StringTable2.prototype.setById = function(id, text) {
+        if (!(id < 0)) {
+          var entryIndex = id >> 4, entryPos = id & 15, e = this.items[entryIndex];
+          e || (this.items[entryIndex] = e = new StringTableItem_default()), e.set(entryPos, text);
+        }
+      }, StringTable2.prototype.generateEntries = function() {
+        var _this = this;
+        return this.items.map(function(e, i) {
+          var len = e.calcByteLength(), bin = new ArrayBuffer(len);
+          return e.generate(bin, 0), {
+            type: 6,
+            id: i + 1,
+            lang: _this.lang,
+            codepage: 1200,
+            bin
+          };
+        }).filter(function(e) {
+          return !!e;
+        });
+      }, StringTable2.prototype.replaceStringEntriesForExecutable = function(res) {
+        for (var entries = this.generateEntries(), dest = res.entries, i = 0; i < dest.length; ++i) {
+          var e = dest[i];
+          if (e != null && e.type === 6 && e.lang === this.lang) {
+            for (var j = dest.length - 1; j >= i; --j) {
+              var e2 = dest[j];
+              e2 != null && e2.type === 6 && e2.lang === this.lang && dest.splice(j, 1);
+            }
+            var f = dest.splice.bind(dest, i, 0);
+            f.apply(void 0, entries);
+            return;
+          }
+        }
+        for (var i = 0; i < dest.length; ++i) {
+          var e = dest[i];
+          if (e != null && e.type === 6 && e.lang < this.lang) {
+            var f = dest.splice.bind(dest, i + 1, 0);
+            f.apply(void 0, entries);
+            return;
+          }
+        }
+        for (var i = dest.length - 1; i >= 0; --i) {
+          var e = dest[i];
+          if (e != null && e.type === 6) {
+            var f = dest.splice.bind(dest, i + 1, 0);
+            f.apply(void 0, entries);
+            return;
+          }
+        }
+        dest.push.apply(dest, entries);
+      }, StringTable2;
+    })(), StringTable_default = StringTable;
+  }
+});
+
+// node_modules/resedit/dist/resource/VersionFileFlags.js
+var VersionFileFlags, VersionFileFlags_default, init_VersionFileFlags = __esm({
+  "node_modules/resedit/dist/resource/VersionFileFlags.js"() {
+    VersionFileFlags = {
+      Debug: 1,
+      Prerelease: 2,
+      Patched: 4,
+      PrivateBuild: 8,
+      InfoInferred: 16,
+      SpecialBuild: 32
+    }, VersionFileFlags_default = VersionFileFlags;
+  }
+});
+
+// node_modules/resedit/dist/resource/VersionFileOS.js
+var VersionFileOS, VersionFileOS_default, init_VersionFileOS = __esm({
+  "node_modules/resedit/dist/resource/VersionFileOS.js"() {
+    VersionFileOS = {
+      Unknown: 0,
+      _Windows16: 1,
+      _PM16: 2,
+      _PM32: 3,
+      _Windows32: 4,
+      DOS: 65536,
+      OS2_16: 131072,
+      OS2_32: 196608,
+      NT: 262144,
+      DOS_Windows16: 65537,
+      DOS_Windows32: 65540,
+      NT_Windows32: 262148,
+      OS2_16_PM16: 131074,
+      OS2_32_PM32: 196611
+    }, VersionFileOS_default = VersionFileOS;
+  }
+});
+
+// node_modules/resedit/dist/resource/VersionFileSubtypes.js
+var VersionFileDriverSubtype, VersionFileFontSubtype, init_VersionFileSubtypes = __esm({
+  "node_modules/resedit/dist/resource/VersionFileSubtypes.js"() {
+    VersionFileDriverSubtype = {
+      Unknown: 0,
+      Printer: 1,
+      Keyboard: 2,
+      Language: 3,
+      Display: 4,
+      Mouse: 5,
+      Network: 6,
+      System: 7,
+      Installable: 8,
+      Sound: 9,
+      Comm: 10,
+      VersionedPrinter: 12
+    }, VersionFileFontSubtype = {
+      Unknown: 0,
+      Raster: 1,
+      Vector: 2,
+      TrueType: 3
+    };
+  }
+});
+
+// node_modules/resedit/dist/resource/VersionFileType.js
+var VersionFileType, VersionFileType_default, init_VersionFileType = __esm({
+  "node_modules/resedit/dist/resource/VersionFileType.js"() {
+    VersionFileType = {
+      Unknown: 0,
+      App: 1,
+      DLL: 2,
+      Driver: 3,
+      Font: 4,
+      VxD: 5,
+      StaticLibrary: 7
+    }, VersionFileType_default = VersionFileType;
+  }
+});
+
+// node_modules/resedit/dist/resource/VersionInfo.js
+function readStringToNullChar(view, offset, last) {
+  for (var r = ""; offset + 2 <= last; ) {
+    var c = view.getUint16(offset, !0);
+    if (!c)
+      break;
+    r += String.fromCharCode(c), offset += 2;
+  }
+  return r;
+}
+function writeStringWithNullChar(view, offset, value) {
+  for (var i = 0; i < value.length; ++i)
+    view.setUint16(offset, value.charCodeAt(i), !0), offset += 2;
+  return view.setUint16(offset, 0, !0), offset + 2;
+}
+function createFixedInfo() {
+  return {
+    fileVersionMS: 0,
+    fileVersionLS: 0,
+    productVersionMS: 0,
+    productVersionLS: 0,
+    fileFlagsMask: 0,
+    fileFlags: 0,
+    fileOS: 0,
+    fileType: 0,
+    fileSubtype: 0,
+    fileDateMS: 0,
+    fileDateLS: 0
+  };
+}
+function parseStringTable(view, offset, last) {
+  var tableLen = view.getUint16(offset, !0), valueLen = view.getUint16(offset + 2, !0);
+  offset + tableLen < last && (last = offset + tableLen);
+  var tableName = readStringToNullChar(view, offset + 6, last);
+  offset += roundUp2(6 + 2 * (tableName.length + 1), 4);
+  var langAndCp = parseInt(tableName, 16);
+  if (isNaN(langAndCp))
+    throw new Error("Invalid StringTable data format");
+  offset += roundUp2(valueLen, 4);
+  for (var r = {
+    lang: Math.floor(langAndCp / 65536),
+    codepage: langAndCp & 65535,
+    values: {}
+  }; offset < last; ) {
+    var childDataLen = view.getUint16(offset, !0), childValueLen = view.getUint16(offset + 2, !0);
+    if (view.getUint16(offset + 4, !0) !== 1) {
+      offset += childDataLen;
+      continue;
+    }
+    var childDataLast = offset + childDataLen;
+    childDataLast > last && (childDataLast = last);
+    var name_1 = readStringToNullChar(view, offset + 6, childDataLast);
+    offset = roundUp2(offset + 6 + 2 * (name_1.length + 1), 4);
+    var childValueLast = offset + childValueLen * 2;
+    childValueLast > childDataLast && (childValueLast = childDataLast);
+    var value = readStringToNullChar(view, offset, childValueLast);
+    offset = roundUp2(childValueLast, 4), r.values[name_1] = value;
+  }
+  return [last, r];
+}
+function parseStringFileInfo(view, offset, last) {
+  var valueLen = view.getUint16(offset + 2, !0);
+  offset += 36, offset += roundUp2(valueLen, 4);
+  for (var r = [], _loop_1 = function() {
+    var childData = parseStringTable(view, offset, last), table = childData[1], a = r.filter(function(e) {
+      return e.lang === table.lang && e.codepage === table.codepage;
+    });
+    if (a.length === 0)
+      r.push(table);
+    else
+      for (var key in table.values) {
+        var value = table.values[key];
+        value != null && (a[0].values[key] = value);
+      }
+    offset = roundUp2(childData[0], 4);
+  }; offset < last; )
+    _loop_1();
+  return r;
+}
+function parseVarFileInfo(view, offset, last) {
+  var valueLen = view.getUint16(offset + 2, !0);
+  offset += 32, offset += roundUp2(valueLen, 4);
+  for (var r = []; offset < last; ) {
+    var childDataLen = view.getUint16(offset, !0), childValueLen = view.getUint16(offset + 2, !0);
+    if (view.getUint16(offset + 4, !0) !== 0) {
+      offset += roundUp2(childDataLen, 4);
+      continue;
+    }
+    var childDataLast = offset + childDataLen;
+    childDataLast > last && (childDataLast = last);
+    var name_2 = readStringToNullChar(view, offset + 6, childDataLast);
+    if (offset = roundUp2(offset + 6 + 2 * (name_2.length + 1), 4), name_2 !== "Translation" || childValueLen % 4 !== 0) {
+      offset = roundUp2(childDataLast, 4);
+      continue;
+    }
+    for (var _loop_2 = function(child3) {
+      if (offset + 4 > childDataLast)
+        return "break";
+      var lang = view.getUint16(offset, !0), codepage = view.getUint16(offset + 2, !0);
+      offset += 4, r.filter(function(e) {
+        return e.lang === lang && e.codepage === codepage;
+      }).length === 0 && r.push({ lang, codepage });
+    }, child2 = 0; child2 < childValueLen; child2 += 4) {
+      var state_1 = _loop_2(child2);
+      if (state_1 === "break")
+        break;
+    }
+    offset = roundUp2(childDataLast, 4);
+  }
+  return r;
+}
+function parseVersionEntry(view, entry) {
+  var totalLen = view.getUint16(0, !0), dataLen = view.getUint16(2, !0);
+  if (view.getUint16(4, !0) !== 0)
+    throw new Error("Invalid version data format");
+  if (totalLen < dataLen + 40)
+    throw new Error("Invalid version data format");
+  if (readStringToNullChar(view, 6, totalLen) !== "VS_VERSION_INFO")
+    throw new Error("Invalid version data format");
+  var d = {
+    lang: entry.lang,
+    fixedInfo: createFixedInfo(),
+    strings: [],
+    translations: [],
+    unknowns: []
+  }, offset = 38;
+  if (dataLen) {
+    dataLen += 40;
+    var sig = readUint32WithLastOffset(view, 40, dataLen), sVer = readUint32WithLastOffset(view, 44, dataLen);
+    sig === 4277077181 && sVer <= 65536 && (d.fixedInfo = {
+      fileVersionMS: readUint32WithLastOffset(view, 48, dataLen),
+      fileVersionLS: readUint32WithLastOffset(view, 52, dataLen),
+      productVersionMS: readUint32WithLastOffset(view, 56, dataLen),
+      productVersionLS: readUint32WithLastOffset(view, 60, dataLen),
+      fileFlagsMask: readUint32WithLastOffset(view, 64, dataLen),
+      fileFlags: readUint32WithLastOffset(view, 68, dataLen),
+      fileOS: readUint32WithLastOffset(view, 72, dataLen),
+      fileType: readUint32WithLastOffset(view, 76, dataLen),
+      fileSubtype: readUint32WithLastOffset(view, 80, dataLen),
+      fileDateMS: readUint32WithLastOffset(view, 84, dataLen),
+      fileDateLS: readUint32WithLastOffset(view, 88, dataLen)
+    }), offset = dataLen;
+  }
+  for (offset = roundUp2(offset, 4); offset < totalLen; ) {
+    var childLen = view.getUint16(offset, !0), childLast = offset + childLen;
+    childLast > totalLen && (childLast = totalLen);
+    var name_3 = readStringToNullChar(view, offset + 6, childLast);
+    switch (name_3) {
+      case "StringFileInfo":
+        d.strings = d.strings.concat(parseStringFileInfo(view, offset, childLast));
+        break;
+      case "VarFileInfo":
+        d.translations = d.translations.concat(parseVarFileInfo(view, offset, childLast));
+        break;
+      default:
+        d.unknowns.push({
+          name: name_3,
+          entireBin: allocatePartialBinary2(view, offset, childLen)
+        });
+        break;
+    }
+    offset += roundUp2(childLen, 4);
+  }
+  return d;
+}
+function generateStringTable(table) {
+  var size = 24, keys = Object.keys(table.values);
+  size = keys.reduce(function(prev, key) {
+    var value = table.values[key];
+    if (value == null)
+      return prev;
+    var childHeaderSize = roundUp2(6 + 2 * (key.length + 1), 4), newSize = roundUp2(prev + childHeaderSize + 2 * (value.length + 1), 4);
+    return newSize > 65532 ? prev : newSize;
+  }, size);
+  var bin = new ArrayBuffer(size), view = new DataView(bin);
+  view.setUint16(0, size, !0), view.setUint16(2, 0, !0), view.setUint16(4, 1, !0);
+  var langAndCp = ((table.lang & 65535) * 65536 + (table.codepage & 65535)).toString(16).toLowerCase();
+  if (langAndCp.length < 8) {
+    var l = 8 - langAndCp.length;
+    langAndCp = "00000000".substr(0, l) + langAndCp;
+  }
+  var offset = roundUp2(writeStringWithNullChar(view, 6, langAndCp), 4);
+  return keys.forEach(function(key) {
+    var value = table.values[key];
+    if (value != null) {
+      var childHeaderSize = roundUp2(6 + 2 * (key.length + 1), 4), newSize = roundUp2(childHeaderSize + 2 * (value.length + 1), 4);
+      offset + newSize <= 65532 && (view.setUint16(offset, newSize, !0), view.setUint16(offset + 2, value.length + 1, !0), view.setUint16(offset + 4, 1, !0), offset = roundUp2(writeStringWithNullChar(view, offset + 6, key), 4), offset = roundUp2(writeStringWithNullChar(view, offset, value), 4));
+    }
+  }), bin;
+}
+function generateStringTableInfo(tables) {
+  var size = 36, tableBins = tables.map(function(table) {
+    return generateStringTable(table);
+  });
+  size += tableBins.reduce(function(p, c) {
+    return p + c.byteLength;
+  }, 0);
+  var bin = new ArrayBuffer(size), view = new DataView(bin);
+  view.setUint16(0, size, !0), view.setUint16(2, 0, !0), view.setUint16(4, 1, !0);
+  var offset = roundUp2(writeStringWithNullChar(view, 6, "StringFileInfo"), 4);
+  return tableBins.forEach(function(table) {
+    var len = table.byteLength;
+    copyBuffer2(bin, offset, table, 0, len), offset += len;
+  }), bin;
+}
+function generateVarFileInfo(translations) {
+  var size = 32, translationsValueSize = translations.length * 4;
+  size += 32 + translationsValueSize;
+  var bin = new ArrayBuffer(size), view = new DataView(bin);
+  view.setUint16(0, size, !0), view.setUint16(2, 0, !0), view.setUint16(4, 1, !0);
+  var offset = roundUp2(writeStringWithNullChar(view, 6, "VarFileInfo"), 4);
+  return view.setUint16(offset, 32 + translationsValueSize, !0), view.setUint16(offset + 2, translationsValueSize, !0), view.setUint16(offset + 4, 0, !0), offset = roundUp2(writeStringWithNullChar(view, offset + 6, "Translation"), 4), translations.forEach(function(translation) {
+    view.setUint16(offset, translation.lang, !0), view.setUint16(offset + 2, translation.codepage, !0), offset += 4;
+  }), bin;
+}
+function generateVersionEntryBinary(entry) {
+  var size = 92, stringTableInfoBin = generateStringTableInfo(entry.strings), stringTableInfoLen = stringTableInfoBin.byteLength;
+  size += stringTableInfoLen;
+  var varFileInfoBin = generateVarFileInfo(entry.translations), varFileInfoLen = varFileInfoBin.byteLength;
+  size += varFileInfoLen, size = entry.unknowns.reduce(function(p, data) {
+    return p + roundUp2(data.entireBin.byteLength, 4);
+  }, size);
+  var bin = new ArrayBuffer(size), view = new DataView(bin);
+  view.setUint16(0, size, !0), view.setUint16(2, 52, !0), view.setUint16(4, 0, !0);
+  var offset = roundUp2(writeStringWithNullChar(view, 6, "VS_VERSION_INFO"), 4);
+  return view.setUint32(offset, 4277077181, !0), view.setUint32(offset + 4, 65536, !0), view.setUint32(offset + 8, entry.fixedInfo.fileVersionMS, !0), view.setUint32(offset + 12, entry.fixedInfo.fileVersionLS, !0), view.setUint32(offset + 16, entry.fixedInfo.productVersionMS, !0), view.setUint32(offset + 20, entry.fixedInfo.productVersionLS, !0), view.setUint32(offset + 24, entry.fixedInfo.fileFlagsMask, !0), view.setUint32(offset + 28, entry.fixedInfo.fileFlags, !0), view.setUint32(offset + 32, entry.fixedInfo.fileOS, !0), view.setUint32(offset + 36, entry.fixedInfo.fileType, !0), view.setUint32(offset + 40, entry.fixedInfo.fileSubtype, !0), view.setUint32(offset + 44, entry.fixedInfo.fileDateMS, !0), view.setUint32(offset + 48, entry.fixedInfo.fileDateLS, !0), offset += 52, copyBuffer2(bin, offset, stringTableInfoBin, 0, stringTableInfoLen), offset += stringTableInfoLen, copyBuffer2(bin, offset, varFileInfoBin, 0, varFileInfoLen), offset += varFileInfoLen, entry.unknowns.forEach(function(e) {
+    var len = e.entireBin.byteLength;
+    copyBuffer2(bin, offset, e.entireBin, 0, len), offset += roundUp2(len, 4);
+  }), bin;
+}
+function clampInt(val, min, max) {
+  return isNaN(val) || val < min ? min : val >= max ? max : Math.floor(val);
+}
+function parseVersionArguments(arg1, arg2, arg3, arg4, arg5) {
+  var _a, major, minor, micro, revision, lang;
+  return typeof arg1 == "string" && (typeof arg2 > "u" || typeof arg2 == "number") && typeof arg3 > "u" ? (_a = arg1.split(".").map(function(token) {
+    return clampInt(Number(token), 0, 65535);
+  }).concat(0, 0, 0), major = _a[0], minor = _a[1], micro = _a[2], revision = _a[3], lang = arg2) : (major = clampInt(Number(arg1), 0, 65535), minor = clampInt(Number(arg2), 0, 65535), micro = clampInt(typeof arg3 > "u" ? 0 : Number(arg3), 0, 65535), revision = clampInt(typeof arg4 > "u" ? 0 : Number(arg4), 0, 65535), lang = arg5), [major, minor, micro, revision, lang];
+}
+var VersionInfo, VersionInfo_default, init_VersionInfo = __esm({
+  "node_modules/resedit/dist/resource/VersionInfo.js"() {
+    init_functions2();
+    VersionInfo = /** @class */
+    (function() {
+      function VersionInfo2(entry) {
+        if (!entry)
+          this.data = {
+            lang: 0,
+            fixedInfo: createFixedInfo(),
+            strings: [],
+            translations: [],
+            unknowns: []
+          };
+        else {
+          var view = new DataView(entry.bin);
+          this.data = parseVersionEntry(view, entry);
+        }
+      }
+      return VersionInfo2.createEmpty = function() {
+        return new VersionInfo2();
+      }, VersionInfo2.create = function(arg1, fixedInfo, strings) {
+        var lang;
+        typeof arg1 == "object" ? (lang = arg1.lang, fixedInfo = arg1.fixedInfo, strings = arg1.strings) : lang = arg1;
+        var vi = new VersionInfo2();
+        vi.data.lang = lang;
+        for (var _fixedInfoKey in fixedInfo) {
+          var fixedInfoKey = _fixedInfoKey;
+          if (fixedInfoKey in fixedInfo) {
+            var value = fixedInfo[fixedInfoKey];
+            value != null && (vi.data.fixedInfo[fixedInfoKey] = value);
+          }
+        }
+        return vi.data.strings = strings.map(function(_a) {
+          var lang2 = _a.lang, codepage = _a.codepage, values = _a.values;
+          return {
+            lang: lang2,
+            codepage,
+            values: cloneObject2(values)
+          };
+        }), vi.data.translations = strings.map(function(_a) {
+          var lang2 = _a.lang, codepage = _a.codepage;
+          return { lang: lang2, codepage };
+        }), vi;
+      }, VersionInfo2.fromEntries = function(entries) {
+        return entries.filter(function(e) {
+          return e.type === 16;
+        }).map(function(e) {
+          return new VersionInfo2(e);
+        });
+      }, Object.defineProperty(VersionInfo2.prototype, "lang", {
+        /** A language value for this resource entry. */
+        get: function() {
+          return this.data.lang;
+        },
+        set: function(value) {
+          this.data.lang = value;
+        },
+        enumerable: !1,
+        configurable: !0
+      }), Object.defineProperty(VersionInfo2.prototype, "fixedInfo", {
+        /**
+         * The property of fixed version info, containing file version, product version, etc.
+         * (data: `VS_FIXEDFILEINFO`)
+         *
+         * Although this property is read-only, you can rewrite
+         * each child fields directly to apply data.
+         */
+        get: function() {
+          return this.data.fixedInfo;
+        },
+        enumerable: !1,
+        configurable: !0
+      }), VersionInfo2.prototype.getAvailableLanguages = function() {
+        return this.data.translations.slice(0);
+      }, VersionInfo2.prototype.replaceAvailableLanguages = function(languages) {
+        this.data.translations = languages.slice(0);
+      }, VersionInfo2.prototype.getStringValues = function(language) {
+        var a = this.data.strings.filter(function(e) {
+          return e.lang === language.lang && e.codepage === language.codepage;
+        }).map(function(e) {
+          return e.values;
+        });
+        return a.length > 0 ? a[0] : {};
+      }, VersionInfo2.prototype.getAllLanguagesForStringValues = function() {
+        return this.data.strings.map(function(_a) {
+          var codepage = _a.codepage, lang = _a.lang;
+          return { codepage, lang };
+        });
+      }, VersionInfo2.prototype.setStringValues = function(language, values, addToAvailableLanguage) {
+        addToAvailableLanguage === void 0 && (addToAvailableLanguage = !0);
+        var a = this.data.strings.filter(function(e) {
+          return e.lang === language.lang && e.codepage === language.codepage;
+        }), table;
+        a.length === 0 ? (table = {
+          lang: language.lang,
+          codepage: language.codepage,
+          values: {}
+        }, this.data.strings.push(table)) : table = a[0];
+        for (var key in values) {
+          var value = values[key];
+          value != null && (table.values[key] = value);
+        }
+        if (addToAvailableLanguage) {
+          var t = this.data.translations.filter(function(e) {
+            return e.lang === language.lang && e.codepage === language.codepage;
+          });
+          t.length === 0 && this.data.translations.push({
+            lang: language.lang,
+            codepage: language.codepage
+          });
+        }
+      }, VersionInfo2.prototype.setStringValue = function(language, key, value, addToAvailableLanguage) {
+        var _a;
+        addToAvailableLanguage === void 0 && (addToAvailableLanguage = !0), this.setStringValues(language, (_a = {}, _a[key] = value, _a), addToAvailableLanguage);
+      }, VersionInfo2.prototype.removeAllStringValues = function(language, removeFromAvailableLanguage) {
+        removeFromAvailableLanguage === void 0 && (removeFromAvailableLanguage = !0);
+        for (var strings = this.data.strings, len = strings.length, i = 0; i < len; ++i) {
+          var e = strings[i];
+          if (e != null && e.lang === language.lang && e.codepage === language.codepage) {
+            if (strings.splice(i, 1), removeFromAvailableLanguage)
+              for (var translations = this.data.translations, j = 0; j < translations.length; j++) {
+                var t = translations[j];
+                if (t != null && t.lang === language.lang && t.codepage === language.codepage) {
+                  translations.splice(j, 1);
+                  break;
+                }
+              }
+            break;
+          }
+        }
+      }, VersionInfo2.prototype.removeStringValue = function(language, key, removeFromAvailableLanguage) {
+        removeFromAvailableLanguage === void 0 && (removeFromAvailableLanguage = !0);
+        for (var strings = this.data.strings, len = strings.length, i = 0; i < len; ++i) {
+          var e = strings[i];
+          if (e != null && e.lang === language.lang && e.codepage === language.codepage) {
+            try {
+              delete e.values[key];
+            } catch {
+            }
+            if (removeFromAvailableLanguage && Object.keys(e.values).length === 0) {
+              strings.splice(i, 1);
+              for (var translations = this.data.translations, j = 0; j < translations.length; j++) {
+                var t = translations[j];
+                if (t != null && t.lang === language.lang && t.codepage === language.codepage) {
+                  translations.splice(j, 1);
+                  break;
+                }
+              }
+            }
+            break;
+          }
+        }
+      }, VersionInfo2.prototype.generateResource = function() {
+        var bin = generateVersionEntryBinary(this.data);
+        return {
+          type: 16,
+          id: 1,
+          lang: this.lang,
+          codepage: 1200,
+          bin
+        };
+      }, VersionInfo2.prototype.outputToResourceEntries = function(entries) {
+        for (var res = this.generateResource(), len = entries.length, i = 0; i < len; ++i) {
+          var e = entries[i];
+          if (e != null && e.type === 16 && e.id === res.id && e.lang === res.lang) {
+            entries[i] = res;
+            return;
+          }
+        }
+        entries.push(res);
+      }, VersionInfo2.prototype.getDefaultVersionLang = function(propName3) {
+        var num = Number(this.lang);
+        if (this.lang !== "" && !isNaN(num))
+          return num;
+        var a = this.data.strings.filter(function(e) {
+          return propName3 in e.values && e.values[propName3] != null;
+        }).map(function(e) {
+          return e.lang;
+        });
+        return a.length === 1 ? a[0] : 1033;
+      }, VersionInfo2.prototype.setFileVersion = function(arg1, arg2, arg3, arg4, arg5) {
+        this.setFileVersionImpl.apply(this, parseVersionArguments(arg1, arg2, arg3, arg4, arg5));
+      }, VersionInfo2.prototype.setFileVersionImpl = function(major, minor, micro, revision, lang) {
+        lang = typeof lang < "u" ? lang : this.getDefaultVersionLang("FileVersion"), this.fixedInfo.fileVersionMS = major << 16 | minor, this.fixedInfo.fileVersionLS = micro << 16 | revision, this.setStringValue({ lang, codepage: 1200 }, "FileVersion", "".concat(major, ".").concat(minor, ".").concat(micro, ".").concat(revision), !0);
+      }, VersionInfo2.prototype.setProductVersion = function(arg1, arg2, arg3, arg4, arg5) {
+        this.setProductVersionImpl.apply(this, parseVersionArguments(arg1, arg2, arg3, arg4, arg5));
+      }, VersionInfo2.prototype.setProductVersionImpl = function(major, minor, micro, revision, lang) {
+        lang = typeof lang < "u" ? lang : this.getDefaultVersionLang("ProductVersion"), this.fixedInfo.productVersionMS = major << 16 | minor, this.fixedInfo.productVersionLS = micro << 16 | revision, this.setStringValue({ lang, codepage: 1200 }, "ProductVersion", "".concat(major, ".").concat(minor, ".").concat(micro, ".").concat(revision), !0);
+      }, VersionInfo2;
+    })(), VersionInfo_default = VersionInfo;
+  }
+});
+
+// node_modules/resedit/dist/resource/index.js
+var resource_exports = {};
+__export(resource_exports, {
+  IconGroupEntry: () => IconGroupEntry_default,
+  StringTable: () => StringTable_default,
+  VersionFileDriverSubtype: () => VersionFileDriverSubtype,
+  VersionFileFlags: () => VersionFileFlags_default,
+  VersionFileFontSubtype: () => VersionFileFontSubtype,
+  VersionFileOS: () => VersionFileOS_default,
+  VersionFileType: () => VersionFileType_default,
+  VersionInfo: () => VersionInfo_default
+});
+var init_resource = __esm({
+  "node_modules/resedit/dist/resource/index.js"() {
+    init_IconGroupEntry();
+    init_StringTable();
+    init_VersionFileFlags();
+    init_VersionFileOS();
+    init_VersionFileSubtypes();
+    init_VersionFileType();
+    init_VersionInfo();
+  }
+});
+
+// node_modules/resedit/dist/sign/data/DERObject.js
+var RawDERObject, init_DERObject = __esm({
+  "node_modules/resedit/dist/sign/data/DERObject.js"() {
+    RawDERObject = /** @class */
+    (function() {
+      function RawDERObject2(data) {
+        this.data = data;
+      }
+      return RawDERObject2.prototype.toDER = function() {
+        return [].slice.call(this.data);
+      }, RawDERObject2;
+    })();
+  }
+});
+
+// node_modules/resedit/dist/sign/data/derUtil.js
+function makeDERLength(length) {
+  if (length < 128)
+    return [length];
+  for (var r = []; r.push(length & 255), !(length < 256); )
+    length >>= 8;
+  return r.push(128 + r.length), r.reverse();
+}
+function makeDERIA5String(text) {
+  var r = [].map.call(text, function(c) {
+    return c.charCodeAt(0);
+  }).filter(function(n) {
+    return n < 128;
+  });
+  return [22].concat(makeDERLength(r.length)).concat(r);
+}
+function makeDERBMPString(text) {
+  var r = [].map.call(text, function(c) {
+    return c.charCodeAt(0);
+  }), ua = new Uint8Array(r.length * 2), dv = new DataView(ua.buffer);
+  return r.forEach(function(v, i) {
+    dv.setUint16(i * 2, v, !1);
+  }), [30].concat(makeDERLength(ua.length)).concat(
+    // convert Uint8Array to number[] (not using spread operator)
+    [].slice.call(ua)
+  );
+}
+function makeDEROctetString(bin) {
+  return bin instanceof Array || (bin = [].slice.call(bin)), [4].concat(makeDERLength(bin.length)).concat(bin);
+}
+function makeDERTaggedData(tag, body2) {
+  return [160 + tag].concat(makeDERLength(body2.length)).concat(body2);
+}
+function makeDERSequence(body2) {
+  return [48].concat(makeDERLength(body2.length)).concat(body2);
+}
+function arrayToDERSet(items) {
+  var r = items.reduce(function(prev, item) {
+    return prev.concat(item instanceof Array ? item : item.toDER());
+  }, []);
+  return [49].concat(makeDERLength(r.length)).concat(r);
+}
+var init_derUtil = __esm({
+  "node_modules/resedit/dist/sign/data/derUtil.js"() {
+  }
+});
+
+// node_modules/resedit/dist/sign/data/ObjectIdentifier.js
+var ObjectIdentifier, ObjectIdentifier_default, init_ObjectIdentifier = __esm({
+  "node_modules/resedit/dist/sign/data/ObjectIdentifier.js"() {
+    init_derUtil();
+    ObjectIdentifier = /** @class */
+    (function() {
+      function ObjectIdentifier2(value) {
+        typeof value == "string" ? this.value = value.split(/\./g).map(function(s) {
+          return Number(s);
+        }) : this.value = value;
+      }
+      return ObjectIdentifier2.prototype.toDER = function() {
+        var id = this.value, r = [];
+        if (id.length < 2)
+          throw new Error("Unexpected 'value' field");
+        r.push(id[0] * 40 + id[1]);
+        for (var i = 2; i < id.length; ++i)
+          for (var val = id[i], isFirst = !0, insertPos = r.length; ; ) {
+            var v = val & 127;
+            if (isFirst || (v += 128), r.splice(insertPos, 0, v), val < 128)
+              break;
+            isFirst = !1, val = Math.floor(val / 128);
+          }
+        return [6].concat(makeDERLength(r.length)).concat(r);
+      }, ObjectIdentifier2;
+    })(), ObjectIdentifier_default = ObjectIdentifier;
+  }
+});
+
+// node_modules/resedit/dist/sign/data/KnownOids.js
+var OID_SHA1_NO_SIGN, OID_SHA256_NO_SIGN, OID_SHA384_NO_SIGN, OID_SHA512_NO_SIGN, OID_SHA224_NO_SIGN, OID_SHA512_224_NO_SIGN, OID_SHA512_256_NO_SIGN, OID_SHA3_224_NO_SIGN, OID_SHA3_256_NO_SIGN, OID_SHA3_384_NO_SIGN, OID_SHA3_512_NO_SIGN, OID_SHAKE128_NO_SIGN, OID_SHAKE256_NO_SIGN, OID_RSA, OID_DSA, OID_SIGNED_DATA, OID_CONTENT_TYPE, OID_MESSAGE_DIGEST, OID_SPC_STATEMENT_TYPE_OBJID, OID_SPC_SP_OPUS_INFO_OBJID, OID_SPC_INDIVIDUAL_SP_KEY_PURPOSE_OBJID, OID_RFC3161_COUNTER_SIGNATURE, init_KnownOids = __esm({
+  "node_modules/resedit/dist/sign/data/KnownOids.js"() {
+    init_ObjectIdentifier();
+    OID_SHA1_NO_SIGN = new ObjectIdentifier_default([1, 3, 14, 3, 2, 26]), OID_SHA256_NO_SIGN = new ObjectIdentifier_default([2, 16, 840, 1, 101, 3, 4, 2, 1]), OID_SHA384_NO_SIGN = new ObjectIdentifier_default([2, 16, 840, 1, 101, 3, 4, 2, 2]), OID_SHA512_NO_SIGN = new ObjectIdentifier_default([2, 16, 840, 1, 101, 3, 4, 2, 3]), OID_SHA224_NO_SIGN = new ObjectIdentifier_default([2, 16, 840, 1, 101, 3, 4, 2, 4]), OID_SHA512_224_NO_SIGN = new ObjectIdentifier_default([2, 16, 840, 1, 101, 3, 4, 2, 5]), OID_SHA512_256_NO_SIGN = new ObjectIdentifier_default([2, 16, 840, 1, 101, 3, 4, 2, 6]), OID_SHA3_224_NO_SIGN = new ObjectIdentifier_default([2, 16, 840, 1, 101, 3, 4, 2, 7]), OID_SHA3_256_NO_SIGN = new ObjectIdentifier_default([2, 16, 840, 1, 101, 3, 4, 2, 8]), OID_SHA3_384_NO_SIGN = new ObjectIdentifier_default([2, 16, 840, 1, 101, 3, 4, 2, 9]), OID_SHA3_512_NO_SIGN = new ObjectIdentifier_default([2, 16, 840, 1, 101, 3, 4, 2, 10]), OID_SHAKE128_NO_SIGN = new ObjectIdentifier_default([2, 16, 840, 1, 101, 3, 4, 2, 11]), OID_SHAKE256_NO_SIGN = new ObjectIdentifier_default([2, 16, 840, 1, 101, 3, 4, 2, 12]), OID_RSA = new ObjectIdentifier_default([1, 2, 840, 113549, 1, 1, 1]), OID_DSA = new ObjectIdentifier_default([1, 2, 840, 10040, 4, 1]), OID_SIGNED_DATA = new ObjectIdentifier_default([1, 2, 840, 113549, 1, 7, 2]), OID_CONTENT_TYPE = new ObjectIdentifier_default([1, 2, 840, 113549, 1, 9, 3]), OID_MESSAGE_DIGEST = new ObjectIdentifier_default([1, 2, 840, 113549, 1, 9, 4]), OID_SPC_STATEMENT_TYPE_OBJID = new ObjectIdentifier_default([1, 3, 6, 1, 4, 1, 311, 2, 1, 11]), OID_SPC_SP_OPUS_INFO_OBJID = new ObjectIdentifier_default([1, 3, 6, 1, 4, 1, 311, 2, 1, 12]), OID_SPC_INDIVIDUAL_SP_KEY_PURPOSE_OBJID = new ObjectIdentifier_default([1, 3, 6, 1, 4, 1, 311, 2, 1, 21]), OID_RFC3161_COUNTER_SIGNATURE = new ObjectIdentifier_default([1, 3, 6, 1, 4, 1, 311, 3, 3, 1]);
+  }
+});
+
+// node_modules/resedit/dist/sign/certUtil.js
+var init_certUtil = __esm({
+  "node_modules/resedit/dist/sign/certUtil.js"() {
+    init_DERObject();
+    init_KnownOids();
+  }
+});
+
+// node_modules/resedit/dist/sign/data/AlgorithmIdentifier.js
+var AlgorithmIdentifier, init_AlgorithmIdentifier = __esm({
+  "node_modules/resedit/dist/sign/data/AlgorithmIdentifier.js"() {
+    init_derUtil();
+    AlgorithmIdentifier = /** @class */
+    (function() {
+      function AlgorithmIdentifier2(algorithm) {
+        this.algorithm = algorithm;
+      }
+      return AlgorithmIdentifier2.prototype.toDER = function() {
+        var r = this.algorithm.toDER();
+        return makeDERSequence(r.concat(
+          // parameters is not used now
+          [5, 0]
+        ));
+      }, AlgorithmIdentifier2;
+    })();
+  }
+});
+
+// node_modules/resedit/dist/sign/data/Attribute.js
+var Attribute, init_Attribute = __esm({
+  "node_modules/resedit/dist/sign/data/Attribute.js"() {
+    init_derUtil();
+    Attribute = /** @class */
+    (function() {
+      function Attribute2(attrType, attrValues) {
+        this.attrType = attrType, this.attrValues = attrValues;
+      }
+      return Attribute2.prototype.toDER = function() {
+        return makeDERSequence(this.attrType.toDER().concat(arrayToDERSet(this.attrValues)));
+      }, Attribute2;
+    })();
+  }
+});
+
+// node_modules/resedit/dist/sign/data/ContentInfo.js
+var ContentInfo, ContentInfo_default, init_ContentInfo = __esm({
+  "node_modules/resedit/dist/sign/data/ContentInfo.js"() {
+    init_derUtil();
+    ContentInfo = /** @class */
+    (function() {
+      function ContentInfo2(contentType2, content) {
+        this.contentType = contentType2, this.content = content;
+      }
+      return ContentInfo2.prototype.toDER = function() {
+        return makeDERSequence(this.contentType.toDER().concat(makeDERTaggedData(0, this.content.toDER())));
+      }, ContentInfo2;
+    })(), ContentInfo_default = ContentInfo;
+  }
+});
+
+// node_modules/resedit/dist/sign/data/CertificateDataRoot.js
+var __extends9, CertificateDataRoot, init_CertificateDataRoot = __esm({
+  "node_modules/resedit/dist/sign/data/CertificateDataRoot.js"() {
+    init_ContentInfo();
+    __extends9 = /* @__PURE__ */ (function() {
+      var extendStatics = function(d, b) {
+        return extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
+          d2.__proto__ = b2;
+        } || function(d2, b2) {
+          for (var p in b2) Object.prototype.hasOwnProperty.call(b2, p) && (d2[p] = b2[p]);
+        }, extendStatics(d, b);
+      };
+      return function(d, b) {
+        if (typeof b != "function" && b !== null)
+          throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        extendStatics(d, b);
+        function __() {
+          this.constructor = d;
+        }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+      };
+    })(), CertificateDataRoot = /** @class */
+    (function(_super) {
+      __extends9(CertificateDataRoot2, _super);
+      function CertificateDataRoot2() {
+        return _super !== null && _super.apply(this, arguments) || this;
+      }
+      return CertificateDataRoot2;
+    })(ContentInfo_default);
+  }
+});
+
+// node_modules/resedit/dist/sign/data/DigestInfo.js
+var DigestInfo, init_DigestInfo = __esm({
+  "node_modules/resedit/dist/sign/data/DigestInfo.js"() {
+    init_derUtil();
+    DigestInfo = /** @class */
+    (function() {
+      function DigestInfo2(digestAlgorithm, digest) {
+        this.digestAlgorithm = digestAlgorithm, this.digest = digest;
+      }
+      return DigestInfo2.prototype.toDER = function() {
+        var digest = this.digest, digestArray;
+        "buffer" in digest ? digestArray = new Uint8Array(digest.buffer, digest.byteOffset, digest.byteLength) : digestArray = new Uint8Array(digest);
+        var derData = this.digestAlgorithm.toDER().concat(makeDEROctetString(digestArray));
+        return makeDERSequence(derData);
+      }, DigestInfo2;
+    })();
+  }
+});
+
+// node_modules/resedit/dist/sign/data/IssuerAndSerialNumber.js
+var IssuerAndSerialNumber, init_IssuerAndSerialNumber = __esm({
+  "node_modules/resedit/dist/sign/data/IssuerAndSerialNumber.js"() {
+    init_derUtil();
+    IssuerAndSerialNumber = /** @class */
+    (function() {
+      function IssuerAndSerialNumber2(issuer, serialNumber) {
+        this.issuer = issuer, this.serialNumber = serialNumber;
+      }
+      return IssuerAndSerialNumber2.prototype.toDER = function() {
+        return makeDERSequence(this.issuer.toDER().concat(this.serialNumber.toDER()));
+      }, IssuerAndSerialNumber2;
+    })();
+  }
+});
+
+// node_modules/resedit/dist/sign/data/SignedData.js
+var SignedData, init_SignedData = __esm({
+  "node_modules/resedit/dist/sign/data/SignedData.js"() {
+    init_derUtil();
+    SignedData = /** @class */
+    (function() {
+      function SignedData2(version3, digestAlgorithms, contentInfo, signerInfos, certificates, crls) {
+        this.version = version3, this.digestAlgorithms = digestAlgorithms, this.contentInfo = contentInfo, this.signerInfos = signerInfos, this.certificates = certificates, this.crls = crls;
+      }
+      return SignedData2.prototype.toDER = function() {
+        var r = [2, 1, this.version & 255].concat(arrayToDERSet(this.digestAlgorithms)).concat(this.contentInfo.toDER());
+        if (this.certificates && this.certificates.length > 0) {
+          var allCertsDER = arrayToDERSet(this.certificates);
+          allCertsDER[0] = 160, r = r.concat(allCertsDER);
+        }
+        return this.crls && (r = r.concat(makeDERTaggedData(1, arrayToDERSet(this.crls)))), r = r.concat(arrayToDERSet(this.signerInfos)), makeDERSequence(r);
+      }, SignedData2;
+    })();
+  }
+});
+
+// node_modules/resedit/dist/sign/data/SignerInfo.js
+var SignerInfo, init_SignerInfo = __esm({
+  "node_modules/resedit/dist/sign/data/SignerInfo.js"() {
+    init_derUtil();
+    SignerInfo = /** @class */
+    (function() {
+      function SignerInfo2(version3, issuerAndSerialNumber, digestAlgorithm, digestEncryptionAlgorithm, encryptedDigest, authenticatedAttributes, unauthenticatedAttributes) {
+        this.version = version3, this.issuerAndSerialNumber = issuerAndSerialNumber, this.digestAlgorithm = digestAlgorithm, this.digestEncryptionAlgorithm = digestEncryptionAlgorithm, this.encryptedDigest = encryptedDigest, this.authenticatedAttributes = authenticatedAttributes, this.unauthenticatedAttributes = unauthenticatedAttributes;
+      }
+      return SignerInfo2.prototype.toDER = function() {
+        var r = [2, 1, this.version & 255].concat(this.issuerAndSerialNumber.toDER()).concat(this.digestAlgorithm.toDER());
+        if (this.authenticatedAttributes && this.authenticatedAttributes.length > 0) {
+          var a = arrayToDERSet(this.authenticatedAttributes);
+          a[0] = 160, r = r.concat(a);
+        }
+        if (r = r.concat(this.digestEncryptionAlgorithm.toDER()).concat(makeDEROctetString(this.encryptedDigest)), this.unauthenticatedAttributes && this.unauthenticatedAttributes.length > 0) {
+          var u = arrayToDERSet(this.unauthenticatedAttributes);
+          u[0] = 161, r = r.concat(u);
+        }
+        return makeDERSequence(r);
+      }, SignerInfo2;
+    })();
+  }
+});
+
+// node_modules/resedit/dist/sign/data/SpcIndirectDataContent.js
+var __extends10, SPC_INDIRECT_DATA_OBJID, SpcAttributeTypeAndOptionalValue, SpcIndirectDataContent, SpcIndirectDataContentInfo, init_SpcIndirectDataContent = __esm({
+  "node_modules/resedit/dist/sign/data/SpcIndirectDataContent.js"() {
+    init_ContentInfo();
+    init_derUtil();
+    init_ObjectIdentifier();
+    __extends10 = /* @__PURE__ */ (function() {
+      var extendStatics = function(d, b) {
+        return extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
+          d2.__proto__ = b2;
+        } || function(d2, b2) {
+          for (var p in b2) Object.prototype.hasOwnProperty.call(b2, p) && (d2[p] = b2[p]);
+        }, extendStatics(d, b);
+      };
+      return function(d, b) {
+        if (typeof b != "function" && b !== null)
+          throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        extendStatics(d, b);
+        function __() {
+          this.constructor = d;
+        }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+      };
+    })(), SPC_INDIRECT_DATA_OBJID = new ObjectIdentifier_default([1, 3, 6, 1, 4, 1, 311, 2, 1, 4]), SpcAttributeTypeAndOptionalValue = /** @class */
+    (function() {
+      function SpcAttributeTypeAndOptionalValue2(type, value) {
+        this.type = type, this.value = value;
+      }
+      return SpcAttributeTypeAndOptionalValue2.prototype.toDER = function() {
+        return makeDERSequence(this.type.toDER().concat(this.value.toDER()));
+      }, SpcAttributeTypeAndOptionalValue2;
+    })(), SpcIndirectDataContent = /** @class */
+    (function() {
+      function SpcIndirectDataContent2(data, messageDigest) {
+        this.data = data, this.messageDigest = messageDigest;
+      }
+      return SpcIndirectDataContent2.prototype.toDER = function() {
+        return makeDERSequence(this.toDERWithoutHeader());
+      }, SpcIndirectDataContent2.prototype.toDERWithoutHeader = function() {
+        return this.data.toDER().concat(this.messageDigest.toDER());
+      }, SpcIndirectDataContent2;
+    })(), SpcIndirectDataContentInfo = /** @class */
+    (function(_super) {
+      __extends10(SpcIndirectDataContentInfo2, _super);
+      function SpcIndirectDataContentInfo2(content) {
+        return _super.call(this, SPC_INDIRECT_DATA_OBJID, content) || this;
+      }
+      return SpcIndirectDataContentInfo2;
+    })(ContentInfo_default);
+  }
+});
+
+// node_modules/resedit/dist/sign/data/SpcLink.js
+var __extends11, SpcLink, SpcLinkUrl, SpcLinkFile, init_SpcLink = __esm({
+  "node_modules/resedit/dist/sign/data/SpcLink.js"() {
+    init_DERObject();
+    init_derUtil();
+    __extends11 = /* @__PURE__ */ (function() {
+      var extendStatics = function(d, b) {
+        return extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
+          d2.__proto__ = b2;
+        } || function(d2, b2) {
+          for (var p in b2) Object.prototype.hasOwnProperty.call(b2, p) && (d2[p] = b2[p]);
+        }, extendStatics(d, b);
+      };
+      return function(d, b) {
+        if (typeof b != "function" && b !== null)
+          throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        extendStatics(d, b);
+        function __() {
+          this.constructor = d;
+        }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+      };
+    })(), SpcLink = /** @class */
+    (function() {
+      function SpcLink2(tag, value) {
+        this.tag = tag, this.value = value;
+      }
+      return SpcLink2.prototype.toDER = function() {
+        var v = this.value.toDER();
+        return this.tag === 2 ? makeDERTaggedData(this.tag, v) : (v[0] = 128 + this.tag, v);
+      }, SpcLink2;
+    })(), SpcLinkUrl = /** @class */
+    (function(_super) {
+      __extends11(SpcLinkUrl2, _super);
+      function SpcLinkUrl2(url2) {
+        return _super.call(this, 0, new RawDERObject(makeDERIA5String(url2))) || this;
+      }
+      return SpcLinkUrl2;
+    })(SpcLink), SpcLinkFile = /** @class */
+    (function(_super) {
+      __extends11(SpcLinkFile2, _super);
+      function SpcLinkFile2(file) {
+        var v = makeDERBMPString(file);
+        return v[0] = 128, _super.call(this, 2, new RawDERObject(v)) || this;
+      }
+      return SpcLinkFile2;
+    })(SpcLink);
+  }
+});
+
+// node_modules/resedit/dist/sign/data/SpcPeImageData.js
+var __extends12, SPC_PE_IMAGE_DATA_OBJID, SpcPeImageData, SpcPeImageAttributeTypeAndOptionalValue, init_SpcPeImageData = __esm({
+  "node_modules/resedit/dist/sign/data/SpcPeImageData.js"() {
+    init_derUtil();
+    init_ObjectIdentifier();
+    init_SpcIndirectDataContent();
+    __extends12 = /* @__PURE__ */ (function() {
+      var extendStatics = function(d, b) {
+        return extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
+          d2.__proto__ = b2;
+        } || function(d2, b2) {
+          for (var p in b2) Object.prototype.hasOwnProperty.call(b2, p) && (d2[p] = b2[p]);
+        }, extendStatics(d, b);
+      };
+      return function(d, b) {
+        if (typeof b != "function" && b !== null)
+          throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        extendStatics(d, b);
+        function __() {
+          this.constructor = d;
+        }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+      };
+    })(), SPC_PE_IMAGE_DATA_OBJID = new ObjectIdentifier_default([1, 3, 6, 1, 4, 1, 311, 2, 1, 15]), SpcPeImageData = /** @class */
+    (function() {
+      function SpcPeImageData2(flags, file) {
+        this.flags = flags, this.file = file;
+      }
+      return SpcPeImageData2.prototype.toDER = function() {
+        return makeDERSequence([3, 1, this.flags & 255].concat(
+          // undocumented -- SpcLink must be tagged
+          makeDERTaggedData(0, this.file.toDER())
+        ));
+      }, SpcPeImageData2;
+    })(), SpcPeImageAttributeTypeAndOptionalValue = /** @class */
+    (function(_super) {
+      __extends12(SpcPeImageAttributeTypeAndOptionalValue2, _super);
+      function SpcPeImageAttributeTypeAndOptionalValue2(value) {
+        return _super.call(this, SPC_PE_IMAGE_DATA_OBJID, value) || this;
+      }
+      return SpcPeImageAttributeTypeAndOptionalValue2;
+    })(SpcAttributeTypeAndOptionalValue);
+  }
+});
+
+// node_modules/resedit/dist/sign/timestamp.js
+var init_timestamp2 = __esm({
+  "node_modules/resedit/dist/sign/timestamp.js"() {
+    init_functions2();
+    init_certUtil();
+    init_derUtil();
+    init_KnownOids();
+  }
+});
+
+// node_modules/resedit/dist/sign/index.js
+var init_sign = __esm({
+  "node_modules/resedit/dist/sign/index.js"() {
+    init_dist();
+    init_functions2();
+    init_certUtil();
+    init_AlgorithmIdentifier();
+    init_Attribute();
+    init_CertificateDataRoot();
+    init_ContentInfo();
+    init_DERObject();
+    init_derUtil();
+    init_DigestInfo();
+    init_IssuerAndSerialNumber();
+    init_KnownOids();
+    init_ObjectIdentifier();
+    init_SignedData();
+    init_SignerInfo();
+    init_SpcIndirectDataContent();
+    init_SpcLink();
+    init_SpcPeImageData();
+    init_timestamp2();
+  }
+});
+
+// node_modules/resedit/dist/version.js
+var init_version5 = __esm({
+  "node_modules/resedit/dist/version.js"() {
+  }
+});
+
+// node_modules/resedit/dist/index.js
+var init_dist2 = __esm({
+  "node_modules/resedit/dist/index.js"() {
+    init_dist();
+    init_data();
+    init_resource();
+    init_sign();
+    init_version5();
+  }
+});
+
+// packages/core/src/windows-metadata-apply.ts
+function toArrayBuffer(u) {
+  return u.buffer.slice(u.byteOffset, u.byteOffset + u.byteLength);
+}
+async function applyWindowsMetadata(inputPath, outputPath, meta, deps = defaultDeps) {
+  meta.fileVersion !== void 0 && padVersionQuad(meta.fileVersion), meta.productVersion !== void 0 && padVersionQuad(meta.productVersion);
+  let exe;
+  try {
+    let raw = await deps.readFile(inputPath);
+    exe = NtExecutable_default.from(toArrayBuffer(raw), { ignoreCert: !0 });
+  } catch (err) {
+    throw new ResEditError(`Failed to parse "${inputPath}" as a PE executable.`, { cause: err });
+  }
+  let res = NtExecutableResource_default.from(exe);
+  writeVersionInfo(res, meta), await writeIcons(res, meta.icons, meta.lang, deps), await writeManifest(res, meta, deps), res.outputResource(exe);
+  let out = exe.generate();
+  try {
+    await deps.writeFile(outputPath, new Uint8Array(out));
+  } catch (err) {
+    throw new ResEditError(`Failed to write patched binary "${outputPath}".`, { cause: err });
+  }
+}
+function writeVersionInfo(res, meta) {
+  let copyright = meta.legalCopyright ?? (meta.companyName !== void 0 ? `\xA9 ${String((/* @__PURE__ */ new Date()).getUTCFullYear())} ${meta.companyName}` : void 0), strings = {};
+  if (meta.productName !== void 0 && (strings.ProductName = meta.productName), meta.fileDescription !== void 0 && (strings.FileDescription = meta.fileDescription), meta.companyName !== void 0 && (strings.CompanyName = meta.companyName), copyright !== void 0 && (strings.LegalCopyright = copyright), meta.originalFilename !== void 0 && (strings.OriginalFilename = meta.originalFilename), meta.internalName !== void 0 && (strings.InternalName = meta.internalName), meta.comments !== void 0 && (strings.Comments = meta.comments), !(Object.keys(strings).length > 0 || meta.productVersion !== void 0 || meta.fileVersion !== void 0)) return;
+  let vi = resource_exports.VersionInfo.createEmpty();
+  vi.lang = meta.lang, Object.keys(strings).length > 0 && vi.setStringValues({ lang: meta.lang, codepage: meta.codepage }, strings), meta.fileVersion !== void 0 && vi.setFileVersion(meta.fileVersion, meta.lang), meta.productVersion !== void 0 && vi.setProductVersion(meta.productVersion, meta.lang), vi.outputToResourceEntries(res.entries);
+}
+async function writeIcons(res, icons, lang, deps) {
+  for (let spec of icons) {
+    let raw;
+    try {
+      raw = await deps.readFile(spec.path);
+    } catch (err) {
+      throw new ResEditError(`Failed to read icon "${spec.path}".`, { cause: err });
+    }
+    let iconFile;
+    try {
+      iconFile = data_exports.IconFile.from(toArrayBuffer(raw));
+    } catch (err) {
+      throw new ResEditError(`Icon "${spec.path}" is not a valid .ico file.`, { cause: err });
+    }
+    resource_exports.IconGroupEntry.replaceIconsForResource(
+      res.entries,
+      spec.id,
+      lang,
+      iconFile.icons.map((item) => item.data)
+    );
+  }
+}
+async function writeManifest(res, meta, deps) {
+  if (meta.manifestPath === void 0) return;
+  let raw;
+  try {
+    raw = await deps.readFile(meta.manifestPath);
+  } catch (err) {
+    throw new ResEditError(`Failed to read manifest "${meta.manifestPath}".`, { cause: err });
+  }
+  res.replaceResourceEntry({
+    type: RT_MANIFEST,
+    id: 1,
+    lang: meta.lang,
+    codepage: meta.codepage,
+    bin: toArrayBuffer(raw)
+  });
+}
+var RT_MANIFEST, defaultDeps, init_windows_metadata_apply = __esm({
+  "packages/core/src/windows-metadata-apply.ts"() {
+    "use strict";
+    init_dist2();
+    init_errors();
+    init_windows_metadata();
+    RT_MANIFEST = 24, defaultDeps = {
+      readFile: async (p) => {
+        let { readFile: readFile2 } = await import("node:fs/promises");
+        return readFile2(p);
+      },
+      writeFile: async (p, d) => {
+        let { writeFile: writeFile3 } = await import("node:fs/promises");
+        await writeFile3(p, d);
+      }
+    };
+  }
+});
+
 // packages/core/src/index.ts
 var src_exports = {};
 __export(src_exports, {
@@ -75514,6 +79370,7 @@ __export(src_exports, {
   VERSION: () => VERSION9,
   ValidationError: () => ValidationError,
   actionsLogger: () => actionsLogger,
+  applyWindowsMetadata: () => applyWindowsMetadata,
   archive: () => archive,
   artifactBasename: () => artifactBasename,
   atomicWriteFile: () => atomicWriteFile,
@@ -75536,9 +79393,13 @@ __export(src_exports, {
   hostTarget: () => hostTarget,
   isChecksumAlgorithm: () => isChecksumAlgorithm,
   mapPkgOutputs: () => mapPkgOutputs,
+  mergeMetadataFile: () => mergeMetadataFile,
+  padVersionQuad: () => padVersionQuad,
+  parseIconSpec: () => parseIconSpec,
   parseInputs: () => parseInputs,
   parseTarget: () => parseTarget,
   parseTargetList: () => parseTargetList,
+  parseWindowsMetadataInputs: () => parseWindowsMetadataInputs,
   predictOutputNames: () => predictOutputNames,
   readInputRaw: () => readInputRaw,
   readProjectInfo: () => readProjectInfo,
@@ -75571,6 +79432,8 @@ var VERSION9, init_src4 = __esm({
     init_summary2();
     init_uploader();
     init_project_info();
+    init_windows_metadata();
+    init_windows_metadata_apply();
     VERSION9 = "0.0.0";
   }
 });

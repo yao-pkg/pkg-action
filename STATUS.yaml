@@ -64,16 +64,17 @@ milestones:
     tests:
       unit: '164 tests green locally on Node 22.22.1 (19 new in packages/matrix/test/unit)'
 
+  # M3 test roll-up: 211 unit tests green on Node 22.22.1 as of 2026-04-20.
   M3:
     title: Windows metadata (resedit)
     status: in-progress
     depends-on: M1
     sub-chunks:
-      '3.1 @pkg-action/core windows-metadata module (pure helpers — input parsing, version-padding, icon-spec parser, metadata JSON merge)': done (31 unit tests, 195 total green)
-      '3.2 resedit integration (applyWindowsMetadata — read .exe, patch icon/version-info/manifest, write .exe)': pending
-      '3.3 windows-metadata sub-action main.ts + bundle': pending
-      '3.4 unit tests (DI-style, no real resedit calls) + fixture-based integration test': pending
-      '3.5 orchestrator wire-up (composite main.ts invokes windows-metadata on win-* targets when any windows-* input set)': pending
+      '3.1 @pkg-action/core windows-metadata module (pure helpers — input parsing, version-padding, icon-spec parser, metadata JSON merge)': done (31 unit tests)
+      '3.2 resedit integration (applyWindowsMetadata — read .exe, patch icon/version-info/manifest, write .exe)': done (10 tests round-trip through NtExecutable.createEmpty → generate → NtExecutable.from in-memory, with DI fs shim)
+      '3.3 windows-metadata sub-action main.ts + bundle': done (packages/windows-metadata/dist/index.mjs — 873 kB, createRequire banner present, smoke-tested with missing-input)
+      '3.4 unit tests': done (5 sub-action tests with apply() doubles — 211 total green)
+      '3.5 orchestrator wire-up (composite build/main.ts invokes applyWindowsMetadata on win-* targets when any windows-* input set)': pending
       '3.6 e2e smoke (patch tiny-app-cjs windows binary, re-parse resources to verify)': pending
 
   M4:

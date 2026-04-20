@@ -240,12 +240,19 @@ export type ReadFileFn = (path: string) => Promise<string>;
 export interface ParseWindowsMetadataOptions {
   readonly env?: EnvSource;
   readonly readFile?: ReadFileFn;
+  /**
+   * Prefix applied to every input name before lookup. Defaults to
+   * `'windows-'` (top-level composite: `windows-product-name`, …). Pass an
+   * empty string for the standalone windows-metadata sub-action, whose
+   * input schema uses bare names (`product-name`, `metadata-file`).
+   */
+  readonly prefix?: string;
 }
 
 /**
- * Parse all `windows-*` inputs into a WindowsMetadataInputs, or return null
- * when no windows-* input AND no windows-metadata-file is set. Returning null
- * lets the orchestrator skip the resedit step entirely on builds that aren't
+ * Parse all metadata inputs into a WindowsMetadataInputs, or return null
+ * when no metadata input AND no metadata-file is set. Returning null lets
+ * the orchestrator skip the resedit step entirely on builds that aren't
  * metadata-branded.
  */
 export async function parseWindowsMetadataInputs(
@@ -255,21 +262,23 @@ export async function parseWindowsMetadataInputs(
   const readFile =
     opts.readFile ??
     ((path: string) => import('node:fs/promises').then((m) => m.readFile(path, 'utf8')));
+  const prefix = opts.prefix ?? 'windows-';
+  const read = (name: string): string | undefined => readInputRaw(env, `${prefix}${name}`);
 
-  const fileRaw = readInputRaw(env, 'windows-metadata-file');
-  const iconRaw = readInputRaw(env, 'windows-icon');
-  const productName = readInputRaw(env, 'windows-product-name');
-  const productVersion = readInputRaw(env, 'windows-product-version');
-  const fileVersion = readInputRaw(env, 'windows-file-version');
-  const fileDescription = readInputRaw(env, 'windows-file-description');
-  const companyName = readInputRaw(env, 'windows-company-name');
-  const legalCopyright = readInputRaw(env, 'windows-legal-copyright');
-  const originalFilename = readInputRaw(env, 'windows-original-filename');
-  const internalName = readInputRaw(env, 'windows-internal-name');
-  const comments = readInputRaw(env, 'windows-comments');
-  const manifestPath = readInputRaw(env, 'windows-manifest');
-  const langRaw = readInputRaw(env, 'windows-lang');
-  const codepageRaw = readInputRaw(env, 'windows-codepage');
+  const fileRaw = read('metadata-file');
+  const iconRaw = read('icon');
+  const productName = read('product-name');
+  const productVersion = read('product-version');
+  const fileVersion = read('file-version');
+  const fileDescription = read('file-description');
+  const companyName = read('company-name');
+  const legalCopyright = read('legal-copyright');
+  const originalFilename = read('original-filename');
+  const internalName = read('internal-name');
+  const comments = read('comments');
+  const manifestPath = read('manifest');
+  const langRaw = read('lang');
+  const codepageRaw = read('codepage');
 
   const hasAnyField =
     fileRaw !== undefined ||
@@ -326,8 +335,8 @@ export async function parseWindowsMetadataInputs(
     internalName,
     comments,
     manifestPath,
-    lang: langRaw === undefined ? undefined : parseUint16(langRaw, 'windows-lang'),
-    codepage: codepageRaw === undefined ? undefined : parseUint16(codepageRaw, 'windows-codepage'),
+    lang: langRaw === undefined ? undefined : parseUint16(langRaw, `${prefix}lang`),
+    codepage: codepageRaw === undefined ? undefined : parseUint16(codepageRaw, `${prefix}codepage`),
   };
 
   return mergeMetadataFile(envBag, fileData);

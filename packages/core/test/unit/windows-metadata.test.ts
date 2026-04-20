@@ -295,6 +295,21 @@ test('parseWindowsMetadataInputs: rejects non-integer windows-lang', async () =>
   );
 });
 
+test('parseWindowsMetadataInputs: prefix="" reads bare sub-action input names', async () => {
+  // The standalone windows-metadata sub-action uses `product-name`, not
+  // `windows-product-name` — prefix="" lets the same parser serve both.
+  const result = await parseWindowsMetadataInputs({
+    env: envOf({
+      'product-name': 'SubAction',
+      lang: '1041',
+    }),
+    prefix: '',
+  });
+  ok(result !== null);
+  strictEqual(result.productName, 'SubAction');
+  strictEqual(result.lang, 1041);
+});
+
 test('parseWindowsMetadataInputs: metadata-file alone triggers parsing (no other env needed)', async () => {
   const readFile: ReadFileFn = async () => JSON.stringify({ productName: 'SoloFromFile' });
   const result = await parseWindowsMetadataInputs({
