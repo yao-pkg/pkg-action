@@ -11,6 +11,8 @@ meta:
   branch: main
   last-updated: '2026-04-20'
   action-status: PRE-ALPHA — do not consume from a workflow
+  ci-status: green
+  e2e-status: running (project-dir resolution fix just pushed)
 
 milestones:
   M-1:
@@ -132,8 +134,9 @@ gh-actions:
 
 known-issues:
   - '`@actions/artifact` v6 uses a new client shape — `createDefaultArtifactUploader` uses dynamic import + lazy access, so the tests never load it.'
-  - 'Orchestrator has not yet been exercised against a real pkg binary; the first e2e CI run after this commit will prove it end-to-end.'
   - 'yarn install pulls transitive `bare-os`/`bare-fs` which emit invalid-engine warnings — cosmetic, tracked.'
+  - 'esbuild ESM bundles need a createRequire banner to let bundled CJS deps (@actions/http-client + tunnel) require(node:<builtin>) at runtime — FIXED in 757a329.'
+  - 'Orchestrator must resolve a project-dir separately from GITHUB_WORKSPACE when config points at a package.json — FIXED: derives projectDir = dirname(config) in that case and invokes pkg with cwd: projectDir.'
 
 next:
   - First e2e.yml run on main — assert tiny-app-cjs builds + archives + checksums on ubuntu/macos/windows.

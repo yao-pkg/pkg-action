@@ -20,7 +20,7 @@
 
 import * as core from '@actions/core';
 import { mkdir, rename, stat } from 'node:fs/promises';
-import { join } from 'node:path';
+import { basename as pathBasename, dirname, join, resolve as pathResolve } from 'node:path';
 import {
   actionsLogger,
   archive,
@@ -105,9 +105,25 @@ async function main(): Promise<void> {
     return;
   }
 
-  // 2. Project metadata + working dir.
-  const cwd = process.cwd();
-  const project = await readProjectInfo(cwd);
+  // 2. Project directory + metadata.
+  //
+  // When `config` points at a package.json, the project root is its parent
+  // directory — pkg reads that package.json as the entry. When `config` is a
+  // non-package.json (e.g. .pkgrc.json) or is unset, the project dir is
+  // GITHUB_WORKSPACE (or cwd when running locally).
+  const workspace = process.env['GITHUB_WORKSPACE'] ?? process.cwd();
+  const projectDir = (() => {
+    const cfg = inputs.build.config;
+    if (cfg !== undefined) {
+      const absCfg = pathResolve(workspace, cfg);
+      if (pathBasename(absCfg).toLowerCase() === 'package.json') {
+        return dirname(absCfg);
+      }
+    }
+    return workspace;
+  })();
+  const project = await readProjectInfo(projectDir);
+  logger.info(`[pkg-action] project dir: ${projectDir}`);
   logger.info(`[pkg-action] project: ${project.name}@${project.version}`);
 
   // 3. Resolve targets — 'host' → explicit host target.
@@ -122,10 +138,19 @@ async function main(): Promise<void> {
   const pkgOutputDir = join(invocationDir, 'pkg-out');
   await mkdir(pkgOutputDir, { recursive: true });
 
-  // 5. Run pkg.
+  // 5. Run pkg from the project directory.
+  //
+  // When a package.json was used to locate the project, drop the explicit
+  // `--config` flag — pkg will pick up the local package.json via the
+  // positional `.` argument. Otherwise keep `--config` (it points at a
+  // standalone pkg config like .pkgrc.json).
   const pkgCommand = inputs.build.pkgPath ?? 'pkg';
+  const cfgIsPackageJson =
+    inputs.build.config !== undefined &&
+    pathBasename(inputs.build.config).toLowerCase() === 'package.json';
+  const pkgBuildInputs = cfgIsPackageJson ? { ...inputs.build, config: undefined } : inputs.build;
   const pkgArgs = buildPkgArgs({
-    build: inputs.build,
+    build: pkgBuildInputs,
     targets: resolvedTargets,
     outputDir: pkgOutputDir,
   });
@@ -133,10 +158,10 @@ async function main(): Promise<void> {
   const started = Date.now();
   await runPkg(
     {
-      build: inputs.build,
+      build: pkgBuildInputs,
       targets: resolvedTargets,
       outputDir: pkgOutputDir,
-      cwd,
+      cwd: projectDir,
     },
     { exec: execBridge, logger, pkgCommand },
   );

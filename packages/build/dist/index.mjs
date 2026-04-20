@@ -16025,7 +16025,7 @@ async function archive(req, deps) {
   }
 }
 async function shellTar(inputPath, outputPath, compression, entry, deps) {
-  let { dirname: dirname4 } = await import("node:path"), { mkdtemp, symlink: symlink2, rm: rm3 } = await import("node:fs/promises"), { tmpdir } = await import("node:os"), compressFlag = compression === "gz" ? "-z" : "-J", stageDir, workDir = dirname4(inputPath), fileName = basename4(inputPath);
+  let { dirname: dirname5 } = await import("node:path"), { mkdtemp, symlink: symlink2, rm: rm3 } = await import("node:fs/promises"), { tmpdir } = await import("node:os"), compressFlag = compression === "gz" ? "-z" : "-J", stageDir, workDir = dirname5(inputPath), fileName = basename4(inputPath);
   if (entry !== basename4(inputPath)) {
     stageDir = await mkdtemp(`${tmpdir()}/pkgaction-tar-`);
     let linkPath = `${stageDir}/${entry}`;
@@ -16055,7 +16055,7 @@ async function writeZip(inputPath, outputPath, entry, mode) {
   }
 }
 async function shell7z(inputPath, outputPath, entry, deps) {
-  let { dirname: dirname4 } = await import("node:path"), { mkdtemp, symlink: symlink2, rm: rm3 } = await import("node:fs/promises"), { tmpdir } = await import("node:os"), stageDir, workDir = dirname4(inputPath), fileName = basename4(inputPath);
+  let { dirname: dirname5 } = await import("node:path"), { mkdtemp, symlink: symlink2, rm: rm3 } = await import("node:fs/promises"), { tmpdir } = await import("node:os"), stageDir, workDir = dirname5(inputPath), fileName = basename4(inputPath);
   if (entry !== basename4(inputPath)) {
     stageDir = await mkdtemp(`${tmpdir()}/pkgaction-7z-`);
     let linkPath = `${stageDir}/${entry}`;
@@ -75580,7 +75580,7 @@ init_core();
 init_src4();
 init_exec();
 import { mkdir as mkdir3, rename as rename3, stat as stat5 } from "node:fs/promises";
-import { join as join7 } from "node:path";
+import { basename as pathBasename, dirname as dirname4, join as join7, resolve as pathResolve } from "node:path";
 var execBridge = async (command, args, options) => {
   let opts = {};
   if (options.ignoreReturnCode !== void 0 && (opts.ignoreReturnCode = options.ignoreReturnCode), options.cwd !== void 0 && (opts.cwd = options.cwd), options.env !== void 0) {
@@ -75613,16 +75613,24 @@ async function main() {
     setFailed(formatErrorChain(err));
     return;
   }
-  let cwd = process.cwd(), project = await readProjectInfo(cwd);
-  logger7.info(`[pkg-action] project: ${project.name}@${project.version}`);
+  let workspace = process.env.GITHUB_WORKSPACE ?? process.cwd(), projectDir = (() => {
+    let cfg = inputs.build.config;
+    if (cfg !== void 0) {
+      let absCfg = pathResolve(workspace, cfg);
+      if (pathBasename(absCfg).toLowerCase() === "package.json")
+        return dirname4(absCfg);
+    }
+    return workspace;
+  })(), project = await readProjectInfo(projectDir);
+  logger7.info(`[pkg-action] project dir: ${projectDir}`), logger7.info(`[pkg-action] project: ${project.name}@${project.version}`);
   let resolvedTargets = inputs.build.targets === "host" ? [hostTarget()] : [...inputs.build.targets];
   logger7.info(`[pkg-action] targets: ${resolvedTargets.map(formatTarget).join(", ")}`);
   let runnerTemp = process.env.RUNNER_TEMP ?? (await import("node:os")).tmpdir(), invocationDir = await createInvocationTemp(runnerTemp);
   saveState("invocationDir", invocationDir);
   let pkgOutputDir = join7(invocationDir, "pkg-out");
   await mkdir3(pkgOutputDir, { recursive: !0 });
-  let pkgCommand = inputs.build.pkgPath ?? "pkg", pkgArgs = buildPkgArgs({
-    build: inputs.build,
+  let pkgCommand = inputs.build.pkgPath ?? "pkg", pkgBuildInputs = inputs.build.config !== void 0 && pathBasename(inputs.build.config).toLowerCase() === "package.json" ? { ...inputs.build, config: void 0 } : inputs.build, pkgArgs = buildPkgArgs({
+    build: pkgBuildInputs,
     targets: resolvedTargets,
     outputDir: pkgOutputDir
   });
@@ -75630,10 +75638,10 @@ async function main() {
   let started = Date.now();
   await runPkg(
     {
-      build: inputs.build,
+      build: pkgBuildInputs,
       targets: resolvedTargets,
       outputDir: pkgOutputDir,
-      cwd
+      cwd: projectDir
     },
     { exec: execBridge, logger: logger7, pkgCommand }
   );

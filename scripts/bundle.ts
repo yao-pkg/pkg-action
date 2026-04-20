@@ -60,7 +60,7 @@ async function bundleOne({ entry, outfile }: Target): Promise<void> {
     banner: {
       js: [
         "import { createRequire as __pkgActionCreateRequire } from 'node:module';",
-        "const require = __pkgActionCreateRequire(import.meta.url);",
+        'const require = __pkgActionCreateRequire(import.meta.url);',
       ].join('\n'),
     },
   });
