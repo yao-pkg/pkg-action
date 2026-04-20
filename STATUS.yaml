@@ -52,20 +52,29 @@ milestones:
 
   M2:
     title: Matrix sub-action + multi-target
-    status: in-progress
+    status: done
     depends-on: M1
     sub-chunks:
       '2.1 matrix main.ts (parseTargetList → expandMatrix, runner-overrides, cross-compile warnings)': done
       '2.2 matrix unit tests (DI-style doubles, 19 tests)': done
       '2.3 matrix bundle (packages/matrix/dist/index.mjs with createRequire banner)': done
       '2.4 matrix-plan → matrix-fanout e2e job (strategy.matrix consumption demo)': done (awaits first CI run)
-      '2.5 multi-target single-runner build path (pkg invoked with >1 target in-process)': pending
-      '2.6 docs — docs-site/guide/matrix.md, README snippet': pending
+      '2.5 multi-target single-runner build path (pkg invoked with >1 target in-process)': done (single-runner two-target e2e added; buildPkgArgs/mapPkgOutputs already cover the case with 145 unit tests)
+      '2.6 docs — docs/matrix.md + README snippet': done
+    tests:
+      unit: '164 tests green locally on Node 22.22.1 (19 new in packages/matrix/test/unit)'
 
   M3:
     title: Windows metadata (resedit)
-    status: pending
+    status: in-progress
     depends-on: M1
+    sub-chunks:
+      '3.1 @pkg-action/core windows-metadata module (pure helpers — input parsing, version-padding, icon-spec parser, metadata JSON merge)': done (31 unit tests, 195 total green)
+      '3.2 resedit integration (applyWindowsMetadata — read .exe, patch icon/version-info/manifest, write .exe)': pending
+      '3.3 windows-metadata sub-action main.ts + bundle': pending
+      '3.4 unit tests (DI-style, no real resedit calls) + fixture-based integration test': pending
+      '3.5 orchestrator wire-up (composite main.ts invokes windows-metadata on win-* targets when any windows-* input set)': pending
+      '3.6 e2e smoke (patch tiny-app-cjs windows binary, re-parse resources to verify)': pending
 
   M4:
     title: Signing & notarization
@@ -97,8 +106,8 @@ runtime-deps:
     version: ^9.1.0
     purpose: Octokit for release attach
   resedit:
-    version: not-yet-installed
-    purpose: Windows PE resource editing (M3)
+    version: ^3.0.2
+    purpose: Windows PE resource editing (M3) — pulls pe-library@^2.0.1 transitively
   yazl:
     version: ^3.3.1
     purpose: cross-platform deterministic zip writer
@@ -146,7 +155,10 @@ known-issues:
   - 'Orchestrator must resolve a project-dir separately from GITHUB_WORKSPACE when config points at a package.json — FIXED: derives projectDir = dirname(config) in that case and invokes pkg with cwd: projectDir.'
 
 next:
-  - Finish M2 — land the multi-target single-runner build path (one pkg invocation emitting N binaries, one checksum/archive pass each) and author docs-site/guide/matrix.md + a README snippet showing plan→fanout wiring.
+  - M3.1 — install resedit (^2.0.5) and author packages/core/src/windows-metadata.ts with the pure helpers (parseIconSpec, padVersion, mergeMetadataFile, parseWindowsMetadataInputs). Unit tests at the same time.
+  - M3.2 — applyWindowsMetadata(inputPath, outputPath, meta) using resedit's NtExecutable + NtExecutableResource + VersionInfo APIs. Keep the I/O behind a DI-able fs shim so unit tests can stay pure.
+  - M3.3 / M3.4 — wire packages/windows-metadata/src/main.ts, bundle, add fixture-based integration test.
+  - M3.5 — have the build orchestrator call applyWindowsMetadata directly (not the sub-action shell) when a windows-* input is set and at least one target is win-*.
+  - M3.6 — e2e smoke: run the Windows leg with product-name + company-name, pkg the binary, then use resedit to read the resource tree back and assert.
   - Add the ESM fixture (tiny-app-esm with mode: sea) to the e2e matrix once @yao-pkg/pkg's SEA path is smoke-tested via the action.
   - Wire in the integration-test shard (archive tar/7z round-trip against system tools) — deferred from M1.3.
-  - Start M3 (Windows metadata via resedit) once M2 lands.
