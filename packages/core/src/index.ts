@@ -11,5 +11,7 @@ export * from './pkg-runner.ts';
 export * from './pkg-output-map.ts';
 export * from './archive.ts';
 export * from './summary.ts';
+export * from './uploader.ts';
+export * from './project-info.ts';
 
 export const VERSION = '0.0.0';

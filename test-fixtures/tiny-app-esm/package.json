@@ -1,0 +1,15 @@
+{
+  "name": "tiny-app-esm",
+  "version": "0.0.1",
+  "description": "ESM fixture for pkg-action e2e — logs its version and exits. Exercises pkg SEA mode.",
+  "type": "module",
+  "bin": "./src/main.mjs",
+  "private": true,
+  "pkg": {
+    "outputPath": "dist",
+    "targets": [
+      "node22-linux-x64"
+    ],
+    "sea": true
+  }
+}

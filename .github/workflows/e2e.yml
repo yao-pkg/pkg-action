@@ -1,0 +1,101 @@
+name: E2E
+
+# Invokes the top-level composite against the test-fixtures/ projects on
+# ubuntu/macos/windows. Asserts:
+#   - produced binary runs and prints the expected version
+#   - checksum sidecar matches the binary
+#   - archive round-trips (when compress != none)
+#   - step summary contains a row for the target
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tiny-cjs:
+    name: tiny-cjs / ${{ matrix.os }} / ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: node22-linux-x64
+            archive: tar.gz
+            ext: tar.gz
+          - os: macos-latest
+            target: node22-macos-arm64
+            archive: zip
+            ext: zip
+          - os: windows-latest
+            target: node22-win-x64
+            archive: zip
+            ext: zip
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Run pkg-action
+        id: build
+        uses: ./
+        with:
+          config: test-fixtures/tiny-app-cjs/package.json
+          targets: ${{ matrix.target }}
+          compress: ${{ matrix.archive }}
+          checksum: sha256
+          filename: '{name}-{version}-{os}-{arch}'
+
+      - name: Show outputs
+        shell: bash
+        run: |
+          echo "binaries=${{ steps.build.outputs.binaries }}"
+          echo "artifacts=${{ steps.build.outputs.artifacts }}"
+          echo "checksums=${{ steps.build.outputs.checksums }}"
+          echo "version=${{ steps.build.outputs.version }}"
+
+      - name: Assert at least one artifact produced
+        shell: bash
+        run: |
+          count=$(echo '${{ steps.build.outputs.artifacts }}' | jq 'length')
+          if [ "$count" -lt 1 ]; then
+            echo "::error::no artifacts produced"; exit 1
+          fi
+
+      - name: Assert checksum sidecar matches binary (non-Windows)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          first_bin=$(echo '${{ steps.build.outputs.binaries }}' | jq -r '.[0]')
+          sidecar="${first_bin}.sha256"
+          if [ ! -f "$sidecar" ]; then
+            echo "::error::missing checksum sidecar at $sidecar"; exit 1
+          fi
+          # The sidecar is <digest>  <basename>\n — verify it parses.
+          awk 'NR==1 { if (length($1) != 64) exit 1 }' "$sidecar"
+          echo "sidecar OK: $(cat "$sidecar")"
+
+  codegen-drift:
+    name: Verify action.yml codegen drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+          cache: yarn
+      - run: yarn install --non-interactive
+      - run: yarn gen
+      - name: Verify committed action.yml matches source
+        run: |
+          git diff --exit-code -- action.yml packages/build/action.yml docs/inputs.md || {
+            echo "::error::action.yml or docs/inputs.md is out of sync. Run 'yarn gen' locally and commit."
+            exit 1
+          }

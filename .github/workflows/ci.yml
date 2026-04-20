@@ -23,7 +23,7 @@ jobs:
           - pinned # reads .node-version
           - 24
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Resolve Node version
         id: node
@@ -34,7 +34,7 @@ jobs:
             echo "version=${{ matrix.node }}" >> "$GITHUB_OUTPUT"
           fi
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: ${{ steps.node.outputs.version }}
           cache: yarn
@@ -54,11 +54,12 @@ jobs:
       - name: Build (bundle dist/)
         run: yarn build
 
-      # M0 scaffold: dist/ is NOT committed yet — it's generated on every CI run. From M1
-      # onwards dist/ gets committed and this step tightens to also catch untracked output.
-      - name: Verify committed dist/ matches source
+      - name: Codegen (action.yml + docs/inputs.md)
+        run: yarn gen
+
+      - name: Verify committed dist/ + action.yml + docs are up-to-date
         run: |
-          git diff --exit-code -- '**/dist/**' || {
-            echo "::error::Committed dist/ does not match source. Run 'yarn build' and commit the result.";
-            exit 1;
+          git diff --exit-code -- '**/dist/**' action.yml packages/build/action.yml docs/inputs.md || {
+            echo "::error::Committed dist/ or generated action.yml/inputs.md is out of sync. Run 'yarn build && yarn gen' locally and commit."
+            exit 1
           }

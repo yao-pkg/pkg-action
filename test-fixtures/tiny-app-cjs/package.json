@@ -1,0 +1,13 @@
+{
+  "name": "tiny-app-cjs",
+  "version": "0.0.1",
+  "description": "CommonJS fixture for pkg-action e2e — logs its version and exits.",
+  "bin": "./src/main.cjs",
+  "private": true,
+  "pkg": {
+    "outputPath": "dist",
+    "targets": [
+      "node22-linux-x64"
+    ]
+  }
+}

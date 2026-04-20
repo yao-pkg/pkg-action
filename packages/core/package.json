@@ -16,11 +16,13 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@actions/core": "^1.11.1",
-    "@actions/exec": "^1.1.1",
+    "@actions/artifact": "^6.2.1",
+    "@actions/core": "^3.0.0",
+    "@actions/exec": "^3.0.0",
+    "@actions/github": "^9.1.0",
     "yazl": "^3.3.1"
   },
   "devDependencies": {
-    "@types/yazl": "^3.3.0"
+    "@types/yazl": "^3.3.1"
   }
 }

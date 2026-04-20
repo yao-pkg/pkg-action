@@ -1,0 +1,140 @@
+# pkg-action implementation status tracker.
+#
+# Transient file kept in-repo while v1.0.0 is under construction. Will be
+# removed (or converted into a changelog + badge) once we ship. Updated on
+# every code-landing commit — treat a stale entry here as a bug.
+#
+# Scope reference: yao-pkg/pkg#248 and the plan comment on that issue.
+
+meta:
+  repo: yao-pkg/pkg-action
+  branch: main
+  last-updated: '2026-04-20'
+  action-status: PRE-ALPHA — do not consume from a workflow
+
+milestones:
+  M-1:
+    title: Pre-flight spikes
+    status: partial
+    done:
+      - 'runs.using:node24 green on ubuntu-latest / macos-latest / windows-latest'
+      - '--experimental-strip-types + esbuild bundling proven on Node 22.22.1 and 24.x'
+    pending:
+      - self-hosted runner verification for node24
+      - GHES node24 verification (out of reach without a GHES instance)
+      - 't.mock.module vs DI-double decision (resolved — DI-style test doubles, used everywhere)'
+
+  M0:
+    title: Scaffold
+    status: done
+
+  M1:
+    title: Core build path
+    status: done-locally
+    sub-chunks:
+      '1.1 foundation (errors / logger / fs-utils)': done
+      '1.2 domain (targets / templates)': done
+      '1.3 checksum': done
+      '1.4 inputs validator + metadata': done
+      '1.5 pkg-runner + pkg-output-map': done
+      '1.6 archive + summary': done
+      '1.7 uploader + project-info': done
+      '1.8 orchestrator (packages/build/src/main.ts)': done
+      '1.9 scripts/gen-action-yml.ts codegen': done
+      '1.10 real root composite action.yml': done (generated from inputs.ts)
+      '1.11 e2e.yml + test-fixtures/tiny-app-{cjs,esm}': done (awaiting first CI run)
+    tests:
+      unit: '145 tests green locally on Node 22.22.1'
+      integration: 'e2e.yml added — awaits first CI run to prove the full composite pipeline'
+      coverage-gate: 'not yet enforced in CI (planned for M5)'
+
+  M2:
+    title: Matrix sub-action + multi-target
+    status: pending
+    depends-on: M1
+
+  M3:
+    title: Windows metadata (resedit)
+    status: pending
+    depends-on: M1
+
+  M4:
+    title: Signing & notarization
+    status: pending
+    depends-on: M1
+
+  M5:
+    title: Release attach + step-summary polish + docs + dependabot-bundle.yml
+    status: pending
+    depends-on: M1,M4
+
+  M6:
+    title: 'Stretch: SBOM / provenance / Docker / Homebrew / Scoop'
+    status: pending
+    depends-on: M5
+
+runtime-deps:
+  # Every runtime dep must be justified (see plan §16 budget — cap 6).
+  '@actions/core':
+    version: ^3.0.0
+    purpose: runner protocol (inputs, outputs, secrets, annotations, state)
+  '@actions/exec':
+    version: ^3.0.0
+    purpose: process spawning with GH log streaming
+  '@actions/artifact':
+    version: ^6.2.1
+    purpose: workflow artifact upload (internal endpoint; cannot reimplement)
+  '@actions/github':
+    version: ^9.1.0
+    purpose: Octokit for release attach
+  resedit:
+    version: not-yet-installed
+    purpose: Windows PE resource editing (M3)
+  yazl:
+    version: ^3.3.1
+    purpose: cross-platform deterministic zip writer
+
+dev-deps:
+  typescript:
+    version: 5.9.3
+    notes: pinned, not "latest" — must stay compatible with Node 22.22.1 bundled amaro (strip-types parser).
+  esbuild:
+    version: ^0.28.0
+  eslint:
+    version: ^9.39.4
+    notes: holding at v9.x until flat-config is verified on v10.
+  '@typescript-eslint/eslint-plugin':
+    version: ^8.58.2
+  '@typescript-eslint/parser':
+    version: ^8.58.2
+  'eslint-config-prettier':
+    version: ^10.1.8
+  'eslint-plugin-prettier':
+    version: ^5.5.5
+  prettier:
+    version: ^3.8.3
+  globals:
+    version: ^17.5.0
+  '@types/node':
+    version: ^22.19.17
+    notes: pinned to @22 to match Node runtime — NOT @25 (would surface APIs we cannot use).
+  '@types/yazl':
+    version: ^3.3.1
+
+gh-actions:
+  actions/checkout: v6
+  actions/setup-node: v6
+  actions/cache: v5                          # (used inside composite action.yml)
+  github/codeql-action: v4
+  # Pulled in later milestones:
+  # actions/upload-artifact: v7
+  # actions/attest-build-provenance: v4
+
+known-issues:
+  - '`@actions/artifact` v6 uses a new client shape — `createDefaultArtifactUploader` uses dynamic import + lazy access, so the tests never load it.'
+  - 'Orchestrator has not yet been exercised against a real pkg binary; the first e2e CI run after this commit will prove it end-to-end.'
+  - 'yarn install pulls transitive `bare-os`/`bare-fs` which emit invalid-engine warnings — cosmetic, tracked.'
+
+next:
+  - First e2e.yml run on main — assert tiny-app-cjs builds + archives + checksums on ubuntu/macos/windows.
+  - Start M2 — matrix sub-action: real targets.ts-driven matrix expansion + cross-compile warnings inside /matrix/dist.
