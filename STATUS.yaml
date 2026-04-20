@@ -103,8 +103,14 @@ milestones:
 
   M6:
     title: 'Stretch: SBOM / provenance / Docker / Homebrew / Scoop'
-    status: pending
+    status: in-progress (provenance landed; the rest remain pending)
     depends-on: M5
+    sub-chunks:
+      '6.1 provenance — actions/attest-build-provenance@v4 wired into composite action.yml, gated on inputs.provenance=="true"; subject-path spans every entry in artifacts[]; docs/provenance.md + e2e smoke': done (awaits first CI run)
+      '6.2 SBOM — cyclonedx or spdx generator + sbom:* input wire-up': pending
+      '6.3 Docker publishing — OCI image push alongside the raw binary': pending
+      '6.4 Homebrew tap — auto-open a PR against a homebrew-tap repo': pending
+      '6.5 Scoop manifest — auto-generate + commit to a scoop bucket': pending
 
 runtime-deps:
   # Every runtime dep must be justified (see plan §16 budget — cap 6).
@@ -158,10 +164,10 @@ gh-actions:
   actions/checkout: v6
   actions/setup-node: v6
   actions/cache: v5                          # (used inside composite action.yml)
+  actions/attest-build-provenance: v4         # (used inside composite action.yml when provenance=true)
   github/codeql-action: v4
   # Pulled in later milestones:
   # actions/upload-artifact: v7
-  # actions/attest-build-provenance: v4
 
 known-issues:
   - '`@actions/artifact` v6 uses a new client shape — `createDefaultArtifactUploader` uses dynamic import + lazy access, so the tests never load it.'

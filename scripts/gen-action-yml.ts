@@ -129,6 +129,30 @@ runs:
       uses: ./packages/build
       with:
 ${passthrough}
+
+    # ── Provenance (SLSA build-provenance attestation) ──────────────────
+    # Gated on inputs.provenance=='true'. Requires permissions:
+    #   id-token: write
+    #   attestations: write
+    # on the caller workflow. Without them, attest-build-provenance fails
+    # fast with a clear error — we do NOT swallow it because a silent
+    # missing attestation defeats the point of the feature.
+    - name: Collect provenance subject paths
+      if: \${{ inputs.provenance == 'true' }}
+      id: pkg-action-provenance-subjects
+      shell: bash
+      run: |
+        {
+          echo 'paths<<PKG_ACTION_EOF'
+          echo '\${{ steps.pkg-action-build.outputs.artifacts }}' | jq -r '.[]'
+          echo 'PKG_ACTION_EOF'
+        } >> "\${GITHUB_OUTPUT}"
+
+    - name: Attest build provenance
+      if: \${{ inputs.provenance == 'true' }}
+      uses: actions/attest-build-provenance@v4
+      with:
+        subject-path: \${{ steps.pkg-action-provenance-subjects.outputs.paths }}
 `;
 }
 

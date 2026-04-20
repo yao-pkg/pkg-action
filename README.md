@@ -87,6 +87,32 @@ jobs:
 Full reference (non-tag triggers, body templating, asset overwrites,
 permissions) in [`docs/publishing.md`](./docs/publishing.md).
 
+## Build provenance (SLSA)
+
+Opt in with `provenance: true` and grant the two required permissions
+to emit a signed SLSA build-provenance attestation for every artifact:
+
+```yaml
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: yao-pkg/pkg-action@v1
+        with:
+          targets: node22-linux-x64,node22-macos-arm64,node22-win-x64
+          provenance: true
+```
+
+Consumers verify with `gh attestation verify`. Full reference —
+permissions, release-attach combo, verification examples — in
+[`docs/provenance.md`](./docs/provenance.md).
+
 ## Development
 
 - Node ≥ 22 (see `.node-version` for the pinned dev patch).

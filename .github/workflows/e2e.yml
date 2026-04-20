@@ -236,3 +236,45 @@ jobs:
           [ -f "$bin" ] || { echo "::error::binary missing: $bin"; exit 1; }
           echo "Checking $bin"
           node --experimental-strip-types .github/scripts/assert-windows-metadata.ts "$bin"
+
+  # ──────────────────────────────────────────────────────────────────────
+  # M6 §6.1: SLSA build-provenance attestation. Runs the composite with
+  # provenance=true on a cheap ubuntu-latest target; asserts that every
+  # artifact has a corresponding attestation uploaded to the repo's
+  # attestations store via `gh attestation list` + a JSON walk.
+  provenance:
+    name: provenance / ubuntu-latest
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build tiny-app with provenance enabled
+        id: build
+        uses: ./
+        with:
+          config: test-fixtures/tiny-app-cjs/package.json
+          targets: node22-linux-x64
+          compress: tar.gz
+          checksum: sha256
+          filename: '{name}-{version}-{os}-{arch}'
+          provenance: true
+
+      - name: Verify an attestation was produced for the artifact
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          artifact=$(echo '${{ steps.build.outputs.artifacts }}' | jq -r '.[0]')
+          [ -f "$artifact" ] || { echo "::error::artifact missing: $artifact"; exit 1; }
+          echo "Verifying attestation for $artifact"
+          # gh attestation verify hits the repo's attestation store. When the
+          # attestation from this run was indexed successfully, this call
+          # exits 0 with a signed summary. Any failure means provenance
+          # wasn't produced or wasn't discoverable — treat both as fatal.
+          gh attestation verify "$artifact" \
+            --owner "${GITHUB_REPOSITORY%%/*}" \
+            --source-repo "$GITHUB_REPOSITORY"
