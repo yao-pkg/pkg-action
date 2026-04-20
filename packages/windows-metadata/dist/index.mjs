@@ -13812,7 +13812,7 @@ var INPUT_SPECS = [
   INPUT_SPECS.map((s) => [s.name, s])
 );
 function readInputRaw(env, name) {
-  let key = `INPUT_${name.replace(/-/g, "_").toUpperCase()}`, raw = env[key];
+  let key = `INPUT_${name.replace(/ /g, "_").toUpperCase()}`, raw = env[key];
   if (raw === void 0) return;
   let trimmed = raw.trim();
   return trimmed === "" ? void 0 : trimmed;

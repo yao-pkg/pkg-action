@@ -504,11 +504,14 @@ export type EnvSource = Readonly<Record<string, string | undefined>>;
 
 /**
  * Read the raw string value of an input from the env source. Matches the GH
- * Actions runner contract: INPUT_<UPPERCASE_NAME_WITH_DASHES_TO_UNDERSCORES>.
+ * Actions runner contract as implemented by @actions/core: only SPACES are
+ * replaced with underscores; dashes are preserved. So `windows-product-name`
+ * becomes the literal env key `INPUT_WINDOWS-PRODUCT-NAME`.
+ *
  * Trims surrounding whitespace and treats the empty string as unset.
  */
 export function readInputRaw(env: EnvSource, name: string): string | undefined {
-  const key = `INPUT_${name.replace(/-/g, '_').toUpperCase()}`;
+  const key = `INPUT_${name.replace(/ /g, '_').toUpperCase()}`;
   const raw = env[key];
   if (raw === undefined) return undefined;
   const trimmed = raw.trim();
@@ -697,7 +700,9 @@ export function parseInputs(opts: ParseInputsOptions = {}): ActionInputs {
   if (opts.onUnknownInput !== undefined) {
     for (const key of Object.keys(env)) {
       if (!key.startsWith('INPUT_')) continue;
-      const kebab = key.slice('INPUT_'.length).toLowerCase().replace(/_/g, '-');
+      // Reverse of readInputRaw: INPUT_<name-in-dashes-uppercase> → kebab-case.
+      // @actions/core preserves dashes, so no _→- conversion is needed here.
+      const kebab = key.slice('INPUT_'.length).toLowerCase();
       if (!SPEC_BY_NAME.has(kebab)) {
         opts.onUnknownInput(kebab);
       }

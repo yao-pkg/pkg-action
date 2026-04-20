@@ -10,9 +10,7 @@ import {
 import { ValidationError } from '../../src/errors.ts';
 
 function env(...pairs: Array<[string, string]>): Record<string, string> {
-  return Object.fromEntries(
-    pairs.map(([k, v]) => [`INPUT_${k.replace(/-/g, '_').toUpperCase()}`, v]),
-  );
+  return Object.fromEntries(pairs.map(([k, v]) => [`INPUT_${k.toUpperCase()}`, v]));
 }
 
 test('INPUT_SPECS covers every documented category', () => {
@@ -48,7 +46,23 @@ test('readInputRaw returns trimmed value or undefined', () => {
   strictEqual(readInputRaw({ INPUT_FOO: '  hello  ' }, 'foo'), 'hello');
   strictEqual(readInputRaw({ INPUT_FOO: '' }, 'foo'), undefined);
   strictEqual(readInputRaw({}, 'foo'), undefined);
-  strictEqual(readInputRaw({ INPUT_MULTI_WORD: 'x' }, 'multi-word'), 'x');
+});
+
+test('readInputRaw preserves dashes in env keys — matches @actions/core', () => {
+  // @actions/core transforms `name` → `INPUT_${name.replace(/ /g, '_').toUpperCase()}`:
+  // only spaces are converted to underscores, dashes stay dashes. The literal
+  // env key shape on the runner is `INPUT_WINDOWS-PRODUCT-NAME`, NOT
+  // `INPUT_WINDOWS_PRODUCT_NAME`.
+  strictEqual(
+    readInputRaw({ 'INPUT_WINDOWS-PRODUCT-NAME': 'PkgActionTest' }, 'windows-product-name'),
+    'PkgActionTest',
+  );
+  // And it does NOT match the wrong-shape underscore variant — so the env
+  // coming back from CI actually lands on our parser.
+  strictEqual(
+    readInputRaw({ INPUT_WINDOWS_PRODUCT_NAME: 'wrong' }, 'windows-product-name'),
+    undefined,
+  );
 });
 
 test('parseInputs with no env uses defaults', () => {
@@ -210,7 +224,8 @@ test('parseInputs calls onUnknownInput for stray INPUT_* envs', () => {
   parseInputs({
     env: {
       INPUT_TARGETS: 'node22-linux-x64',
-      INPUT_TYPO_INPUT: 'value',
+      // Real GH runner key shape: dashes preserved, not underscored.
+      'INPUT_TYPO-INPUT': 'value',
       INPUT_COMPREEZ: 'value',
     },
     onUnknownInput: (n) => unknown.push(n),

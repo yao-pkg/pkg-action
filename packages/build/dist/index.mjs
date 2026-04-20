@@ -14754,7 +14754,7 @@ function specFor(name) {
   return SPEC_BY_NAME.get(name);
 }
 function readInputRaw(env, name) {
-  let key = `INPUT_${name.replace(/-/g, "_").toUpperCase()}`, raw = env[key];
+  let key = `INPUT_${name.replace(/ /g, "_").toUpperCase()}`, raw = env[key];
   if (raw === void 0) return;
   let trimmed = raw.trim();
   return trimmed === "" ? void 0 : trimmed;
@@ -14869,7 +14869,7 @@ function parseInputs(opts = {}) {
   if (opts.onUnknownInput !== void 0)
     for (let key of Object.keys(env)) {
       if (!key.startsWith("INPUT_")) continue;
-      let kebab = key.slice(6).toLowerCase().replace(/_/g, "-");
+      let kebab = key.slice(6).toLowerCase();
       SPEC_BY_NAME.has(kebab) || opts.onUnknownInput(kebab);
     }
   return { build, postBuild, publishing, performance: performance2 };
@@ -79803,14 +79803,8 @@ async function main() {
     },
     { exec: execBridge, logger: logger7, pkgCommand }
   );
-  let pkgDurationMs = Date.now() - started, pkgOutputs = await mapPkgOutputs(resolvedTargets, project.name, pkgOutputDir), allInputKeys = Object.keys(process.env).filter((k) => k.toLowerCase().startsWith("input_")).sort(), windowsLikeKeys = Object.keys(process.env).filter((k) => /windows/i.test(k)).sort();
-  logger7.info(`[pkg-action] diag: all INPUT_* keys \u2192 [${allInputKeys.join(", ") || "(none)"}]`), logger7.info(
-    `[pkg-action] diag: keys matching /windows/i \u2192 [${windowsLikeKeys.join(", ") || "(none)"}]`
-  );
-  let windowsMeta = await parseWindowsMetadataInputs();
-  logger7.info(
-    `[pkg-action] diag: parseWindowsMetadataInputs \u2192 ${windowsMeta === null ? "NULL" : "object with " + String(Object.keys(windowsMeta).length) + " fields"}`
-  ), windowsMeta !== null && logger7.info("[pkg-action] Windows metadata detected \u2014 will patch win-* binaries post-rename.");
+  let pkgDurationMs = Date.now() - started, pkgOutputs = await mapPkgOutputs(resolvedTargets, project.name, pkgOutputDir), windowsMeta = await parseWindowsMetadataInputs();
+  windowsMeta !== null && logger7.info("[pkg-action] Windows metadata detected \u2014 will patch win-* binaries post-rename.");
   let signing = parseSigningInputs({ registerSecret: (v) => setSecret(v) });
   signing !== null && logger7.info(
     `[pkg-action] Signing configured \u2014 macOS=${String(signing.macos !== void 0)}, windows=${signing.windowsMode}.`

@@ -32,7 +32,7 @@ function makeDeps(
   const savedEnv: Record<string, string | undefined> = {};
   for (const [k, v] of Object.entries(inputs)) {
     if (k === 'input' || k === 'output') continue;
-    const key = `INPUT_${k.replace(/-/g, '_').toUpperCase()}`;
+    const key = `INPUT_${k.toUpperCase()}`;
     savedEnv[key] = process.env[key];
     process.env[key] = v;
   }

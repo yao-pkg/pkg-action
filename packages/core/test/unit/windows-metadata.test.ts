@@ -15,7 +15,7 @@ const envOf = (bag: Record<string, string | undefined>): Record<string, string |
   const out: Record<string, string | undefined> = {};
   for (const [k, v] of Object.entries(bag)) {
     if (v === undefined) continue;
-    out[`INPUT_${k.replace(/-/g, '_').toUpperCase()}`] = v;
+    out[`INPUT_${k.toUpperCase()}`] = v;
   }
   return out;
 };
