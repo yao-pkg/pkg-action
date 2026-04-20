@@ -1,3 +1,5 @@
+import { createRequire as __pkgActionCreateRequire } from 'node:module';
+const require = __pkgActionCreateRequire(import.meta.url);
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;

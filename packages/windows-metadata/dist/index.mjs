@@ -1,3 +1,6 @@
+import { createRequire as __pkgActionCreateRequire } from 'node:module';
+const require = __pkgActionCreateRequire(import.meta.url);
+
 // packages/core/src/index.ts
 var VERSION = "0.0.0";
 

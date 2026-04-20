@@ -53,6 +53,16 @@ async function bundleOne({ entry, outfile }: Target): Promise<void> {
     minifySyntax: true,
     legalComments: 'inline',
     logLevel: 'info',
+    // @actions/http-client + tunnel are CJS and do `require('net')` etc. When
+    // bundled into an ESM output, esbuild's default shim replaces those with
+    // a throwing `__require`. Provide a real createRequire so node builtins
+    // resolve at runtime.
+    banner: {
+      js: [
+        "import { createRequire as __pkgActionCreateRequire } from 'node:module';",
+        "const require = __pkgActionCreateRequire(import.meta.url);",
+      ].join('\n'),
+    },
   });
   process.stdout.write(`  bundled  ${entry}  →  ${outfile}\n`);
 }
