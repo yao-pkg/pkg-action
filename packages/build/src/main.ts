@@ -23,6 +23,7 @@ import { mkdir, rename, stat } from 'node:fs/promises';
 import { basename as pathBasename, dirname, join, resolve as pathResolve } from 'node:path';
 import {
   actionsLogger,
+  applyWindowsMetadata,
   archive,
   buildPkgArgs,
   computeAllChecksums,
@@ -33,6 +34,7 @@ import {
   hostTarget,
   mapPkgOutputs,
   parseInputs,
+  parseWindowsMetadataInputs,
   readProjectInfo,
   render,
   resolveRepoFromEnv,
@@ -50,6 +52,7 @@ import {
   type OutputEntry,
   type SummaryRow,
   type Target,
+  type WindowsMetadataInputs,
 } from '@pkg-action/core';
 
 // ─── @actions/exec bridge ─────────────────────────────────────────────────
@@ -170,6 +173,13 @@ async function main(): Promise<void> {
   // 6. Reconcile on-disk outputs to targets.
   const pkgOutputs = await mapPkgOutputs(resolvedTargets, project.name, pkgOutputDir);
 
+  // 6.5. Parse Windows metadata once. Returns null when no windows-* input is
+  //      set — we skip the resedit step entirely in that common case.
+  const windowsMeta = await parseWindowsMetadataInputs();
+  if (windowsMeta !== null) {
+    logger.info('[pkg-action] Windows metadata detected — will patch win-* binaries post-rename.');
+  }
+
   // 7. Per-binary finalize.
   const finalDir = join(invocationDir, 'final');
   await mkdir(finalDir, { recursive: true });
@@ -186,6 +196,19 @@ async function main(): Promise<void> {
     const renamed = needsExe ? `${renamedBase}.exe` : renamedBase;
     const renamedPath = join(finalDir, renamed);
     await rename(out.path, renamedPath);
+
+    // 7.5. Patch Windows metadata in-place before archiving. Only win-*
+    //      targets receive a PE resource section; the call is a no-op
+    //      otherwise, but skipping it avoids reading the binary off disk.
+    if (windowsMeta !== null && out.target.os === 'win') {
+      const perBinary: WindowsMetadataInputs = {
+        ...windowsMeta,
+        originalFilename: windowsMeta.originalFilename ?? pathBasename(renamedPath),
+      };
+      await applyWindowsMetadata(renamedPath, renamedPath, perBinary);
+      logger.info(`[pkg-action] Patched Windows resources on ${renamedPath}.`);
+    }
+
     finalizedBinaries.push(renamedPath);
 
     const finalPath =

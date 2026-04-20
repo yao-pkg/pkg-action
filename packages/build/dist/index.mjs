@@ -79508,12 +79508,21 @@ async function main() {
     },
     { exec: execBridge, logger: logger7, pkgCommand }
   );
-  let pkgDurationMs = Date.now() - started, pkgOutputs = await mapPkgOutputs(resolvedTargets, project.name, pkgOutputDir), finalDir = join7(invocationDir, "final");
+  let pkgDurationMs = Date.now() - started, pkgOutputs = await mapPkgOutputs(resolvedTargets, project.name, pkgOutputDir), windowsMeta = await parseWindowsMetadataInputs();
+  windowsMeta !== null && logger7.info("[pkg-action] Windows metadata detected \u2014 will patch win-* binaries post-rename.");
+  let finalDir = join7(invocationDir, "final");
   await mkdir3(finalDir, { recursive: !0 });
   let finalizedBinaries = [], finalizedArtifacts = [], shasumEntries = [], summaryRows = [];
   for (let out of pkgOutputs) {
     let tokens = tokensForTarget(out.target, project, process.env), renamedBase = render(inputs.postBuild.filename, tokens), renamed = out.target.os === "win" && !renamedBase.toLowerCase().endsWith(".exe") ? `${renamedBase}.exe` : renamedBase, renamedPath = join7(finalDir, renamed);
-    await rename3(out.path, renamedPath), finalizedBinaries.push(renamedPath);
+    if (await rename3(out.path, renamedPath), windowsMeta !== null && out.target.os === "win") {
+      let perBinary = {
+        ...windowsMeta,
+        originalFilename: windowsMeta.originalFilename ?? pathBasename(renamedPath)
+      };
+      await applyWindowsMetadata(renamedPath, renamedPath, perBinary), logger7.info(`[pkg-action] Patched Windows resources on ${renamedPath}.`);
+    }
+    finalizedBinaries.push(renamedPath);
     let finalPath = inputs.postBuild.compress === "none" ? renamedPath : await archiveBinary(out, renamedPath, inputs, tokens);
     finalizedArtifacts.push(finalPath);
     let rowDigest = await finalizeChecksums(finalPath, inputs.postBuild.checksum);

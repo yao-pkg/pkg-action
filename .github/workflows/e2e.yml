@@ -195,3 +195,44 @@ jobs:
           echo '${{ steps.build.outputs.artifacts }}' | jq -r '.[]' | while read -r art; do
             [ -f "$art.sha256" ] || { echo "::error::missing sidecar $art.sha256"; exit 1; }
           done
+
+  # ──────────────────────────────────────────────────────────────────────
+  # M3 §3.6: Windows metadata e2e smoke. Builds a win-x64 binary with
+  # product-name / company-name / file-version set at the top-level, then
+  # re-parses the output with resedit to verify those strings land in the
+  # VS_VERSIONINFO block of the emitted PE. This covers the full chain:
+  #   parseInputs → parseWindowsMetadataInputs → orchestrator loop →
+  #   applyWindowsMetadata → NtExecutable.generate.
+  windows-metadata:
+    name: windows-metadata / windows-latest
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+          cache: yarn
+      - run: yarn install --non-interactive
+        shell: bash
+
+      - name: Build tiny-app with windows metadata
+        id: build
+        uses: ./
+        with:
+          config: test-fixtures/tiny-app-cjs/package.json
+          targets: node22-win-x64
+          compress: none
+          checksum: sha256
+          filename: '{name}-{version}-{os}-{arch}'
+          windows-product-name: 'PkgActionTest'
+          windows-company-name: 'Acme Ltd'
+          windows-file-version: '1.2.3.4'
+          windows-file-description: 'pkg-action M3 smoke'
+
+      - name: Verify VS_VERSIONINFO round-trips via resedit
+        shell: bash
+        run: |
+          bin=$(echo '${{ steps.build.outputs.binaries }}' | jq -r '.[0]')
+          [ -f "$bin" ] || { echo "::error::binary missing: $bin"; exit 1; }
+          echo "Checking $bin"
+          node --experimental-strip-types .github/scripts/assert-windows-metadata.ts "$bin"
