@@ -57,6 +57,36 @@ jobs:
 Full reference — inputs, self-hosted overrides, cross-compile policy — in
 [`docs/matrix.md`](./docs/matrix.md).
 
+## Release attach
+
+Publish the produced binaries to a GitHub release in the same workflow:
+
+```yaml
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: yao-pkg/pkg-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          targets: node22-linux-x64,node22-macos-arm64,node22-win-x64
+          compress: tar.gz
+          checksum: sha256
+          attach-to-release: true
+```
+
+Full reference (non-tag triggers, body templating, asset overwrites,
+permissions) in [`docs/publishing.md`](./docs/publishing.md).
+
 ## Development
 
 - Node ≥ 22 (see `.node-version` for the pinned dev patch).

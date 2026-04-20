@@ -182,6 +182,9 @@ outputs:
   version:
     description: 'Resolved package.json version used in filename templates.'
     value: ${{ steps.pkg-action-build.outputs.version }}
+  release-url:
+    description: 'Absolute URL to the GitHub release the action attached to. Empty when attach-to-release=false.'
+    value: ${{ steps.pkg-action-build.outputs.release-url }}
 
 runs:
   using: 'composite'

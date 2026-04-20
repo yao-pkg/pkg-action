@@ -17,12 +17,16 @@ export interface SummaryRow {
   readonly primaryDigest?: { algo: ChecksumAlgorithm; value: string };
   /** Milliseconds for the pkg + finalize pipeline, if the caller measured. */
   readonly durationMs?: number;
+  /** True when the binary was signed in this run. Renders a ✓ in the Signed column. */
+  readonly signed?: boolean;
 }
 
 export interface SummaryOptions {
   readonly title?: string;
   readonly pkgVersion?: string;
   readonly actionVersion?: string;
+  /** Appears as a "Release" trailer line when the orchestrator attached to one. */
+  readonly releaseUrl?: string;
 }
 
 /**
@@ -49,9 +53,11 @@ export function renderSummary(rows: readonly SummaryRow[], opts: SummaryOptions 
 
   const hasDuration = rows.some((r) => r.durationMs !== undefined);
   const hasDigest = rows.some((r) => r.primaryDigest !== undefined);
+  const hasSigned = rows.some((r) => r.signed === true);
 
   const header = ['Target', 'Filename', 'Size'];
   if (hasDigest) header.push('SHA');
+  if (hasSigned) header.push('Signed');
   if (hasDuration) header.push('Time');
   const sep = header.map(() => '---');
 
@@ -71,12 +77,18 @@ export function renderSummary(rows: readonly SummaryRow[], opts: SummaryOptions 
         cells.push('—');
       }
     }
+    if (hasSigned) cells.push(row.signed === true ? '✓' : '—');
     if (hasDuration) {
       cells.push(row.durationMs !== undefined ? formatDuration(row.durationMs) : '—');
     }
     parts.push(`| ${cells.join(' | ')} |`);
   }
   parts.push('');
+
+  if (opts.releaseUrl !== undefined && opts.releaseUrl !== '') {
+    parts.push(`**Release:** ${opts.releaseUrl}`);
+    parts.push('');
+  }
   return parts.join('\n');
 }
 

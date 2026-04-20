@@ -91,8 +91,15 @@ milestones:
 
   M5:
     title: Release attach + step-summary polish + docs + dependabot-bundle.yml
-    status: pending
+    status: done
     depends-on: M1,M4
+    sub-chunks:
+      '5.1 publishing inputs parser extension (attach-to-release, release-tag/name/body/draft/prerelease, generate-release-table) with mutex checks': done
+      '5.2 orchestrator wire-up — ReleaseAttacher invoked after artifact upload when attach-to-release=true; release body assembled by buildReleaseBody; draft/prerelease/name applied via updateRelease; release-url exposed as composite output': done
+      '5.3 step-summary polish — Signed column (appears only when signing ran) + Release trailer row with release URL; SummaryRow/SummaryOptions extended accordingly': done
+      '5.4 .github/dependabot.yml — weekly grouped updates for @actions/*, resedit+pe-library, yazl, dev tooling, and github-actions; 04:00 UTC Monday cadence; 5-PR cap per ecosystem': done
+      '5.5 unit tests — 7 release-body cases + 5 parser cases + 2 summary cases (242 total green)': done
+      '5.6 docs — docs/publishing.md (both delivery channels, release body templating, permissions, signing interplay) + README release-attach snippet': done
 
   M6:
     title: 'Stretch: SBOM / provenance / Docker / Homebrew / Scoop'

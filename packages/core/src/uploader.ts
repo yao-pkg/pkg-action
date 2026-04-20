@@ -42,6 +42,11 @@ export interface ReleaseAttachRequest {
   readonly assets: readonly ReleaseAsset[];
   /** Overwrite an existing asset with the same name. Default false. */
   readonly replace?: boolean;
+  /** Release metadata applied after create-or-find. */
+  readonly name?: string;
+  readonly body?: string;
+  readonly draft?: boolean;
+  readonly prerelease?: boolean;
 }
 
 export interface ReleaseAttachResult {
@@ -159,6 +164,33 @@ export async function createDefaultReleaseAttacher(
           draft: true,
         });
         release = { id: created.data.id, html_url: created.data.html_url };
+      }
+
+      // Apply metadata overrides (name/body/draft/prerelease) when any is set.
+      const needsUpdate =
+        req.name !== undefined ||
+        req.body !== undefined ||
+        req.draft !== undefined ||
+        req.prerelease !== undefined;
+      if (needsUpdate) {
+        const updateArgs: Record<string, unknown> = {
+          owner: req.owner,
+          repo: req.repo,
+          release_id: release.id,
+        };
+        if (req.name !== undefined) updateArgs['name'] = req.name;
+        if (req.body !== undefined) updateArgs['body'] = req.body;
+        if (req.draft !== undefined) updateArgs['draft'] = req.draft;
+        if (req.prerelease !== undefined) updateArgs['prerelease'] = req.prerelease;
+        await (
+          octokit as unknown as {
+            rest: {
+              repos: {
+                updateRelease: (args: Record<string, unknown>) => Promise<unknown>;
+              };
+            };
+          }
+        ).rest.repos.updateRelease(updateArgs);
       }
 
       const assetUrls: string[] = [];

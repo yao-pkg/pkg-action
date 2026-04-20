@@ -27,6 +27,11 @@ const OUTPUTS = [
   { id: 'artifacts', description: 'JSON array of post-archive artifact absolute paths.' },
   { id: 'checksums', description: 'JSON array of absolute paths to SHASUMS*.txt files.' },
   { id: 'version', description: 'Resolved package.json version used in filename templates.' },
+  {
+    id: 'release-url',
+    description:
+      'Absolute URL to the GitHub release the action attached to. Empty when attach-to-release=false.',
+  },
 ] as const;
 
 const GENERATED_BANNER = [

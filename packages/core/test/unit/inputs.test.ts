@@ -68,6 +68,11 @@ test('parseInputs with no env uses defaults', () => {
 
   strictEqual(inputs.publishing.uploadArtifact, true);
   strictEqual(inputs.publishing.artifactName, '{name}-{version}-{target}');
+  strictEqual(inputs.publishing.attachToRelease, false);
+  strictEqual(inputs.publishing.releaseTag, undefined);
+  strictEqual(inputs.publishing.releaseDraft, false);
+  strictEqual(inputs.publishing.releasePrerelease, false);
+  strictEqual(inputs.publishing.generateReleaseTable, true);
 
   strictEqual(inputs.performance.cache, true);
   strictEqual(inputs.performance.stepSummary, true);
@@ -119,6 +124,45 @@ test('parseInputs rejects invalid enum value', () => {
   throws(() => parseInputs({ env: env(['mode', 'fast']) }), ValidationError);
   throws(() => parseInputs({ env: env(['compress', 'rar']) }), ValidationError);
   throws(() => parseInputs({ env: env(['compress-node', 'zstd']) }), ValidationError);
+});
+
+test('parseInputs: attach-to-release=true auto-detects the tag from GITHUB_REF', () => {
+  const inputs = parseInputs({
+    env: {
+      ...env(['attach-to-release', 'true']),
+      GITHUB_REF: 'refs/tags/v1.2.3',
+    },
+  });
+  strictEqual(inputs.publishing.attachToRelease, true);
+  // releaseTag isn't auto-populated — we still derive from GITHUB_REF in the
+  // orchestrator. The parser only validates that SOME tag is resolvable.
+  strictEqual(inputs.publishing.releaseTag, undefined);
+});
+
+test('parseInputs: attach-to-release=true requires a tag (direct or via GITHUB_REF)', () => {
+  throws(() => parseInputs({ env: env(['attach-to-release', 'true']) }), ValidationError);
+});
+
+test('parseInputs: attach-to-release=true + release-tag override is accepted', () => {
+  const inputs = parseInputs({
+    env: env(['attach-to-release', 'true'], ['release-tag', 'nightly-2026-04-20']),
+  });
+  strictEqual(inputs.publishing.releaseTag, 'nightly-2026-04-20');
+});
+
+test('parseInputs: release-draft / release-prerelease coerce from booleans', () => {
+  const inputs = parseInputs({
+    env: env(
+      ['attach-to-release', 'true'],
+      ['release-tag', 'v1'],
+      ['release-draft', 'true'],
+      ['release-prerelease', 'yes'],
+      ['generate-release-table', 'false'],
+    ),
+  });
+  strictEqual(inputs.publishing.releaseDraft, true);
+  strictEqual(inputs.publishing.releasePrerelease, true);
+  strictEqual(inputs.publishing.generateReleaseTable, false);
 });
 
 test('parseInputs checksum accepts "none" and drops to empty list', () => {

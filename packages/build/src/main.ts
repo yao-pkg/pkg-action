@@ -26,7 +26,9 @@ import {
   applyWindowsMetadata,
   archive,
   buildPkgArgs,
+  buildReleaseBody,
   computeAllChecksums,
+  createDefaultReleaseAttacher,
   createInvocationTemp,
   extractTagFromRef,
   formatErrorChain,
@@ -55,6 +57,8 @@ import {
   type ExecFn,
   type Logger,
   type OutputEntry,
+  type ReleaseAsset,
+  type ReleaseAttachRequest,
   type SigningInputs,
   type SummaryRow,
   type Target,
@@ -229,12 +233,17 @@ async function main(): Promise<void> {
     //      AFTER the metadata patch (signing covers the whole binary
     //      including its resource section) and BEFORE archive/checksum
     //      so the shasum reflects the signed bytes.
+    let signedFlag = false;
     if (signing !== null) {
-      await signOneTarget({ targetOs: out.target.os, binaryPath: renamedPath }, signing, {
-        exec: execBridge,
-        logger,
-        tempDir: invocationDir,
-      });
+      signedFlag = await signOneTarget(
+        { targetOs: out.target.os, binaryPath: renamedPath },
+        signing,
+        {
+          exec: execBridge,
+          logger,
+          tempDir: invocationDir,
+        },
+      );
     }
 
     finalizedBinaries.push(renamedPath);
@@ -254,6 +263,7 @@ async function main(): Promise<void> {
       target: formatTarget(out.target),
       filename: finalPath,
       sizeBytes: size,
+      ...(signedFlag ? { signed: true } : {}),
     };
     if (rowDigest.primary !== undefined) {
       (row as { primaryDigest?: { algo: ChecksumAlgorithm; value: string } }).primaryDigest =
@@ -291,14 +301,63 @@ async function main(): Promise<void> {
     await uploadArtifacts(uploadRequests, { artifact: uploader, logger });
   }
 
-  // 10. Release attachment — if attach-to-release is set AND a tag is resolvable.
-  //     Full implementation lands in M5; this is a stub wire-up so the plumbing
-  //     exists when the M5 input validators expose attach-to-release.
-  const tag = extractTagFromRef(process.env['GITHUB_REF']);
-  const repo = resolveRepoFromEnv(process.env);
-  if (tag !== undefined && repo !== undefined) {
-    logger.debug(
-      `[pkg-action] Detected tag ${tag} on ${repo.owner}/${repo.repo}; release attach is deferred to M5.`,
+  // 10. Release attachment. Runs when attach-to-release=true and a tag is
+  //     resolvable from either GITHUB_REF or the release-tag override. The
+  //     parser already enforced that at least one source exists, so any
+  //     missing tag here is a logic bug.
+  let releaseUrl: string | undefined;
+  if (inputs.publishing.attachToRelease) {
+    const tagFromRef = extractTagFromRef(process.env['GITHUB_REF']);
+    const tag = inputs.publishing.releaseTag ?? tagFromRef;
+    const repo = resolveRepoFromEnv(process.env);
+    if (tag === undefined || repo === undefined) {
+      core.setFailed(
+        'attach-to-release=true but no tag or owner/repo could be resolved from the runner env.',
+      );
+      return;
+    }
+    const githubToken = process.env['GITHUB_TOKEN'];
+    if (githubToken === undefined || githubToken === '') {
+      core.setFailed(
+        'attach-to-release=true requires GITHUB_TOKEN in env. Set it via `env: { GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} }`.',
+      );
+      return;
+    }
+
+    const generatedBody = inputs.publishing.generateReleaseTable
+      ? buildReleaseBody({
+          userBody: inputs.publishing.releaseBody,
+          rows: summaryRows,
+          actionVersion: VERSION,
+        })
+      : inputs.publishing.releaseBody;
+
+    const assets: ReleaseAsset[] = [];
+    for (const artifact of finalizedArtifacts) {
+      assets.push({ path: artifact, name: pathBasename(artifact) });
+    }
+    for (const shasumFile of shasumsFiles) {
+      assets.push({ path: shasumFile, name: pathBasename(shasumFile) });
+    }
+
+    const attacher = await createDefaultReleaseAttacher(githubToken, { createIfMissing: true });
+    const req: ReleaseAttachRequest = {
+      owner: repo.owner,
+      repo: repo.repo,
+      tag,
+      assets,
+      replace: true,
+      ...(inputs.publishing.releaseName !== undefined
+        ? { name: inputs.publishing.releaseName }
+        : {}),
+      ...(generatedBody !== undefined ? { body: generatedBody } : {}),
+      draft: inputs.publishing.releaseDraft,
+      prerelease: inputs.publishing.releasePrerelease,
+    };
+    const result = await attacher.attach(req);
+    releaseUrl = result.releaseUrl;
+    logger.info(
+      `[pkg-action] Release attached: ${releaseUrl} (${String(result.assetUrls.length)} asset(s)).`,
     );
   }
 
@@ -309,10 +368,16 @@ async function main(): Promise<void> {
     const rowsWithTime = summaryRows.map((r) =>
       durationForFirst !== undefined ? { ...r, durationMs: durationForFirst } : r,
     );
-    await writeSummary(rowsWithTime, {
+    const summaryOpts: {
+      actionVersion: string;
+      pkgVersion: string;
+      releaseUrl?: string;
+    } = {
       actionVersion: VERSION,
       pkgVersion: inputs.build.pkgVersion,
-    });
+    };
+    if (releaseUrl !== undefined) summaryOpts.releaseUrl = releaseUrl;
+    await writeSummary(rowsWithTime, summaryOpts);
   }
 
   // 12. Outputs.
@@ -320,6 +385,7 @@ async function main(): Promise<void> {
   core.setOutput('artifacts', JSON.stringify(finalizedArtifacts));
   core.setOutput('checksums', JSON.stringify(shasumsFiles));
   core.setOutput('version', project.version);
+  if (releaseUrl !== undefined) core.setOutput('release-url', releaseUrl);
 
   logger.info(`pkg-action build — done (${String(pkgOutputs.length)} binary/binaries produced)`);
 }
@@ -330,7 +396,7 @@ async function signOneTarget(
   spec: { targetOs: Target['os']; binaryPath: string },
   signing: SigningInputs,
   deps: { exec: ExecFn; logger: Logger; tempDir: string },
-): Promise<void> {
+): Promise<boolean> {
   if (spec.targetOs === 'macos' && signing.macos !== undefined) {
     const cleanup = await signMacos(spec.binaryPath, signing.macos, deps);
     // Hand off to post.ts so the ephemeral keychain is torn down even on
@@ -339,18 +405,19 @@ async function signOneTarget(
     const prior = core.getState('macosKeychains');
     const next = prior === '' ? cleanup.keychainPath : `${prior}\n${cleanup.keychainPath}`;
     core.saveState('macosKeychains', next);
-    return;
+    return true;
   }
   if (spec.targetOs === 'win') {
     if (signing.windowsMode === 'signtool' && signing.windowsSigntool !== undefined) {
       await signWindowsSigntool(spec.binaryPath, signing.windowsSigntool, deps);
-      return;
+      return true;
     }
     if (signing.windowsMode === 'trusted-signing' && signing.windowsTrusted !== undefined) {
       await signWindowsTrustedSigning(spec.binaryPath, signing.windowsTrusted, deps);
-      return;
+      return true;
     }
   }
+  return false;
 }
 
 async function archiveBinary(

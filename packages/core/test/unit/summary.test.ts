@@ -25,6 +25,23 @@ test('renderSummary produces an H2 heading', () => {
   ok(md.startsWith('## pkg-action build summary\n'));
 });
 
+test('renderSummary: Signed column only appears when at least one row is signed', () => {
+  const unsigned = renderSummary([ROW_A]);
+  ok(!unsigned.includes('Signed'));
+  const signed = renderSummary([{ ...ROW_A, signed: true }, ROW_B]);
+  ok(signed.includes('| Signed |'));
+  // Signed row gets ✓, unsigned row gets —.
+  ok(/✓/.test(signed));
+  ok(/— \|/.test(signed));
+});
+
+test('renderSummary: releaseUrl trailer appears when supplied', () => {
+  const md = renderSummary([ROW_A], {
+    releaseUrl: 'https://github.com/acme/tiny/releases/tag/v1',
+  });
+  ok(md.includes('**Release:** https://github.com/acme/tiny/releases/tag/v1'));
+});
+
 test('renderSummary respects custom title', () => {
   const md = renderSummary([ROW_A], { title: 'My Build' });
   ok(md.startsWith('## My Build\n'));

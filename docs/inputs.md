@@ -108,3 +108,4 @@ Every `pkg-action` input, grouped by category.
 | `artifacts` | JSON array of post-archive artifact absolute paths. |
 | `checksums` | JSON array of absolute paths to SHASUMS*.txt files. |
 | `version` | Resolved package.json version used in filename templates. |
+| `release-url` | Absolute URL to the GitHub release the action attached to. Empty when attach-to-release=false. |

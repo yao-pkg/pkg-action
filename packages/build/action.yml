@@ -175,6 +175,8 @@ outputs:
     description: 'JSON array of absolute paths to SHASUMS*.txt files.'
   version:
     description: 'Resolved package.json version used in filename templates.'
+  release-url:
+    description: 'Absolute URL to the GitHub release the action attached to. Empty when attach-to-release=false.'
 
 runs:
   using: 'node24'

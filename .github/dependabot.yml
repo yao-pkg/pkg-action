@@ -1,3 +1,11 @@
+# Dependabot configuration. Bundles weekly updates into tidy grouped PRs so
+# a minor @actions/core bump never waits on a prettier patch, and so an
+# action-version churn on the github-actions ecosystem doesn't rebase every
+# npm PR.
+#
+# Cadence: Monday 04:00 UTC. Rebase is automatic so stale PRs don't pile up.
+# PR cap per ecosystem is 5 to keep the review surface sane.
+
 version: 2
 updates:
   - package-ecosystem: npm
@@ -5,21 +13,50 @@ updates:
     schedule:
       interval: weekly
       day: monday
-    open-pull-requests-limit: 10
+      time: '04:00'
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    versioning-strategy: increase-if-necessary
+    rebase-strategy: auto
+    labels:
+      - dependencies
+      - javascript
     groups:
       actions-toolkit:
         patterns:
           - '@actions/*'
+      resedit-stack:
+        patterns:
+          - 'resedit'
+          - 'pe-library'
+      archive-stack:
+        patterns:
+          - 'yazl'
+          - '@types/yazl'
       dev-tooling:
         patterns:
           - 'typescript'
           - 'esbuild'
           - 'eslint*'
           - '@typescript-eslint/*'
+          - 'eslint-*'
           - 'prettier'
+          - 'globals'
+          - '@types/node'
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
       day: monday
+      time: '04:00'
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    rebase-strategy: auto
+    labels:
+      - dependencies
+      - github-actions
+    groups:
+      gh-actions:
+        patterns:
+          - '*'

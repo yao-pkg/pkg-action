@@ -473,7 +473,15 @@ export interface PostBuildInputs {
 export interface PublishingInputs {
   readonly uploadArtifact: boolean;
   readonly artifactName: string;
-  // attach-to-release, release-* — parsed in M5.
+  readonly attachToRelease: boolean;
+  /** Tag override. When attach-to-release=true and the workflow was NOT
+   *  triggered by a tag push, this must be set — we fail fast otherwise. */
+  readonly releaseTag: string | undefined;
+  readonly releaseName: string | undefined;
+  readonly releaseBody: string | undefined;
+  readonly releaseDraft: boolean;
+  readonly releasePrerelease: boolean;
+  readonly generateReleaseTable: boolean;
 }
 
 export interface PerformanceInputs {
@@ -643,10 +651,37 @@ export function parseInputs(opts: ParseInputsOptions = {}): ActionInputs {
     checksum: parseChecksumList(readInput(env, 'checksum'), 'checksum'),
   };
 
-  // Publishing (M1 subset)
+  // Publishing (M5-extended)
+  const attachToRelease = parseBoolean(readInput(env, 'attach-to-release'), 'attach-to-release');
+  const releaseTag = readInput(env, 'release-tag');
+  if (attachToRelease) {
+    // Either a tag-triggered run (GITHUB_REF=refs/tags/*) OR an explicit
+    // release-tag input is required. We check here so the error surfaces
+    // before we spend minutes on pkg + sign.
+    const ref = env['GITHUB_REF'];
+    const refTag =
+      ref !== undefined && ref.startsWith('refs/tags/')
+        ? ref.slice('refs/tags/'.length)
+        : undefined;
+    if (releaseTag === undefined && (refTag === undefined || refTag === '')) {
+      throw new ValidationError(
+        'attach-to-release=true requires either a tag-triggered run (GITHUB_REF=refs/tags/...) or an explicit release-tag input.',
+      );
+    }
+  }
   const publishing: PublishingInputs = {
     uploadArtifact: parseBoolean(readInput(env, 'upload-artifact'), 'upload-artifact'),
     artifactName: readInput(env, 'artifact-name') ?? '{name}-{version}-{target}',
+    attachToRelease,
+    releaseTag,
+    releaseName: readInput(env, 'release-name'),
+    releaseBody: readInput(env, 'release-body'),
+    releaseDraft: parseBoolean(readInput(env, 'release-draft'), 'release-draft'),
+    releasePrerelease: parseBoolean(readInput(env, 'release-prerelease'), 'release-prerelease'),
+    generateReleaseTable: parseBoolean(
+      readInput(env, 'generate-release-table'),
+      'generate-release-table',
+    ),
   };
 
   // Performance / observability
