@@ -79803,8 +79803,14 @@ async function main() {
     },
     { exec: execBridge, logger: logger7, pkgCommand }
   );
-  let pkgDurationMs = Date.now() - started, pkgOutputs = await mapPkgOutputs(resolvedTargets, project.name, pkgOutputDir), windowsMeta = await parseWindowsMetadataInputs();
-  windowsMeta !== null && logger7.info("[pkg-action] Windows metadata detected \u2014 will patch win-* binaries post-rename.");
+  let pkgDurationMs = Date.now() - started, pkgOutputs = await mapPkgOutputs(resolvedTargets, project.name, pkgOutputDir), winEnvSnapshot = Object.keys(process.env).filter((k) => k.startsWith("INPUT_WINDOWS_")).sort();
+  logger7.info(
+    `[pkg-action] diag: INPUT_WINDOWS_* keys in env \u2192 [${winEnvSnapshot.join(", ") || "(none)"}]`
+  );
+  let windowsMeta = await parseWindowsMetadataInputs();
+  logger7.info(
+    `[pkg-action] diag: parseWindowsMetadataInputs \u2192 ${windowsMeta === null ? "NULL" : "object with " + String(Object.keys(windowsMeta).length) + " fields"}`
+  ), windowsMeta !== null && logger7.info("[pkg-action] Windows metadata detected \u2014 will patch win-* binaries post-rename.");
   let signing = parseSigningInputs({ registerSecret: (v) => setSecret(v) });
   signing !== null && logger7.info(
     `[pkg-action] Signing configured \u2014 macOS=${String(signing.macos !== void 0)}, windows=${signing.windowsMode}.`

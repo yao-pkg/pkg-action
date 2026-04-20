@@ -185,7 +185,17 @@ async function main(): Promise<void> {
 
   // 6.5. Parse Windows metadata once. Returns null when no windows-* input is
   //      set — we skip the resedit step entirely in that common case.
+  // TODO(M3-diag): remove after E2E windows-metadata job stays green.
+  const winEnvSnapshot = Object.keys(process.env)
+    .filter((k) => k.startsWith('INPUT_WINDOWS_'))
+    .sort();
+  logger.info(
+    `[pkg-action] diag: INPUT_WINDOWS_* keys in env → [${winEnvSnapshot.join(', ') || '(none)'}]`,
+  );
   const windowsMeta = await parseWindowsMetadataInputs();
+  logger.info(
+    `[pkg-action] diag: parseWindowsMetadataInputs → ${windowsMeta === null ? 'NULL' : 'object with ' + String(Object.keys(windowsMeta).length) + ' fields'}`,
+  );
   if (windowsMeta !== null) {
     logger.info('[pkg-action] Windows metadata detected — will patch win-* binaries post-rename.');
   }
