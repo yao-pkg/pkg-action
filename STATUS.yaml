@@ -12,7 +12,7 @@ meta:
   last-updated: '2026-04-20'
   action-status: PRE-ALPHA — do not consume from a workflow
   ci-status: green
-  e2e-status: running (project-dir resolution fix just pushed)
+  e2e-status: green on ubuntu-latest / macos-latest / windows-latest (tiny-app-cjs: tar.gz + zip + sha256 sidecar round-trip verified)
 
 milestones:
   M-1:
@@ -32,7 +32,7 @@ milestones:
 
   M1:
     title: Core build path
-    status: done-locally
+    status: done
     sub-chunks:
       '1.1 foundation (errors / logger / fs-utils)': done
       '1.2 domain (targets / templates)': done
@@ -139,5 +139,6 @@ known-issues:
   - 'Orchestrator must resolve a project-dir separately from GITHUB_WORKSPACE when config points at a package.json — FIXED: derives projectDir = dirname(config) in that case and invokes pkg with cwd: projectDir.'
 
 next:
-  - First e2e.yml run on main — assert tiny-app-cjs builds + archives + checksums on ubuntu/macos/windows.
-  - Start M2 — matrix sub-action: real targets.ts-driven matrix expansion + cross-compile warnings inside /matrix/dist.
+  - Start M2 — wire /matrix/action.yml to real expansion logic using packages/core's targets module (parseTargetList, expandMatrix, runnerFor, crossCompileRisk). Add /matrix unit tests + a job-level e2e demo that consumes the matrix output in strategy.matrix.
+  - Add the ESM fixture (tiny-app-esm with mode: sea) to the e2e matrix once @yao-pkg/pkg's SEA path is smoke-tested via the action.
+  - Wire in the integration-test shard (archive tar/7z round-trip against system tools) — deferred from M1.3.
