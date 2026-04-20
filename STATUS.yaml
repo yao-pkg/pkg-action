@@ -12,7 +12,7 @@ meta:
   last-updated: '2026-04-20'
   action-status: PRE-ALPHA — do not consume from a workflow
   ci-status: green
-  e2e-status: green on ubuntu-latest / macos-latest / windows-latest (tiny-app-cjs: tar.gz + zip + sha256 sidecar round-trip verified)
+  e2e-status: green on ubuntu-latest / macos-latest / windows-latest (tiny-app-cjs: tar.gz + zip + sha256 sidecar round-trip verified); matrix plan→fanout job added — awaits first CI run
 
 milestones:
   M-1:
@@ -52,8 +52,15 @@ milestones:
 
   M2:
     title: Matrix sub-action + multi-target
-    status: pending
+    status: in-progress
     depends-on: M1
+    sub-chunks:
+      '2.1 matrix main.ts (parseTargetList → expandMatrix, runner-overrides, cross-compile warnings)': done
+      '2.2 matrix unit tests (DI-style doubles, 19 tests)': done
+      '2.3 matrix bundle (packages/matrix/dist/index.mjs with createRequire banner)': done
+      '2.4 matrix-plan → matrix-fanout e2e job (strategy.matrix consumption demo)': done (awaits first CI run)
+      '2.5 multi-target single-runner build path (pkg invoked with >1 target in-process)': pending
+      '2.6 docs — docs-site/guide/matrix.md, README snippet': pending
 
   M3:
     title: Windows metadata (resedit)
@@ -139,6 +146,7 @@ known-issues:
   - 'Orchestrator must resolve a project-dir separately from GITHUB_WORKSPACE when config points at a package.json — FIXED: derives projectDir = dirname(config) in that case and invokes pkg with cwd: projectDir.'
 
 next:
-  - Start M2 — wire /matrix/action.yml to real expansion logic using packages/core's targets module (parseTargetList, expandMatrix, runnerFor, crossCompileRisk). Add /matrix unit tests + a job-level e2e demo that consumes the matrix output in strategy.matrix.
+  - Finish M2 — land the multi-target single-runner build path (one pkg invocation emitting N binaries, one checksum/archive pass each) and author docs-site/guide/matrix.md + a README snippet showing plan→fanout wiring.
   - Add the ESM fixture (tiny-app-esm with mode: sea) to the e2e matrix once @yao-pkg/pkg's SEA path is smoke-tested via the action.
   - Wire in the integration-test shard (archive tar/7z round-trip against system tools) — deferred from M1.3.
+  - Start M3 (Windows metadata via resedit) once M2 lands.

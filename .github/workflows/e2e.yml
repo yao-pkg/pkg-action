@@ -98,3 +98,100 @@ jobs:
             echo "::error::action.yml or docs/inputs.md is out of sync. Run 'yarn gen' locally and commit."
             exit 1
           }
+
+  # ──────────────────────────────────────────────────────────────────────
+  # M2: matrix sub-action demo.
+  #
+  # Stage 1 ("plan") runs the matrix sub-action and emits a JSON array of
+  # {target, runner} tuples. Stage 2 ("fan-out") consumes that array via
+  # strategy.matrix and invokes the top-level composite on each runner. This
+  # is the canonical downstream usage for pkg-action/matrix and doubles as a
+  # smoke test that the JSON shape is strategy.matrix-compatible.
+  matrix-plan:
+    name: Matrix plan
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Expand targets into a matrix
+        id: plan
+        uses: ./matrix
+        with:
+          targets: |
+            node22-linux-x64
+            node22-macos-arm64
+            node22-win-x64
+      - name: Show expansion
+        run: |
+          echo 'matrix=${{ steps.plan.outputs.matrix }}'
+
+  matrix-fanout:
+    name: matrix-fanout / ${{ matrix.entry.target }}
+    needs: matrix-plan
+    runs-on: ${{ matrix.entry.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        entry: ${{ fromJson(needs.matrix-plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build fixture for ${{ matrix.entry.target }}
+        id: build
+        uses: ./
+        with:
+          config: test-fixtures/tiny-app-cjs/package.json
+          targets: ${{ matrix.entry.target }}
+          compress: none
+          checksum: sha256
+          filename: '{name}-{version}-{os}-{arch}'
+
+      - name: Assert at least one binary
+        shell: bash
+        run: |
+          count=$(echo '${{ steps.build.outputs.binaries }}' | jq 'length')
+          if [ "$count" -lt 1 ]; then
+            echo "::error::no binary produced for ${{ matrix.entry.target }}"; exit 1
+          fi
+
+  # ──────────────────────────────────────────────────────────────────────
+  # M2 §2.5: multi-target, single-runner. Proves the orchestrator's per-
+  # target loop against a real pkg invocation that asks for >1 target at
+  # once. Both linux-x64 and linuxstatic-x64 are native on ubuntu-latest,
+  # so no cross-compile risks muddy the result.
+  multi-target-linux:
+    name: multi-target / ubuntu-latest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build two linux targets in one invocation
+        id: build
+        uses: ./
+        with:
+          config: test-fixtures/tiny-app-cjs/package.json
+          targets: |
+            node22-linux-x64
+            node22-linuxstatic-x64
+          compress: none
+          checksum: sha256
+          filename: '{name}-{version}-{os}-{arch}'
+
+      - name: Assert both binaries produced
+        shell: bash
+        run: |
+          count=$(echo '${{ steps.build.outputs.binaries }}' | jq 'length')
+          if [ "$count" -ne 2 ]; then
+            echo "::error::expected 2 binaries, got $count"
+            echo '${{ steps.build.outputs.binaries }}' | jq
+            exit 1
+          fi
+          # Every binary must exist on disk.
+          echo '${{ steps.build.outputs.binaries }}' | jq -r '.[]' | while read -r bin; do
+            [ -f "$bin" ] || { echo "::error::missing binary $bin"; exit 1; }
+          done
+          # A sidecar checksum must accompany each artifact.
+          echo '${{ steps.build.outputs.artifacts }}' | jq -r '.[]' | while read -r art; do
+            [ -f "$art.sha256" ] || { echo "::error::missing sidecar $art.sha256"; exit 1; }
+          done

@@ -20,6 +20,43 @@ Implementation plan: see the pinned comment on that issue.
 
 …plus Windows metadata injection (`resedit`), macOS codesign + notarize, Windows signtool + Azure Trusted Signing, archive + checksum + release upload, and a matrix helper for cross-compile-safe multi-OS jobs.
 
+## Matrix helper
+
+When you want one shard per target, pinned to a native runner, use the
+`matrix` sub-action:
+
+```yaml
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v6
+      - id: plan
+        uses: yao-pkg/pkg-action/matrix@v1
+        with:
+          targets: |
+            node22-linux-x64
+            node22-macos-arm64
+            node22-win-x64
+
+  build:
+    needs: plan
+    runs-on: ${{ matrix.entry.runner }}
+    strategy:
+      matrix:
+        entry: ${{ fromJson(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: yao-pkg/pkg-action@v1
+        with:
+          targets: ${{ matrix.entry.target }}
+```
+
+Full reference — inputs, self-hosted overrides, cross-compile policy — in
+[`docs/matrix.md`](./docs/matrix.md).
+
 ## Development
 
 - Node ≥ 22 (see `.node-version` for the pinned dev patch).
