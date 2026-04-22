@@ -31,8 +31,10 @@ import {
   collectDependencyTree,
   computeAllChecksums,
   createDefaultDistributionPublisher,
+  createDefaultDockerPublisher,
   createDefaultReleaseAttacher,
   createInvocationTemp,
+  extractRegistry,
   extractTagFromRef,
   formatErrorChain,
   formatTarget,
@@ -63,6 +65,8 @@ import {
   type ActionInputs,
   type ChecksumAlgorithm,
   type DistAsset,
+  type DockerPublishInputs,
+  type DockerPushTarget,
   type ExecFn,
   type HomebrewInputs,
   type Logger,
@@ -473,6 +477,22 @@ async function main(): Promise<void> {
     }
   }
 
+  // 10.8. Docker OCI push (M6.3). Independent of release attach — any
+  //       workflow can push to a registry. Only linux-* targets ship; other
+  //       OSes are silently skipped (not an error; a multi-OS build usually
+  //       wants both linux Docker images AND mac/win archives).
+  if (inputs.publishing.docker !== undefined) {
+    await publishDocker(inputs.publishing.docker, {
+      project,
+      binariesByTarget: pkgOutputs.map((out, i) => ({
+        target: out.target,
+        binaryPath: finalizedBinaries[i] as string,
+      })),
+      tempDir: invocationDir,
+      logger,
+    });
+  }
+
   // 11. Step summary.
   if (inputs.performance.stepSummary) {
     const durationForFirst =
@@ -563,6 +583,53 @@ async function publishHomebrew(inputs: HomebrewInputs, deps: PublishDeps): Promi
   deps.logger.info(
     `[pkg-action] Homebrew formula updated on ${inputs.tapRepo}@${branch}` +
       (result.pullRequestUrl !== undefined ? ` → PR ${result.pullRequestUrl}` : ''),
+  );
+}
+
+interface DockerDeps {
+  readonly project: { name: string; version: string };
+  readonly binariesByTarget: ReadonlyArray<{ target: Target; binaryPath: string }>;
+  readonly tempDir: string;
+  readonly logger: Logger;
+}
+
+async function publishDocker(inputs: DockerPublishInputs, deps: DockerDeps): Promise<void> {
+  const linuxTargets = deps.binariesByTarget.filter(
+    (b) => b.target.os === 'linux' || b.target.os === 'linuxstatic' || b.target.os === 'alpine',
+  );
+  if (linuxTargets.length === 0) {
+    deps.logger.warning(
+      '[pkg-action] docker-image set but no linux-* binary was built — skipping Docker publish.',
+    );
+    return;
+  }
+  // Render the image ref with project-level tokens. Per-target tokens would
+  // produce one image ref per arch and defeat the manifest-list goal, so the
+  // token bag is intentionally target-agnostic.
+  const tokens = tokensForTarget(linuxTargets[0]!.target, deps.project, process.env);
+  const image = render(inputs.image, tokens);
+  const registry = inputs.registry ?? extractRegistry(image);
+  const dockerTargets: DockerPushTarget[] = linuxTargets.map((b) => ({
+    os: b.target.os as 'linux' | 'linuxstatic' | 'alpine',
+    arch: b.target.arch,
+    binaryPath: b.binaryPath,
+    binaryName: deps.project.name,
+  }));
+  const publisher = createDefaultDockerPublisher({ exec: execBridge, logger: deps.logger });
+  const result = await publisher.publish({
+    image,
+    registry,
+    username: inputs.username,
+    password: inputs.password,
+    baseImage: inputs.baseImage,
+    dockerfile: inputs.dockerfile,
+    targets: dockerTargets,
+    tempDir: deps.tempDir,
+    binaryName: deps.project.name,
+  });
+  deps.logger.info(
+    `[pkg-action] Docker: pushed ${String(result.images.length)} image ref(s)` +
+      (result.manifestRef !== undefined ? ` → manifest ${result.manifestRef}` : ''),
   );
 }
 

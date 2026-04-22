@@ -13820,6 +13820,40 @@ var INPUT_SPECS = [
     category: "publishing",
     description: "Branch to push the updated formula on. Defaults to pkg-action/<project>-<version>."
   },
+  // Docker publishing (§6.3)
+  {
+    name: "docker-image",
+    category: "publishing",
+    description: "OCI image reference with optional {version}/{tag}/{sha} tokens, e.g. ghcr.io/org/app:{version}. When set, the linux-* binaries are pushed as an OCI image."
+  },
+  {
+    name: "docker-registry",
+    category: "publishing",
+    description: "Registry host for auth. Derived from docker-image when unset."
+  },
+  {
+    name: "docker-username",
+    category: "publishing",
+    description: "Registry username. Paired with docker-password.",
+    secret: !0
+  },
+  {
+    name: "docker-password",
+    category: "publishing",
+    description: "Registry password or token.",
+    secret: !0
+  },
+  {
+    name: "docker-base-image",
+    category: "publishing",
+    description: "Base image the generated Dockerfile FROMs.",
+    default: "gcr.io/distroless/base-debian12:latest"
+  },
+  {
+    name: "docker-dockerfile",
+    category: "publishing",
+    description: "Path to a user-supplied Dockerfile. Skips the generated minimal layout."
+  },
   // Scoop bucket (§6.5)
   {
     name: "scoop-bucket-repo",

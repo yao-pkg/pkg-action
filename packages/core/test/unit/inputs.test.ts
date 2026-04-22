@@ -246,6 +246,42 @@ test('parseInputs: homebrew/scoop undefined when their inputs are unset', () => 
   strictEqual(inputs.publishing.scoop, undefined);
 });
 
+test('parseInputs: docker-image captures the docker bag + defaults base image', () => {
+  const inputs = parseInputs({
+    env: env(
+      ['docker-image', 'ghcr.io/org/app:{version}'],
+      ['docker-username', 'bot'],
+      ['docker-password', 'secret'],
+    ),
+  });
+  ok(inputs.publishing.docker !== undefined);
+  strictEqual(inputs.publishing.docker.image, 'ghcr.io/org/app:{version}');
+  strictEqual(inputs.publishing.docker.username, 'bot');
+  strictEqual(inputs.publishing.docker.password, 'secret');
+  strictEqual(inputs.publishing.docker.baseImage, 'gcr.io/distroless/base-debian12:latest');
+});
+
+test('parseInputs: docker-username without docker-password is a hard error', () => {
+  throws(
+    () =>
+      parseInputs({
+        env: env(['docker-image', 'ghcr.io/org/app'], ['docker-username', 'bot']),
+      }),
+    ValidationError,
+  );
+  throws(
+    () =>
+      parseInputs({
+        env: env(['docker-image', 'ghcr.io/org/app'], ['docker-password', 'secret']),
+      }),
+    ValidationError,
+  );
+});
+
+test('parseInputs: docker undefined when docker-image is unset', () => {
+  strictEqual(parseInputs({ env: {} }).publishing.docker, undefined);
+});
+
 test('parseInputs checksum deduplicates', () => {
   deepStrictEqual(parseInputs({ env: env(['checksum', 'sha256,sha256,md5']) }).postBuild.checksum, [
     'sha256',

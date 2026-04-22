@@ -319,6 +319,50 @@ jobs:
           [ "$algo" = "SHA-256" ] || { echo "::error::hash alg=$algo"; exit 1; }
           echo "SBOM OK"
 
+  # ──────────────────────────────────────────────────────────────────────
+  # M6 §6.3: Docker OCI publish. Builds a tiny-app binary and pushes it to
+  # the repo's own ghcr.io namespace under a disposable tag, then docker-
+  # pulls + runs the image and asserts stdout matches the expected version
+  # line. GITHUB_TOKEN has packages:write on ghcr by default.
+  docker-publish:
+    name: docker / ubuntu-latest
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Build tiny-app and push as OCI image
+        id: build
+        uses: ./
+        with:
+          config: test-fixtures/tiny-app-cjs/package.json
+          targets: node22-linux-x64
+          compress: none
+          checksum: sha256
+          filename: '{name}-{version}-{os}-{arch}'
+          docker-image: ghcr.io/${{ github.repository }}-e2e:{version}-{sha}
+          docker-username: ${{ github.actor }}
+          docker-password: ${{ secrets.GITHUB_TOKEN }}
+          docker-base-image: gcr.io/distroless/base-debian12:latest
+
+      - name: Pull + run the pushed image
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY,,}-e2e:0.0.1-$(git rev-parse --short HEAD)"
+          echo "Pulling $image"
+          docker pull "$image"
+          out=$(docker run --rm "$image")
+          echo "Container stdout: $out"
+          echo "$out" | grep -q 'tiny-app-cjs 0.0.1' || {
+            echo "::error::image did not emit expected version line"
+            exit 1
+          }
+
   sbom-spdx:
     name: sbom-spdx / ubuntu-latest
     runs-on: ubuntu-latest

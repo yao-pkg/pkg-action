@@ -161,4 +161,5 @@ for format details and consumer tooling.
 - [`docs/provenance.md`](./provenance.md) — SLSA build provenance.
 - [`docs/distribution.md`](./distribution.md) — Homebrew tap + Scoop
   bucket auto-update.
+- [`docs/docker.md`](./docker.md) — OCI image push + manifest list.
 - [`STATUS.yaml`](../STATUS.yaml) — implementation status tracker.

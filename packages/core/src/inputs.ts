@@ -435,6 +435,42 @@ export const INPUT_SPECS: readonly InputSpec[] = [
       'Branch to push the updated formula on. Defaults to pkg-action/<project>-<version>.',
   },
 
+  // Docker publishing (§6.3)
+  {
+    name: 'docker-image',
+    category: 'publishing',
+    description:
+      'OCI image reference with optional {version}/{tag}/{sha} tokens, e.g. ghcr.io/org/app:{version}. When set, the linux-* binaries are pushed as an OCI image.',
+  },
+  {
+    name: 'docker-registry',
+    category: 'publishing',
+    description: 'Registry host for auth. Derived from docker-image when unset.',
+  },
+  {
+    name: 'docker-username',
+    category: 'publishing',
+    description: 'Registry username. Paired with docker-password.',
+    secret: true,
+  },
+  {
+    name: 'docker-password',
+    category: 'publishing',
+    description: 'Registry password or token.',
+    secret: true,
+  },
+  {
+    name: 'docker-base-image',
+    category: 'publishing',
+    description: 'Base image the generated Dockerfile FROMs.',
+    default: 'gcr.io/distroless/base-debian12:latest',
+  },
+  {
+    name: 'docker-dockerfile',
+    category: 'publishing',
+    description: 'Path to a user-supplied Dockerfile. Skips the generated minimal layout.',
+  },
+
   // Scoop bucket (§6.5)
   {
     name: 'scoop-bucket-repo',
@@ -574,6 +610,16 @@ export interface PublishingInputs {
   readonly generateReleaseTable: boolean;
   readonly homebrew: HomebrewInputs | undefined;
   readonly scoop: ScoopInputs | undefined;
+  readonly docker: DockerPublishInputs | undefined;
+}
+
+export interface DockerPublishInputs {
+  readonly image: string;
+  readonly registry: string | undefined;
+  readonly username: string | undefined;
+  readonly password: string | undefined;
+  readonly baseImage: string;
+  readonly dockerfile: string | undefined;
 }
 
 export interface HomebrewInputs {
@@ -815,10 +861,30 @@ export function parseInputs(opts: ParseInputsOptions = {}): ActionInputs {
           bucketBranch: readInput(env, 'scoop-bucket-branch'),
         }
       : undefined;
+  const dockerImage = readInput(env, 'docker-image');
+  const docker: DockerPublishInputs | undefined =
+    dockerImage !== undefined
+      ? {
+          image: dockerImage,
+          registry: readInput(env, 'docker-registry'),
+          username: readInput(env, 'docker-username'),
+          password: readInput(env, 'docker-password'),
+          baseImage:
+            readInput(env, 'docker-base-image') ?? 'gcr.io/distroless/base-debian12:latest',
+          dockerfile: readInput(env, 'docker-dockerfile'),
+        }
+      : undefined;
   if ((homebrew !== undefined || scoop !== undefined) && !attachToRelease) {
     throw new ValidationError(
       'homebrew-tap-repo / scoop-bucket-repo require attach-to-release=true (the generated manifest points at release download URLs).',
     );
+  }
+  if (docker !== undefined) {
+    if ((docker.username === undefined) !== (docker.password === undefined)) {
+      throw new ValidationError(
+        'docker-username and docker-password must be set together (or both left unset for an unauthenticated registry).',
+      );
+    }
   }
   const publishing: PublishingInputs = {
     uploadArtifact: parseBoolean(readInput(env, 'upload-artifact'), 'upload-artifact'),
@@ -835,6 +901,7 @@ export function parseInputs(opts: ParseInputsOptions = {}): ActionInputs {
     ),
     homebrew,
     scoop,
+    docker,
   };
 
   // Performance / observability

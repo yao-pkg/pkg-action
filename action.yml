@@ -170,6 +170,19 @@ inputs:
     description: 'Binary name installed into $prefix/bin. Defaults to the formula name.'
   homebrew-tap-branch:
     description: 'Branch to push the updated formula on. Defaults to pkg-action/<project>-<version>.'
+  docker-image:
+    description: 'OCI image reference with optional {version}/{tag}/{sha} tokens, e.g. ghcr.io/org/app:{version}. When set, the linux-* binaries are pushed as an OCI image.'
+  docker-registry:
+    description: 'Registry host for auth. Derived from docker-image when unset.'
+  docker-username:
+    description: 'Registry username. Paired with docker-password.'
+  docker-password:
+    description: 'Registry password or token.'
+  docker-base-image:
+    description: 'Base image the generated Dockerfile FROMs.'
+    default: 'gcr.io/distroless/base-debian12:latest'
+  docker-dockerfile:
+    description: 'Path to a user-supplied Dockerfile. Skips the generated minimal layout.'
   scoop-bucket-repo:
     description: 'owner/repo of a scoop bucket. When set, opens a PR with an updated manifest.'
   scoop-bucket-token:
@@ -312,6 +325,12 @@ runs:
           homebrew-formula-license: ${{ inputs.homebrew-formula-license }}
           homebrew-formula-binary: ${{ inputs.homebrew-formula-binary }}
           homebrew-tap-branch: ${{ inputs.homebrew-tap-branch }}
+          docker-image: ${{ inputs.docker-image }}
+          docker-registry: ${{ inputs.docker-registry }}
+          docker-username: ${{ inputs.docker-username }}
+          docker-password: ${{ inputs.docker-password }}
+          docker-base-image: ${{ inputs.docker-base-image }}
+          docker-dockerfile: ${{ inputs.docker-dockerfile }}
           scoop-bucket-repo: ${{ inputs.scoop-bucket-repo }}
           scoop-bucket-token: ${{ inputs.scoop-bucket-token }}
           scoop-manifest-name: ${{ inputs.scoop-manifest-name }}

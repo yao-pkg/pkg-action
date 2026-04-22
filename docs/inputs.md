@@ -97,6 +97,12 @@ Every `pkg-action` input, grouped by category.
 | `homebrew-formula-license` | — | no | no | Formula license string. Defaults to package.json "license". |
 | `homebrew-formula-binary` | — | no | no | Binary name installed into $prefix/bin. Defaults to the formula name. |
 | `homebrew-tap-branch` | — | no | no | Branch to push the updated formula on. Defaults to pkg-action/<project>-<version>. |
+| `docker-image` | — | no | no | OCI image reference with optional {version}/{tag}/{sha} tokens, e.g. ghcr.io/org/app:{version}. When set, the linux-* binaries are pushed as an OCI image. |
+| `docker-registry` | — | no | no | Registry host for auth. Derived from docker-image when unset. |
+| `docker-username` | — | no | yes | Registry username. Paired with docker-password. |
+| `docker-password` | — | no | yes | Registry password or token. |
+| `docker-base-image` | `gcr.io/distroless/base-debian12:latest` | no | no | Base image the generated Dockerfile FROMs. |
+| `docker-dockerfile` | — | no | no | Path to a user-supplied Dockerfile. Skips the generated minimal layout. |
 | `scoop-bucket-repo` | — | no | no | owner/repo of a scoop bucket. When set, opens a PR with an updated manifest. |
 | `scoop-bucket-token` | — | no | yes | PAT with contents:write on the bucket repo. Falls back to GITHUB_TOKEN. |
 | `scoop-manifest-name` | — | no | no | Manifest filename without .json. Defaults to the project name. |
