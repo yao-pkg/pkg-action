@@ -275,6 +275,4 @@ jobs:
           # attestation from this run was indexed successfully, this call
           # exits 0 with a signed summary. Any failure means provenance
           # wasn't produced or wasn't discoverable — treat both as fatal.
-          gh attestation verify "$artifact" \
-            --owner "${GITHUB_REPOSITORY%%/*}" \
-            --source-repo "$GITHUB_REPOSITORY"
+          gh attestation verify "$artifact" --repo "$GITHUB_REPOSITORY"
