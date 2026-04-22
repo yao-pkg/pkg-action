@@ -26,9 +26,11 @@ import {
   applyWindowsMetadata,
   archive,
   buildPkgArgs,
+  buildReleaseAssetUrl,
   buildReleaseBody,
   collectDependencyTree,
   computeAllChecksums,
+  createDefaultDistributionPublisher,
   createDefaultReleaseAttacher,
   createInvocationTemp,
   extractTagFromRef,
@@ -43,6 +45,8 @@ import {
   parseWindowsMetadataInputs,
   readProjectInfo,
   render,
+  renderHomebrewFormula,
+  renderScoopManifest,
   resolveRepoFromEnv,
   runPkg,
   signMacos,
@@ -58,12 +62,15 @@ import {
   VERSION,
   type ActionInputs,
   type ChecksumAlgorithm,
+  type DistAsset,
   type ExecFn,
+  type HomebrewInputs,
   type Logger,
   type OutputEntry,
   type ReleaseAsset,
   type ReleaseAttachRequest,
   type SbomArtifactRef,
+  type ScoopInputs,
   type SigningInputs,
   type SummaryRow,
   type Target,
@@ -213,6 +220,14 @@ async function main(): Promise<void> {
   const finalizedArtifacts: string[] = [];
   const shasumEntries: Array<{ algo: ChecksumAlgorithm; path: string; digest: string }> = [];
   const summaryRows: SummaryRow[] = [];
+  // Per-target provenance used later for Homebrew/Scoop distribution. Only
+  // populated when we have a sha256 digest to anchor the downstream manifest.
+  const distAssetDrafts: Array<{
+    target: Target;
+    assetName: string;
+    sha256: string | undefined;
+    extractDir: string;
+  }> = [];
 
   for (const out of pkgOutputs) {
     const tokens = tokensForTarget(out.target, project, process.env);
@@ -275,6 +290,18 @@ async function main(): Promise<void> {
         rowDigest.primary;
     }
     summaryRows.push(row);
+
+    // Record a distribution draft. sha256 must be present for Homebrew/Scoop;
+    // we look it up from shasumEntries rather than recomputing.
+    const sha256Entry = rowDigest.entries.find((e) => e.algo === 'sha256');
+    const extractDir =
+      inputs.postBuild.compress === 'none' ? '' : pathBasename(renamedPath).replace(/\.exe$/i, '');
+    distAssetDrafts.push({
+      target: out.target,
+      assetName: pathBasename(finalPath),
+      sha256: sha256Entry?.digest,
+      extractDir,
+    });
   }
 
   // 8. Combined SHASUMS file(s) — one per requested algo.
@@ -410,6 +437,40 @@ async function main(): Promise<void> {
     logger.info(
       `[pkg-action] Release attached: ${releaseUrl} (${String(result.assetUrls.length)} asset(s)).`,
     );
+
+    // 10.5. Downstream distribution (M6.4 / M6.5). The parser guarantees both
+    //       publishers are gated on attach-to-release=true, so we only arrive
+    //       here when a tag + owner/repo + release URL are all in hand.
+    const distAssets: DistAsset[] = distAssetDrafts
+      .filter((d) => d.sha256 !== undefined)
+      .map((d) => ({
+        os: d.target.os as DistAsset['os'],
+        arch: d.target.arch,
+        url: buildReleaseAssetUrl(repo.owner, repo.repo, tag, d.assetName),
+        sha256: d.sha256 as string,
+        assetName: d.assetName,
+        extractDir: d.extractDir,
+      }));
+    if (inputs.publishing.homebrew !== undefined) {
+      await publishHomebrew(inputs.publishing.homebrew, {
+        project,
+        repo,
+        tag,
+        distAssets,
+        defaultToken: githubToken,
+        logger,
+      });
+    }
+    if (inputs.publishing.scoop !== undefined) {
+      await publishScoop(inputs.publishing.scoop, {
+        project,
+        repo,
+        tag,
+        distAssets,
+        defaultToken: githubToken,
+        logger,
+      });
+    }
   }
 
   // 11. Step summary.
@@ -442,6 +503,112 @@ async function main(): Promise<void> {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
+
+interface PublishDeps {
+  readonly project: { name: string; version: string };
+  readonly repo: { owner: string; repo: string };
+  readonly tag: string;
+  readonly distAssets: readonly DistAsset[];
+  readonly defaultToken: string;
+  readonly logger: Logger;
+}
+
+function parseRepoSlug(slug: string, flagName: string): { owner: string; repo: string } {
+  const parts = slug.split('/');
+  const owner = parts[0];
+  const repo = parts[1];
+  if (owner === undefined || repo === undefined || owner === '' || repo === '') {
+    throw new Error(`${flagName} must be "owner/repo", got "${slug}".`);
+  }
+  return { owner, repo };
+}
+
+async function publishHomebrew(inputs: HomebrewInputs, deps: PublishDeps): Promise<void> {
+  const target = parseRepoSlug(inputs.tapRepo, 'homebrew-tap-repo');
+  const macAssets = deps.distAssets.filter((a) => a.os === 'macos');
+  const linuxAssets = deps.distAssets.filter((a) => a.os === 'linux');
+  if (macAssets.length === 0 && linuxAssets.length === 0) {
+    deps.logger.warning(
+      '[pkg-action] homebrew-tap-repo set but no macOS or Linux binary was built — skipping Homebrew publish.',
+    );
+    return;
+  }
+  const formulaName = inputs.formulaName ?? deps.project.name;
+  const description = inputs.formulaDescription ?? `${deps.project.name} — pkg-action build`;
+  const homepage =
+    inputs.formulaHomepage ?? `https://github.com/${deps.repo.owner}/${deps.repo.repo}`;
+  const body = renderHomebrewFormula({
+    formulaName,
+    description,
+    homepage,
+    version: deps.project.version,
+    license: inputs.formulaLicense,
+    assets: [...macAssets, ...linuxAssets],
+    ...(inputs.formulaBinary !== undefined ? { binary: inputs.formulaBinary } : {}),
+  });
+  const branch = inputs.tapBranch ?? `pkg-action/${deps.project.name}-${deps.project.version}`;
+  const publisher = await createDefaultDistributionPublisher(inputs.tapToken ?? deps.defaultToken);
+  const result = await publisher.publish({
+    owner: target.owner,
+    repo: target.repo,
+    branch,
+    path: `Formula/${formulaName}.rb`,
+    content: body,
+    commitMessage: `${formulaName} ${deps.project.version}`,
+    pullRequest: {
+      title: `${formulaName} ${deps.project.version}`,
+      body: `Automated update by yao-pkg/pkg-action for ${deps.project.name}@${deps.project.version}.\n\nRelease: ${deps.tag}`,
+    },
+  });
+  deps.logger.info(
+    `[pkg-action] Homebrew formula updated on ${inputs.tapRepo}@${branch}` +
+      (result.pullRequestUrl !== undefined ? ` → PR ${result.pullRequestUrl}` : ''),
+  );
+}
+
+async function publishScoop(inputs: ScoopInputs, deps: PublishDeps): Promise<void> {
+  const target = parseRepoSlug(inputs.bucketRepo, 'scoop-bucket-repo');
+  const winAssets = deps.distAssets.filter((a) => a.os === 'win');
+  if (winAssets.length === 0) {
+    deps.logger.warning(
+      '[pkg-action] scoop-bucket-repo set but no Windows binary was built — skipping Scoop publish.',
+    );
+    return;
+  }
+  const manifestName = inputs.manifestName ?? deps.project.name;
+  const description = inputs.manifestDescription ?? `${deps.project.name} — pkg-action build`;
+  const homepage =
+    inputs.manifestHomepage ?? `https://github.com/${deps.repo.owner}/${deps.repo.repo}`;
+  const body = renderScoopManifest({
+    manifestName,
+    description,
+    homepage,
+    version: deps.project.version,
+    license: inputs.manifestLicense,
+    assets: winAssets,
+    ...(inputs.manifestBinary !== undefined ? { binary: inputs.manifestBinary } : {}),
+  });
+  const branch = inputs.bucketBranch ?? `pkg-action/${deps.project.name}-${deps.project.version}`;
+  const publisher = await createDefaultDistributionPublisher(
+    inputs.bucketToken ?? deps.defaultToken,
+  );
+  const result = await publisher.publish({
+    owner: target.owner,
+    repo: target.repo,
+    branch,
+    path: `bucket/${manifestName}.json`,
+    content: body,
+    commitMessage: `${manifestName} ${deps.project.version}`,
+    pullRequest: {
+      title: `${manifestName} ${deps.project.version}`,
+      body: `Automated update by yao-pkg/pkg-action for ${deps.project.name}@${deps.project.version}.\n\nRelease: ${deps.tag}`,
+    },
+  });
+  deps.logger.info(
+    `[pkg-action] Scoop manifest updated on ${inputs.bucketRepo}@${branch}` +
+      (result.pullRequestUrl !== undefined ? ` → PR ${result.pullRequestUrl}` : ''),
+  );
+}
 
 async function signOneTarget(
   spec: { targetOs: Target['os']; binaryPath: string },

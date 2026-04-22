@@ -14950,7 +14950,7 @@ function renderSpdx(data) {
   return JSON.stringify(doc, null, 2);
 }
 function sanitizeSpdxId(raw) {
-  return raw.replace(/[^A-Za-z0-9.\-]/g, "-");
+  return raw.replace(/[^A-Za-z0-9.-]/g, "-");
 }
 async function writeSbom(req) {
   let suffix = req.format === "cyclonedx" ? "cdx.json" : "spdx.json", base = `${req.data.project.name}-${req.data.project.version}.${suffix}`, outPath = join4(req.outDir, base), body2 = req.format === "cyclonedx" ? renderCycloneDx(req.data) : renderSpdx(req.data);
@@ -15072,6 +15072,29 @@ function parseInputs(opts = {}) {
         "attach-to-release=true requires either a tag-triggered run (GITHUB_REF=refs/tags/...) or an explicit release-tag input."
       );
   }
+  let homebrewTapRepo = readInput(env, "homebrew-tap-repo"), homebrew = homebrewTapRepo !== void 0 ? {
+    tapRepo: homebrewTapRepo,
+    tapToken: readInput(env, "homebrew-tap-token"),
+    formulaName: readInput(env, "homebrew-formula-name"),
+    formulaDescription: readInput(env, "homebrew-formula-description"),
+    formulaHomepage: readInput(env, "homebrew-formula-homepage"),
+    formulaLicense: readInput(env, "homebrew-formula-license"),
+    formulaBinary: readInput(env, "homebrew-formula-binary"),
+    tapBranch: readInput(env, "homebrew-tap-branch")
+  } : void 0, scoopBucketRepo = readInput(env, "scoop-bucket-repo"), scoop = scoopBucketRepo !== void 0 ? {
+    bucketRepo: scoopBucketRepo,
+    bucketToken: readInput(env, "scoop-bucket-token"),
+    manifestName: readInput(env, "scoop-manifest-name"),
+    manifestDescription: readInput(env, "scoop-manifest-description"),
+    manifestHomepage: readInput(env, "scoop-manifest-homepage"),
+    manifestLicense: readInput(env, "scoop-manifest-license"),
+    manifestBinary: readInput(env, "scoop-manifest-binary"),
+    bucketBranch: readInput(env, "scoop-bucket-branch")
+  } : void 0;
+  if ((homebrew !== void 0 || scoop !== void 0) && !attachToRelease)
+    throw new ValidationError(
+      "homebrew-tap-repo / scoop-bucket-repo require attach-to-release=true (the generated manifest points at release download URLs)."
+    );
   let publishing = {
     uploadArtifact: parseBoolean(readInput(env, "upload-artifact"), "upload-artifact"),
     artifactName: readInput(env, "artifact-name") ?? "{name}-{version}-{target}",
@@ -15084,7 +15107,9 @@ function parseInputs(opts = {}) {
     generateReleaseTable: parseBoolean(
       readInput(env, "generate-release-table"),
       "generate-release-table"
-    )
+    ),
+    homebrew,
+    scoop
   }, performance2 = {
     cache: parseBoolean(readInput(env, "cache"), "cache"),
     cacheKey: readInput(env, "cache-key"),
@@ -15465,6 +15490,90 @@ var INPUT_SPECS, SPEC_BY_NAME, init_inputs = __esm({
         category: "publishing",
         description: "Append a markdown table of binaries + sizes + checksums to the release body.",
         default: "true"
+      },
+      // Homebrew tap (§6.4)
+      {
+        name: "homebrew-tap-repo",
+        category: "publishing",
+        description: "owner/repo of a homebrew-tap. When set, opens a PR with an updated formula."
+      },
+      {
+        name: "homebrew-tap-token",
+        category: "publishing",
+        description: "PAT with contents:write on the tap repo. Falls back to GITHUB_TOKEN.",
+        secret: !0
+      },
+      {
+        name: "homebrew-formula-name",
+        category: "publishing",
+        description: "Formula filename without .rb. Defaults to the project name."
+      },
+      {
+        name: "homebrew-formula-description",
+        category: "publishing",
+        description: 'Formula description (desc). Defaults to package.json "description".'
+      },
+      {
+        name: "homebrew-formula-homepage",
+        category: "publishing",
+        description: "Formula homepage. Defaults to the repository URL."
+      },
+      {
+        name: "homebrew-formula-license",
+        category: "publishing",
+        description: 'Formula license string. Defaults to package.json "license".'
+      },
+      {
+        name: "homebrew-formula-binary",
+        category: "publishing",
+        description: "Binary name installed into $prefix/bin. Defaults to the formula name."
+      },
+      {
+        name: "homebrew-tap-branch",
+        category: "publishing",
+        description: "Branch to push the updated formula on. Defaults to pkg-action/<project>-<version>."
+      },
+      // Scoop bucket (§6.5)
+      {
+        name: "scoop-bucket-repo",
+        category: "publishing",
+        description: "owner/repo of a scoop bucket. When set, opens a PR with an updated manifest."
+      },
+      {
+        name: "scoop-bucket-token",
+        category: "publishing",
+        description: "PAT with contents:write on the bucket repo. Falls back to GITHUB_TOKEN.",
+        secret: !0
+      },
+      {
+        name: "scoop-manifest-name",
+        category: "publishing",
+        description: "Manifest filename without .json. Defaults to the project name."
+      },
+      {
+        name: "scoop-manifest-description",
+        category: "publishing",
+        description: 'Manifest description. Defaults to package.json "description".'
+      },
+      {
+        name: "scoop-manifest-homepage",
+        category: "publishing",
+        description: "Manifest homepage. Defaults to the repository URL."
+      },
+      {
+        name: "scoop-manifest-license",
+        category: "publishing",
+        description: 'Manifest license. Defaults to package.json "license".'
+      },
+      {
+        name: "scoop-manifest-binary",
+        category: "publishing",
+        description: "Binary name inside the archive. Defaults to <manifest-name>.exe."
+      },
+      {
+        name: "scoop-bucket-branch",
+        category: "publishing",
+        description: "Branch to push the updated manifest on. Defaults to pkg-action/<project>-<version>."
       },
       // Performance / observability (§5.6)
       {
@@ -79865,6 +79974,140 @@ var init_release_body = __esm({
   }
 });
 
+// packages/core/src/distribution.ts
+function renderHomebrewFormula(input) {
+  let cls = input.className ?? toPascalCase(input.formulaName), mac = byOsArch(input.assets, "macos"), linux = byOsArch(input.assets, "linux");
+  if (mac.length === 0 && linux.length === 0)
+    throw new UploadError("Homebrew formula requires at least one macOS or Linux asset.");
+  let binaryName = input.binary ?? input.formulaName, lines = [];
+  return lines.push(`class ${cls} < Formula`), lines.push(`  desc "${escapeRuby(input.description)}"`), lines.push(`  homepage "${escapeRuby(input.homepage)}"`), lines.push(`  version "${escapeRuby(input.version)}"`), input.license !== void 0 && input.license !== "" && lines.push(`  license "${escapeRuby(input.license)}"`), mac.length > 0 && (lines.push("  on_macos do"), emitArchBlocks(lines, mac, 4), lines.push("  end")), linux.length > 0 && (lines.push("  on_linux do"), emitArchBlocks(lines, linux, 4), lines.push("  end")), lines.push(""), lines.push("  def install"), lines.push(`    bin.install "${escapeRuby(binaryName)}"`), lines.push("  end"), lines.push(""), lines.push("  test do"), lines.push(
+    `    assert_match version.to_s, shell_output("#{bin}/${escapeRuby(binaryName)} --version")`
+  ), lines.push("  end"), lines.push("end"), lines.join(`
+`) + `
+`;
+}
+function emitArchBlocks(lines, assets, indent) {
+  let pad = " ".repeat(indent);
+  for (let asset of assets) {
+    let cond = asset.arch === "arm64" ? "on_arm" : "on_intel";
+    lines.push(`${pad}${cond} do`), lines.push(`${pad}  url "${escapeRuby(asset.url)}"`), lines.push(`${pad}  sha256 "${escapeRuby(asset.sha256)}"`), lines.push(`${pad}end`);
+  }
+}
+function renderScoopManifest(input) {
+  let winAssets = byOsArch(input.assets, "win");
+  if (winAssets.length === 0)
+    throw new UploadError("Scoop manifest requires at least one Windows asset.");
+  let binary = input.binary ?? `${input.manifestName}.exe`, architecture = {};
+  for (let asset of winAssets) {
+    let key = asset.arch === "arm64" ? "arm64" : "64bit", entry = {
+      url: asset.url,
+      hash: `sha256:${asset.sha256}`,
+      bin: binary
+    };
+    asset.extractDir !== "" && (entry.extract_dir = asset.extractDir), architecture[key] = entry;
+  }
+  let doc = {
+    version: input.version,
+    description: input.description,
+    homepage: input.homepage,
+    ...input.license !== void 0 && input.license !== "" ? { license: input.license } : {},
+    architecture
+  };
+  return JSON.stringify(doc, null, 2) + `
+`;
+}
+function byOsArch(assets, os8) {
+  return assets.filter((a) => a.os === os8);
+}
+function toPascalCase(s) {
+  return s.split(/[^A-Za-z0-9]+/).filter((p) => p.length > 0).map((p) => p[0].toUpperCase() + p.slice(1).toLowerCase()).join("");
+}
+function escapeRuby(s) {
+  return s.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/#\{/g, "\\#{");
+}
+async function createDefaultDistributionPublisher(githubToken) {
+  let octokit = (await Promise.resolve().then(() => (init_github(), github_exports))).getOctokit(githubToken);
+  return {
+    async publish(req) {
+      let defaultBranch = (await octokit.rest.repos.get({ owner: req.owner, repo: req.repo })).data.default_branch, headSha;
+      try {
+        headSha = (await octokit.rest.git.getRef({
+          owner: req.owner,
+          repo: req.repo,
+          ref: `heads/${req.branch}`
+        })).data.object.sha;
+      } catch (err) {
+        if (!isNotFound2(err))
+          throw new UploadError(`Failed to inspect branch ${req.branch}`, { cause: err });
+        let defaultRef = await octokit.rest.git.getRef({
+          owner: req.owner,
+          repo: req.repo,
+          ref: `heads/${defaultBranch}`
+        });
+        headSha = (await octokit.rest.git.createRef({
+          owner: req.owner,
+          repo: req.repo,
+          ref: `refs/heads/${req.branch}`,
+          sha: defaultRef.data.object.sha
+        })).data.object.sha;
+      }
+      let existingSha;
+      try {
+        let existing = await octokit.rest.repos.getContent({
+          owner: req.owner,
+          repo: req.repo,
+          path: req.path,
+          ref: req.branch
+        });
+        !Array.isArray(existing.data) && "sha" in existing.data && (existingSha = existing.data.sha);
+      } catch (err) {
+        if (!isNotFound2(err))
+          throw new UploadError(`Failed to inspect ${req.path}`, { cause: err });
+      }
+      let putArgs = {
+        owner: req.owner,
+        repo: req.repo,
+        path: req.path,
+        branch: req.branch,
+        message: req.commitMessage,
+        content: Buffer.from(req.content, "utf8").toString("base64")
+      };
+      existingSha !== void 0 && (putArgs.sha = existingSha);
+      let commitSha = (await octokit.rest.repos.createOrUpdateFileContents(putArgs)).data.commit.sha, pullRequestUrl;
+      if (req.pullRequest !== void 0) {
+        let base = req.pullRequest.base ?? defaultBranch, existingPr = await octokit.rest.pulls.list({
+          owner: req.owner,
+          repo: req.repo,
+          head: `${req.owner}:${req.branch}`,
+          state: "open",
+          per_page: 1
+        });
+        existingPr.data.length > 0 ? pullRequestUrl = existingPr.data[0].html_url : pullRequestUrl = (await octokit.rest.pulls.create({
+          owner: req.owner,
+          repo: req.repo,
+          head: req.branch,
+          base,
+          title: req.pullRequest.title,
+          body: req.pullRequest.body
+        })).data.html_url;
+      }
+      return { commitSha, pullRequestUrl };
+    }
+  };
+}
+function isNotFound2(err) {
+  return typeof err == "object" && err !== null && "status" in err && err.status === 404;
+}
+function buildReleaseAssetUrl(owner, repo, tag, assetName) {
+  return `https://github.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/releases/download/${encodeURIComponent(tag)}/${encodeURIComponent(assetName)}`;
+}
+var init_distribution = __esm({
+  "packages/core/src/distribution.ts"() {
+    "use strict";
+    init_errors();
+  }
+});
+
 // packages/core/src/index.ts
 var src_exports = {};
 __export(src_exports, {
@@ -79889,6 +80132,7 @@ __export(src_exports, {
   artifactBasename: () => artifactBasename,
   atomicWriteFile: () => atomicWriteFile,
   buildPkgArgs: () => buildPkgArgs,
+  buildReleaseAssetUrl: () => buildReleaseAssetUrl,
   buildReleaseBody: () => buildReleaseBody,
   buildTokens: () => buildTokens,
   closestInputName: () => closestInputName,
@@ -79897,6 +80141,7 @@ __export(src_exports, {
   computeAllChecksums: () => computeAllChecksums,
   computeChecksum: () => computeChecksum,
   createDefaultArtifactUploader: () => createDefaultArtifactUploader,
+  createDefaultDistributionPublisher: () => createDefaultDistributionPublisher,
   createDefaultReleaseAttacher: () => createDefaultReleaseAttacher,
   createInvocationTemp: () => createInvocationTemp,
   createTestLogger: () => createTestLogger,
@@ -79926,6 +80171,8 @@ __export(src_exports, {
   readProjectInfo: () => readProjectInfo,
   render: () => render,
   renderCycloneDx: () => renderCycloneDx,
+  renderHomebrewFormula: () => renderHomebrewFormula,
+  renderScoopManifest: () => renderScoopManifest,
   renderSpdx: () => renderSpdx,
   renderSummary: () => renderSummary,
   resolveRepoFromEnv: () => resolveRepoFromEnv,
@@ -79965,6 +80212,7 @@ var VERSION9, init_src4 = __esm({
     init_signing();
     init_release_body();
     init_sbom();
+    init_distribution();
     VERSION9 = "0.0.0";
   }
 });
@@ -80047,7 +80295,7 @@ async function main() {
   );
   let finalDir = join9(invocationDir, "final");
   await mkdir3(finalDir, { recursive: !0 });
-  let finalizedBinaries = [], finalizedArtifacts = [], shasumEntries = [], summaryRows = [];
+  let finalizedBinaries = [], finalizedArtifacts = [], shasumEntries = [], summaryRows = [], distAssetDrafts = [];
   for (let out of pkgOutputs) {
     let tokens = tokensForTarget(out.target, project, process.env), renamedBase = render(inputs.postBuild.filename, tokens), renamed = out.target.os === "win" && !renamedBase.toLowerCase().endsWith(".exe") ? `${renamedBase}.exe` : renamedBase, renamedPath = join9(finalDir, renamed);
     if (await rename3(out.path, renamedPath), windowsMeta !== null && out.target.os === "win") {
@@ -80078,6 +80326,13 @@ async function main() {
       ...signedFlag ? { signed: !0 } : {}
     };
     rowDigest.primary !== void 0 && (row.primaryDigest = rowDigest.primary), summaryRows.push(row);
+    let sha256Entry = rowDigest.entries.find((e) => e.algo === "sha256"), extractDir = inputs.postBuild.compress === "none" ? "" : pathBasename(renamedPath).replace(/\.exe$/i, "");
+    distAssetDrafts.push({
+      target: out.target,
+      assetName: pathBasename(finalPath),
+      sha256: sha256Entry?.digest,
+      extractDir
+    });
   }
   let shasumsFiles = [];
   if (shasumEntries.length > 0)
@@ -80162,6 +80417,29 @@ async function main() {
     releaseUrl = result.releaseUrl, logger7.info(
       `[pkg-action] Release attached: ${releaseUrl} (${String(result.assetUrls.length)} asset(s)).`
     );
+    let distAssets = distAssetDrafts.filter((d) => d.sha256 !== void 0).map((d) => ({
+      os: d.target.os,
+      arch: d.target.arch,
+      url: buildReleaseAssetUrl(repo.owner, repo.repo, tag, d.assetName),
+      sha256: d.sha256,
+      assetName: d.assetName,
+      extractDir: d.extractDir
+    }));
+    inputs.publishing.homebrew !== void 0 && await publishHomebrew(inputs.publishing.homebrew, {
+      project,
+      repo,
+      tag,
+      distAssets,
+      defaultToken: githubToken,
+      logger: logger7
+    }), inputs.publishing.scoop !== void 0 && await publishScoop(inputs.publishing.scoop, {
+      project,
+      repo,
+      tag,
+      distAssets,
+      defaultToken: githubToken,
+      logger: logger7
+    });
   }
   if (inputs.performance.stepSummary) {
     let durationForFirst = summaryRows.length > 0 ? Math.round(pkgDurationMs / summaryRows.length) : void 0, rowsWithTime = summaryRows.map(
@@ -80173,6 +80451,82 @@ async function main() {
     releaseUrl !== void 0 && (summaryOpts.releaseUrl = releaseUrl), await writeSummary(rowsWithTime, summaryOpts);
   }
   setOutput("binaries", JSON.stringify(finalizedBinaries)), setOutput("artifacts", JSON.stringify(finalizedArtifacts)), setOutput("checksums", JSON.stringify(shasumsFiles)), setOutput("version", project.version), releaseUrl !== void 0 && setOutput("release-url", releaseUrl), logger7.info(`pkg-action build \u2014 done (${String(pkgOutputs.length)} binary/binaries produced)`);
+}
+function parseRepoSlug(slug, flagName) {
+  let parts = slug.split("/"), owner = parts[0], repo = parts[1];
+  if (owner === void 0 || repo === void 0 || owner === "" || repo === "")
+    throw new Error(`${flagName} must be "owner/repo", got "${slug}".`);
+  return { owner, repo };
+}
+async function publishHomebrew(inputs, deps) {
+  let target = parseRepoSlug(inputs.tapRepo, "homebrew-tap-repo"), macAssets = deps.distAssets.filter((a) => a.os === "macos"), linuxAssets = deps.distAssets.filter((a) => a.os === "linux");
+  if (macAssets.length === 0 && linuxAssets.length === 0) {
+    deps.logger.warning(
+      "[pkg-action] homebrew-tap-repo set but no macOS or Linux binary was built \u2014 skipping Homebrew publish."
+    );
+    return;
+  }
+  let formulaName = inputs.formulaName ?? deps.project.name, description = inputs.formulaDescription ?? `${deps.project.name} \u2014 pkg-action build`, homepage = inputs.formulaHomepage ?? `https://github.com/${deps.repo.owner}/${deps.repo.repo}`, body2 = renderHomebrewFormula({
+    formulaName,
+    description,
+    homepage,
+    version: deps.project.version,
+    license: inputs.formulaLicense,
+    assets: [...macAssets, ...linuxAssets],
+    ...inputs.formulaBinary !== void 0 ? { binary: inputs.formulaBinary } : {}
+  }), branch = inputs.tapBranch ?? `pkg-action/${deps.project.name}-${deps.project.version}`, result = await (await createDefaultDistributionPublisher(inputs.tapToken ?? deps.defaultToken)).publish({
+    owner: target.owner,
+    repo: target.repo,
+    branch,
+    path: `Formula/${formulaName}.rb`,
+    content: body2,
+    commitMessage: `${formulaName} ${deps.project.version}`,
+    pullRequest: {
+      title: `${formulaName} ${deps.project.version}`,
+      body: `Automated update by yao-pkg/pkg-action for ${deps.project.name}@${deps.project.version}.
+
+Release: ${deps.tag}`
+    }
+  });
+  deps.logger.info(
+    `[pkg-action] Homebrew formula updated on ${inputs.tapRepo}@${branch}` + (result.pullRequestUrl !== void 0 ? ` \u2192 PR ${result.pullRequestUrl}` : "")
+  );
+}
+async function publishScoop(inputs, deps) {
+  let target = parseRepoSlug(inputs.bucketRepo, "scoop-bucket-repo"), winAssets = deps.distAssets.filter((a) => a.os === "win");
+  if (winAssets.length === 0) {
+    deps.logger.warning(
+      "[pkg-action] scoop-bucket-repo set but no Windows binary was built \u2014 skipping Scoop publish."
+    );
+    return;
+  }
+  let manifestName = inputs.manifestName ?? deps.project.name, description = inputs.manifestDescription ?? `${deps.project.name} \u2014 pkg-action build`, homepage = inputs.manifestHomepage ?? `https://github.com/${deps.repo.owner}/${deps.repo.repo}`, body2 = renderScoopManifest({
+    manifestName,
+    description,
+    homepage,
+    version: deps.project.version,
+    license: inputs.manifestLicense,
+    assets: winAssets,
+    ...inputs.manifestBinary !== void 0 ? { binary: inputs.manifestBinary } : {}
+  }), branch = inputs.bucketBranch ?? `pkg-action/${deps.project.name}-${deps.project.version}`, result = await (await createDefaultDistributionPublisher(
+    inputs.bucketToken ?? deps.defaultToken
+  )).publish({
+    owner: target.owner,
+    repo: target.repo,
+    branch,
+    path: `bucket/${manifestName}.json`,
+    content: body2,
+    commitMessage: `${manifestName} ${deps.project.version}`,
+    pullRequest: {
+      title: `${manifestName} ${deps.project.version}`,
+      body: `Automated update by yao-pkg/pkg-action for ${deps.project.name}@${deps.project.version}.
+
+Release: ${deps.tag}`
+    }
+  });
+  deps.logger.info(
+    `[pkg-action] Scoop manifest updated on ${inputs.bucketRepo}@${branch}` + (result.pullRequestUrl !== void 0 ? ` \u2192 PR ${result.pullRequestUrl}` : "")
+  );
 }
 async function signOneTarget(spec, signing, deps) {
   if (spec.targetOs === "macos" && signing.macos !== void 0) {

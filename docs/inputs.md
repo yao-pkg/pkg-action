@@ -89,6 +89,22 @@ Every `pkg-action` input, grouped by category.
 | `release-draft` | `false` | no | no | Mark the release as draft. |
 | `release-prerelease` | `false` | no | no | Mark the release as prerelease. |
 | `generate-release-table` | `true` | no | no | Append a markdown table of binaries + sizes + checksums to the release body. |
+| `homebrew-tap-repo` | — | no | no | owner/repo of a homebrew-tap. When set, opens a PR with an updated formula. |
+| `homebrew-tap-token` | — | no | yes | PAT with contents:write on the tap repo. Falls back to GITHUB_TOKEN. |
+| `homebrew-formula-name` | — | no | no | Formula filename without .rb. Defaults to the project name. |
+| `homebrew-formula-description` | — | no | no | Formula description (desc). Defaults to package.json "description". |
+| `homebrew-formula-homepage` | — | no | no | Formula homepage. Defaults to the repository URL. |
+| `homebrew-formula-license` | — | no | no | Formula license string. Defaults to package.json "license". |
+| `homebrew-formula-binary` | — | no | no | Binary name installed into $prefix/bin. Defaults to the formula name. |
+| `homebrew-tap-branch` | — | no | no | Branch to push the updated formula on. Defaults to pkg-action/<project>-<version>. |
+| `scoop-bucket-repo` | — | no | no | owner/repo of a scoop bucket. When set, opens a PR with an updated manifest. |
+| `scoop-bucket-token` | — | no | yes | PAT with contents:write on the bucket repo. Falls back to GITHUB_TOKEN. |
+| `scoop-manifest-name` | — | no | no | Manifest filename without .json. Defaults to the project name. |
+| `scoop-manifest-description` | — | no | no | Manifest description. Defaults to package.json "description". |
+| `scoop-manifest-homepage` | — | no | no | Manifest homepage. Defaults to the repository URL. |
+| `scoop-manifest-license` | — | no | no | Manifest license. Defaults to package.json "license". |
+| `scoop-manifest-binary` | — | no | no | Binary name inside the archive. Defaults to <manifest-name>.exe. |
+| `scoop-bucket-branch` | — | no | no | Branch to push the updated manifest on. Defaults to pkg-action/<project>-<version>. |
 
 ## Performance & observability
 

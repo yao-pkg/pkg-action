@@ -159,4 +159,6 @@ for format details and consumer tooling.
 - [`docs/inputs.md`](./inputs.md) — canonical list of every input.
 - [`docs/sbom.md`](./sbom.md) — SBOM generation details.
 - [`docs/provenance.md`](./provenance.md) — SLSA build provenance.
+- [`docs/distribution.md`](./distribution.md) — Homebrew tap + Scoop
+  bucket auto-update.
 - [`STATUS.yaml`](../STATUS.yaml) — implementation status tracker.

@@ -187,6 +187,65 @@ test('parseInputs checksum rejects mixing none with algos', () => {
   throws(() => parseInputs({ env: env(['checksum', 'none,sha256']) }), ValidationError);
 });
 
+test('parseInputs: sbom defaults to "none" and accepts cyclonedx|spdx', () => {
+  strictEqual(parseInputs({ env: {} }).performance.sbom, 'none');
+  strictEqual(parseInputs({ env: env(['sbom', 'cyclonedx']) }).performance.sbom, 'cyclonedx');
+  strictEqual(parseInputs({ env: env(['sbom', 'spdx']) }).performance.sbom, 'spdx');
+});
+
+test('parseInputs: sbom rejects unknown format', () => {
+  throws(() => parseInputs({ env: env(['sbom', 'swid']) }), ValidationError);
+});
+
+test('parseInputs: homebrew-tap-repo captures the full homebrew bag', () => {
+  const inputs = parseInputs({
+    env: env(
+      ['attach-to-release', 'true'],
+      ['release-tag', 'v1'],
+      ['homebrew-tap-repo', 'yao-pkg/homebrew-tap'],
+      ['homebrew-formula-name', 'my-app'],
+      ['homebrew-formula-description', 'My app'],
+      ['homebrew-formula-homepage', 'https://example.test'],
+      ['homebrew-formula-license', 'MIT'],
+      ['homebrew-formula-binary', 'myapp'],
+      ['homebrew-tap-branch', 'release/v1'],
+    ),
+  });
+  ok(inputs.publishing.homebrew !== undefined);
+  strictEqual(inputs.publishing.homebrew.tapRepo, 'yao-pkg/homebrew-tap');
+  strictEqual(inputs.publishing.homebrew.formulaName, 'my-app');
+  strictEqual(inputs.publishing.homebrew.formulaDescription, 'My app');
+  strictEqual(inputs.publishing.homebrew.formulaHomepage, 'https://example.test');
+  strictEqual(inputs.publishing.homebrew.formulaLicense, 'MIT');
+  strictEqual(inputs.publishing.homebrew.formulaBinary, 'myapp');
+  strictEqual(inputs.publishing.homebrew.tapBranch, 'release/v1');
+});
+
+test('parseInputs: scoop-bucket-repo captures the full scoop bag', () => {
+  const inputs = parseInputs({
+    env: env(
+      ['attach-to-release', 'true'],
+      ['release-tag', 'v1'],
+      ['scoop-bucket-repo', 'yao-pkg/scoop-bucket'],
+      ['scoop-manifest-name', 'my-app'],
+    ),
+  });
+  ok(inputs.publishing.scoop !== undefined);
+  strictEqual(inputs.publishing.scoop.bucketRepo, 'yao-pkg/scoop-bucket');
+  strictEqual(inputs.publishing.scoop.manifestName, 'my-app');
+});
+
+test('parseInputs: homebrew/scoop require attach-to-release=true', () => {
+  throws(() => parseInputs({ env: env(['homebrew-tap-repo', 'yao-pkg/tap']) }), ValidationError);
+  throws(() => parseInputs({ env: env(['scoop-bucket-repo', 'yao-pkg/bucket']) }), ValidationError);
+});
+
+test('parseInputs: homebrew/scoop undefined when their inputs are unset', () => {
+  const inputs = parseInputs({ env: {} });
+  strictEqual(inputs.publishing.homebrew, undefined);
+  strictEqual(inputs.publishing.scoop, undefined);
+});
+
 test('parseInputs checksum deduplicates', () => {
   deepStrictEqual(parseInputs({ env: env(['checksum', 'sha256,sha256,md5']) }).postBuild.checksum, [
     'sha256',

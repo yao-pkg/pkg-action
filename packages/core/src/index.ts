@@ -18,5 +18,6 @@ export * from './windows-metadata-apply.ts';
 export * from './signing.ts';
 export * from './release-body.ts';
 export * from './sbom.ts';
+export * from './distribution.ts';
 
 export const VERSION = '0.0.0';

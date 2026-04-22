@@ -13778,6 +13778,90 @@ var INPUT_SPECS = [
     description: "Append a markdown table of binaries + sizes + checksums to the release body.",
     default: "true"
   },
+  // Homebrew tap (§6.4)
+  {
+    name: "homebrew-tap-repo",
+    category: "publishing",
+    description: "owner/repo of a homebrew-tap. When set, opens a PR with an updated formula."
+  },
+  {
+    name: "homebrew-tap-token",
+    category: "publishing",
+    description: "PAT with contents:write on the tap repo. Falls back to GITHUB_TOKEN.",
+    secret: !0
+  },
+  {
+    name: "homebrew-formula-name",
+    category: "publishing",
+    description: "Formula filename without .rb. Defaults to the project name."
+  },
+  {
+    name: "homebrew-formula-description",
+    category: "publishing",
+    description: 'Formula description (desc). Defaults to package.json "description".'
+  },
+  {
+    name: "homebrew-formula-homepage",
+    category: "publishing",
+    description: "Formula homepage. Defaults to the repository URL."
+  },
+  {
+    name: "homebrew-formula-license",
+    category: "publishing",
+    description: 'Formula license string. Defaults to package.json "license".'
+  },
+  {
+    name: "homebrew-formula-binary",
+    category: "publishing",
+    description: "Binary name installed into $prefix/bin. Defaults to the formula name."
+  },
+  {
+    name: "homebrew-tap-branch",
+    category: "publishing",
+    description: "Branch to push the updated formula on. Defaults to pkg-action/<project>-<version>."
+  },
+  // Scoop bucket (§6.5)
+  {
+    name: "scoop-bucket-repo",
+    category: "publishing",
+    description: "owner/repo of a scoop bucket. When set, opens a PR with an updated manifest."
+  },
+  {
+    name: "scoop-bucket-token",
+    category: "publishing",
+    description: "PAT with contents:write on the bucket repo. Falls back to GITHUB_TOKEN.",
+    secret: !0
+  },
+  {
+    name: "scoop-manifest-name",
+    category: "publishing",
+    description: "Manifest filename without .json. Defaults to the project name."
+  },
+  {
+    name: "scoop-manifest-description",
+    category: "publishing",
+    description: 'Manifest description. Defaults to package.json "description".'
+  },
+  {
+    name: "scoop-manifest-homepage",
+    category: "publishing",
+    description: "Manifest homepage. Defaults to the repository URL."
+  },
+  {
+    name: "scoop-manifest-license",
+    category: "publishing",
+    description: 'Manifest license. Defaults to package.json "license".'
+  },
+  {
+    name: "scoop-manifest-binary",
+    category: "publishing",
+    description: "Binary name inside the archive. Defaults to <manifest-name>.exe."
+  },
+  {
+    name: "scoop-bucket-branch",
+    category: "publishing",
+    description: "Branch to push the updated manifest on. Defaults to pkg-action/<project>-<version>."
+  },
   // Performance / observability (§5.6)
   {
     name: "cache",

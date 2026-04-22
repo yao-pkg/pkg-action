@@ -391,6 +391,94 @@ export const INPUT_SPECS: readonly InputSpec[] = [
     default: 'true',
   },
 
+  // Homebrew tap (§6.4)
+  {
+    name: 'homebrew-tap-repo',
+    category: 'publishing',
+    description: 'owner/repo of a homebrew-tap. When set, opens a PR with an updated formula.',
+  },
+  {
+    name: 'homebrew-tap-token',
+    category: 'publishing',
+    description: 'PAT with contents:write on the tap repo. Falls back to GITHUB_TOKEN.',
+    secret: true,
+  },
+  {
+    name: 'homebrew-formula-name',
+    category: 'publishing',
+    description: 'Formula filename without .rb. Defaults to the project name.',
+  },
+  {
+    name: 'homebrew-formula-description',
+    category: 'publishing',
+    description: 'Formula description (desc). Defaults to package.json "description".',
+  },
+  {
+    name: 'homebrew-formula-homepage',
+    category: 'publishing',
+    description: 'Formula homepage. Defaults to the repository URL.',
+  },
+  {
+    name: 'homebrew-formula-license',
+    category: 'publishing',
+    description: 'Formula license string. Defaults to package.json "license".',
+  },
+  {
+    name: 'homebrew-formula-binary',
+    category: 'publishing',
+    description: 'Binary name installed into $prefix/bin. Defaults to the formula name.',
+  },
+  {
+    name: 'homebrew-tap-branch',
+    category: 'publishing',
+    description:
+      'Branch to push the updated formula on. Defaults to pkg-action/<project>-<version>.',
+  },
+
+  // Scoop bucket (§6.5)
+  {
+    name: 'scoop-bucket-repo',
+    category: 'publishing',
+    description: 'owner/repo of a scoop bucket. When set, opens a PR with an updated manifest.',
+  },
+  {
+    name: 'scoop-bucket-token',
+    category: 'publishing',
+    description: 'PAT with contents:write on the bucket repo. Falls back to GITHUB_TOKEN.',
+    secret: true,
+  },
+  {
+    name: 'scoop-manifest-name',
+    category: 'publishing',
+    description: 'Manifest filename without .json. Defaults to the project name.',
+  },
+  {
+    name: 'scoop-manifest-description',
+    category: 'publishing',
+    description: 'Manifest description. Defaults to package.json "description".',
+  },
+  {
+    name: 'scoop-manifest-homepage',
+    category: 'publishing',
+    description: 'Manifest homepage. Defaults to the repository URL.',
+  },
+  {
+    name: 'scoop-manifest-license',
+    category: 'publishing',
+    description: 'Manifest license. Defaults to package.json "license".',
+  },
+  {
+    name: 'scoop-manifest-binary',
+    category: 'publishing',
+    description: 'Binary name inside the archive. Defaults to <manifest-name>.exe.',
+  },
+  {
+    name: 'scoop-bucket-branch',
+    category: 'publishing',
+    description:
+      'Branch to push the updated manifest on. Defaults to pkg-action/<project>-<version>.',
+  },
+
   // Performance / observability (§5.6)
   {
     name: 'cache',
@@ -484,6 +572,30 @@ export interface PublishingInputs {
   readonly releaseDraft: boolean;
   readonly releasePrerelease: boolean;
   readonly generateReleaseTable: boolean;
+  readonly homebrew: HomebrewInputs | undefined;
+  readonly scoop: ScoopInputs | undefined;
+}
+
+export interface HomebrewInputs {
+  readonly tapRepo: string;
+  readonly tapToken: string | undefined;
+  readonly formulaName: string | undefined;
+  readonly formulaDescription: string | undefined;
+  readonly formulaHomepage: string | undefined;
+  readonly formulaLicense: string | undefined;
+  readonly formulaBinary: string | undefined;
+  readonly tapBranch: string | undefined;
+}
+
+export interface ScoopInputs {
+  readonly bucketRepo: string;
+  readonly bucketToken: string | undefined;
+  readonly manifestName: string | undefined;
+  readonly manifestDescription: string | undefined;
+  readonly manifestHomepage: string | undefined;
+  readonly manifestLicense: string | undefined;
+  readonly manifestBinary: string | undefined;
+  readonly bucketBranch: string | undefined;
 }
 
 export interface PerformanceInputs {
@@ -675,6 +787,39 @@ export function parseInputs(opts: ParseInputsOptions = {}): ActionInputs {
       );
     }
   }
+  const homebrewTapRepo = readInput(env, 'homebrew-tap-repo');
+  const homebrew: HomebrewInputs | undefined =
+    homebrewTapRepo !== undefined
+      ? {
+          tapRepo: homebrewTapRepo,
+          tapToken: readInput(env, 'homebrew-tap-token'),
+          formulaName: readInput(env, 'homebrew-formula-name'),
+          formulaDescription: readInput(env, 'homebrew-formula-description'),
+          formulaHomepage: readInput(env, 'homebrew-formula-homepage'),
+          formulaLicense: readInput(env, 'homebrew-formula-license'),
+          formulaBinary: readInput(env, 'homebrew-formula-binary'),
+          tapBranch: readInput(env, 'homebrew-tap-branch'),
+        }
+      : undefined;
+  const scoopBucketRepo = readInput(env, 'scoop-bucket-repo');
+  const scoop: ScoopInputs | undefined =
+    scoopBucketRepo !== undefined
+      ? {
+          bucketRepo: scoopBucketRepo,
+          bucketToken: readInput(env, 'scoop-bucket-token'),
+          manifestName: readInput(env, 'scoop-manifest-name'),
+          manifestDescription: readInput(env, 'scoop-manifest-description'),
+          manifestHomepage: readInput(env, 'scoop-manifest-homepage'),
+          manifestLicense: readInput(env, 'scoop-manifest-license'),
+          manifestBinary: readInput(env, 'scoop-manifest-binary'),
+          bucketBranch: readInput(env, 'scoop-bucket-branch'),
+        }
+      : undefined;
+  if ((homebrew !== undefined || scoop !== undefined) && !attachToRelease) {
+    throw new ValidationError(
+      'homebrew-tap-repo / scoop-bucket-repo require attach-to-release=true (the generated manifest points at release download URLs).',
+    );
+  }
   const publishing: PublishingInputs = {
     uploadArtifact: parseBoolean(readInput(env, 'upload-artifact'), 'upload-artifact'),
     artifactName: readInput(env, 'artifact-name') ?? '{name}-{version}-{target}',
@@ -688,6 +833,8 @@ export function parseInputs(opts: ParseInputsOptions = {}): ActionInputs {
       readInput(env, 'generate-release-table'),
       'generate-release-table',
     ),
+    homebrew,
+    scoop,
   };
 
   // Performance / observability

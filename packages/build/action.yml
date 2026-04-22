@@ -151,6 +151,38 @@ inputs:
   generate-release-table:
     description: 'Append a markdown table of binaries + sizes + checksums to the release body.'
     default: 'true'
+  homebrew-tap-repo:
+    description: 'owner/repo of a homebrew-tap. When set, opens a PR with an updated formula.'
+  homebrew-tap-token:
+    description: 'PAT with contents:write on the tap repo. Falls back to GITHUB_TOKEN.'
+  homebrew-formula-name:
+    description: 'Formula filename without .rb. Defaults to the project name.'
+  homebrew-formula-description:
+    description: 'Formula description (desc). Defaults to package.json "description".'
+  homebrew-formula-homepage:
+    description: 'Formula homepage. Defaults to the repository URL.'
+  homebrew-formula-license:
+    description: 'Formula license string. Defaults to package.json "license".'
+  homebrew-formula-binary:
+    description: 'Binary name installed into $prefix/bin. Defaults to the formula name.'
+  homebrew-tap-branch:
+    description: 'Branch to push the updated formula on. Defaults to pkg-action/<project>-<version>.'
+  scoop-bucket-repo:
+    description: 'owner/repo of a scoop bucket. When set, opens a PR with an updated manifest.'
+  scoop-bucket-token:
+    description: 'PAT with contents:write on the bucket repo. Falls back to GITHUB_TOKEN.'
+  scoop-manifest-name:
+    description: 'Manifest filename without .json. Defaults to the project name.'
+  scoop-manifest-description:
+    description: 'Manifest description. Defaults to package.json "description".'
+  scoop-manifest-homepage:
+    description: 'Manifest homepage. Defaults to the repository URL.'
+  scoop-manifest-license:
+    description: 'Manifest license. Defaults to package.json "license".'
+  scoop-manifest-binary:
+    description: 'Binary name inside the archive. Defaults to <manifest-name>.exe.'
+  scoop-bucket-branch:
+    description: 'Branch to push the updated manifest on. Defaults to pkg-action/<project>-<version>.'
   cache:
     description: 'Cache the pkg-fetch Node downloads between runs.'
     default: 'true'

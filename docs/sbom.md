@@ -57,10 +57,10 @@ GitHub release when `attach-to-release: true`.
   "serialNumber": "urn:uuid:…",
   "metadata": {
     "timestamp": "2026-04-22T…",
-    "component": { "type": "application", "name": "my-app", "version": "1.0.0" }
+    "component": { "type": "application", "name": "my-app", "version": "1.0.0" },
   },
   "components": [
-    { "type": "library", "name": "foo", "version": "1.2.3", "purl": "pkg:npm/foo@1.2.3" }
+    { "type": "library", "name": "foo", "version": "1.2.3", "purl": "pkg:npm/foo@1.2.3" },
   ],
   "formulation": [
     {
@@ -68,11 +68,11 @@ GitHub release when `attach-to-release: true`.
         {
           "type": "file",
           "name": "my-app-1.0.0-linux-x64.tar.gz",
-          "hashes": [{ "alg": "SHA-256", "content": "…" }]
-        }
-      ]
-    }
-  ]
+          "hashes": [{ "alg": "SHA-256", "content": "…" }],
+        },
+      ],
+    },
+  ],
 }
 ```
 
@@ -86,12 +86,20 @@ GitHub release when `attach-to-release: true`.
   "creationInfo": { "created": "2026-04-22T…", "creators": ["Tool: yao-pkg/pkg-action@1.0.0"] },
   "packages": [
     { "SPDXID": "SPDXRef-Package-my-app", "name": "my-app", "versionInfo": "1.0.0" },
-    { "SPDXID": "SPDXRef-Package-npm-foo-1.2.3", "name": "foo", "versionInfo": "1.2.3" }
+    { "SPDXID": "SPDXRef-Package-npm-foo-1.2.3", "name": "foo", "versionInfo": "1.2.3" },
   ],
   "relationships": [
-    { "spdxElementId": "SPDXRef-DOCUMENT", "relationshipType": "DESCRIBES", "relatedSpdxElement": "SPDXRef-Package-my-app" },
-    { "spdxElementId": "SPDXRef-Package-my-app", "relationshipType": "DEPENDS_ON", "relatedSpdxElement": "SPDXRef-Package-npm-foo-1.2.3" }
-  ]
+    {
+      "spdxElementId": "SPDXRef-DOCUMENT",
+      "relationshipType": "DESCRIBES",
+      "relatedSpdxElement": "SPDXRef-Package-my-app",
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-my-app",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-Package-npm-foo-1.2.3",
+    },
+  ],
 }
 ```
 
