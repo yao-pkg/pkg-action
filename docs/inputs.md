@@ -97,7 +97,7 @@ Every `pkg-action` input, grouped by category.
 | `cache` | `true` | no | no | Cache the pkg-fetch Node downloads between runs. |
 | `cache-key` | — | no | no | Override the auto-derived cache key. |
 | `step-summary` | `true` | no | no | Write a markdown summary of build time / size / checksum to the job summary. |
-| `sbom` | `none` | no | no | SBOM format: none \| cyclonedx \| spdx. (Stretch — deferred to v1.x.) |
+| `sbom` | `none` | no | no | Generate a Software Bill of Materials: none \| cyclonedx \| spdx. Written alongside the artifacts and attached to the release when attach-to-release=true. |
 | `provenance` | `false` | no | no | Emit SLSA provenance attestation via actions/attest-build-provenance. |
 
 ## Outputs

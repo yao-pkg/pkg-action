@@ -145,8 +145,18 @@ In addition to the base outputs (`binaries`, `artifacts`, `checksums`,
 | ------------- | ------------------------------------------------------------------------------- |
 | `release-url` | Only when `attach-to-release=true` succeeded. Absolute URL to the release page. |
 
+## SBOM ride-along
+
+When `sbom: cyclonedx` or `sbom: spdx` is set, the generated SBOM file
+is uploaded as its own workflow artifact (`<project>-<version>-sbom`)
+and, when `attach-to-release=true`, attached to the release page next
+to the binaries and SHASUMS sidecars. See [`docs/sbom.md`](./sbom.md)
+for format details and consumer tooling.
+
 ## See also
 
 - [`docs/matrix.md`](./matrix.md) — per-target matrix planning.
 - [`docs/inputs.md`](./inputs.md) — canonical list of every input.
+- [`docs/sbom.md`](./sbom.md) — SBOM generation details.
+- [`docs/provenance.md`](./provenance.md) — SLSA build provenance.
 - [`STATUS.yaml`](../STATUS.yaml) — implementation status tracker.

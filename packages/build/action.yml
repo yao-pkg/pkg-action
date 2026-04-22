@@ -160,7 +160,7 @@ inputs:
     description: 'Write a markdown summary of build time / size / checksum to the job summary.'
     default: 'true'
   sbom:
-    description: 'SBOM format: none | cyclonedx | spdx. (Stretch — deferred to v1.x.)'
+    description: 'Generate a Software Bill of Materials: none | cyclonedx | spdx. Written alongside the artifacts and attached to the release when attach-to-release=true.'
     default: 'none'
   provenance:
     description: 'Emit SLSA provenance attestation via actions/attest-build-provenance.'

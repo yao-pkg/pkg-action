@@ -16,6 +16,7 @@
 import { ValidationError } from './errors.ts';
 import { parseTargetList, type Target } from './targets.ts';
 import { CHECKSUM_ALGORITHMS, type ChecksumAlgorithm } from './checksum.ts';
+import { SBOM_FORMATS, type SbomFormat } from './sbom.ts';
 
 // ─── Metadata ─────────────────────────────────────────────────────────────
 
@@ -411,7 +412,8 @@ export const INPUT_SPECS: readonly InputSpec[] = [
   {
     name: 'sbom',
     category: 'performance',
-    description: 'SBOM format: none | cyclonedx | spdx. (Stretch — deferred to v1.x.)',
+    description:
+      'Generate a Software Bill of Materials: none | cyclonedx | spdx. Written alongside the artifacts and attached to the release when attach-to-release=true.',
     default: 'none',
   },
   {
@@ -488,6 +490,7 @@ export interface PerformanceInputs {
   readonly cache: boolean;
   readonly cacheKey: string | undefined;
   readonly stepSummary: boolean;
+  readonly sbom: SbomFormat;
   readonly provenance: boolean;
 }
 
@@ -692,6 +695,7 @@ export function parseInputs(opts: ParseInputsOptions = {}): ActionInputs {
     cache: parseBoolean(readInput(env, 'cache'), 'cache'),
     cacheKey: readInput(env, 'cache-key'),
     stepSummary: parseBoolean(readInput(env, 'step-summary'), 'step-summary'),
+    sbom: parseEnum(readInput(env, 'sbom'), 'sbom', SBOM_FORMATS),
     provenance: parseBoolean(readInput(env, 'provenance'), 'provenance'),
   };
 

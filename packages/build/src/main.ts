@@ -27,6 +27,7 @@ import {
   archive,
   buildPkgArgs,
   buildReleaseBody,
+  collectDependencyTree,
   computeAllChecksums,
   createDefaultReleaseAttacher,
   createInvocationTemp,
@@ -35,6 +36,8 @@ import {
   formatTarget,
   hostTarget,
   mapPkgOutputs,
+  newSbomSerialNumber,
+  nowTimestamp,
   parseInputs,
   parseSigningInputs,
   parseWindowsMetadataInputs,
@@ -47,6 +50,7 @@ import {
   signWindowsTrustedSigning,
   tokensForTarget,
   uploadArtifacts,
+  writeSbom,
   writeShasumsFile,
   writeSidecar,
   writeSummary,
@@ -59,6 +63,7 @@ import {
   type OutputEntry,
   type ReleaseAsset,
   type ReleaseAttachRequest,
+  type SbomArtifactRef,
   type SigningInputs,
   type SummaryRow,
   type Target,
@@ -284,6 +289,42 @@ async function main(): Promise<void> {
     }
   }
 
+  // 8.5. SBOM generation (M6.2). Runs when sbom != none. Walks production
+  //      deps of the project and emits either CycloneDX 1.5 or SPDX 2.3 JSON
+  //      to the final dir so it rides along with the upload + release-attach
+  //      steps.
+  let sbomPath: string | undefined;
+  if (inputs.performance.sbom !== 'none') {
+    const deps = await collectDependencyTree(projectDir);
+    const artifactRefs: SbomArtifactRef[] = finalizedArtifacts.map((artifact) => {
+      const hashes = shasumEntries
+        .filter((e) => e.path.startsWith(artifact))
+        .map((e) => ({
+          algo:
+            e.algo === 'sha256'
+              ? ('SHA-256' as const)
+              : e.algo === 'sha512'
+                ? ('SHA-512' as const)
+                : ('MD5' as const),
+          value: e.digest,
+        }));
+      return { filename: pathBasename(artifact), hashes };
+    });
+    sbomPath = await writeSbom({
+      format: inputs.performance.sbom,
+      outDir: finalDir,
+      data: {
+        project,
+        deps,
+        artifacts: artifactRefs,
+        actionVersion: VERSION,
+        timestamp: nowTimestamp(),
+        serialNumber: newSbomSerialNumber(),
+      },
+    });
+    logger.info(`[pkg-action] SBOM (${inputs.performance.sbom}) written: ${sbomPath}`);
+  }
+
   // 9. Artifact upload (one per target — names must be unique).
   if (inputs.publishing.uploadArtifact && finalizedArtifacts.length > 0) {
     const uploader = await (await import('@pkg-action/core')).createDefaultArtifactUploader();
@@ -298,6 +339,13 @@ async function main(): Promise<void> {
       const files = [finalizedArtifacts[i] as string, ...sidecarFiles];
       return { name, files, rootDirectory: finalDir };
     });
+    if (sbomPath !== undefined) {
+      uploadRequests.push({
+        name: `${project.name}-${project.version}-sbom`,
+        files: [sbomPath],
+        rootDirectory: finalDir,
+      });
+    }
     await uploadArtifacts(uploadRequests, { artifact: uploader, logger });
   }
 
@@ -338,6 +386,9 @@ async function main(): Promise<void> {
     }
     for (const shasumFile of shasumsFiles) {
       assets.push({ path: shasumFile, name: pathBasename(shasumFile) });
+    }
+    if (sbomPath !== undefined) {
+      assets.push({ path: sbomPath, name: pathBasename(sbomPath) });
     }
 
     const attacher = await createDefaultReleaseAttacher(githubToken, { createIfMissing: true });

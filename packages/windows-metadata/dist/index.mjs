@@ -13799,7 +13799,7 @@ var INPUT_SPECS = [
   {
     name: "sbom",
     category: "performance",
-    description: "SBOM format: none | cyclonedx | spdx. (Stretch \u2014 deferred to v1.x.)",
+    description: "Generate a Software Bill of Materials: none | cyclonedx | spdx. Written alongside the artifacts and attached to the release when attach-to-release=true.",
     default: "none"
   },
   {

@@ -276,3 +276,75 @@ jobs:
           # exits 0 with a signed summary. Any failure means provenance
           # wasn't produced or wasn't discoverable — treat both as fatal.
           gh attestation verify "$artifact" --repo "$GITHUB_REPOSITORY"
+
+  # ──────────────────────────────────────────────────────────────────────
+  # M6 §6.2: SBOM generation. Runs the composite with sbom=cyclonedx on a
+  # cheap ubuntu-latest target; asserts the SBOM file is uploaded as a
+  # workflow artifact AND contains a valid CycloneDX 1.5 doc referencing
+  # the binary's hash.
+  sbom-cyclonedx:
+    name: sbom-cyclonedx / ubuntu-latest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build tiny-app with CycloneDX SBOM
+        id: build
+        uses: ./
+        with:
+          config: test-fixtures/tiny-app-cjs/package.json
+          targets: node22-linux-x64
+          compress: tar.gz
+          checksum: sha256
+          filename: '{name}-{version}-{os}-{arch}'
+          sbom: cyclonedx
+
+      - name: Assert SBOM file exists and parses
+        shell: bash
+        run: |
+          sbom="$RUNNER_TEMP"/pkg-action-*/final/tiny-app-cjs-0.0.1.cdx.json
+          # Glob it explicitly.
+          sbom_resolved=$(ls $sbom 2>/dev/null | head -n1)
+          [ -n "$sbom_resolved" ] || { echo "::error::SBOM file not found (glob: $sbom)"; exit 1; }
+          echo "Found SBOM: $sbom_resolved"
+          bomFormat=$(jq -r '.bomFormat' "$sbom_resolved")
+          specVersion=$(jq -r '.specVersion' "$sbom_resolved")
+          [ "$bomFormat" = "CycloneDX" ] || { echo "::error::bomFormat=$bomFormat"; exit 1; }
+          [ "$specVersion" = "1.5" ] || { echo "::error::specVersion=$specVersion"; exit 1; }
+          # metadata.component.name must be the project name.
+          projName=$(jq -r '.metadata.component.name' "$sbom_resolved")
+          [ "$projName" = "tiny-app-cjs" ] || { echo "::error::component.name=$projName"; exit 1; }
+          # formulation[].components[0].hashes must reference SHA-256.
+          algo=$(jq -r '.formulation[0].components[0].hashes[0].alg' "$sbom_resolved")
+          [ "$algo" = "SHA-256" ] || { echo "::error::hash alg=$algo"; exit 1; }
+          echo "SBOM OK"
+
+  sbom-spdx:
+    name: sbom-spdx / ubuntu-latest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build tiny-app with SPDX SBOM
+        id: build
+        uses: ./
+        with:
+          config: test-fixtures/tiny-app-cjs/package.json
+          targets: node22-linux-x64
+          compress: none
+          checksum: sha256
+          filename: '{name}-{version}-{os}-{arch}'
+          sbom: spdx
+
+      - name: Assert SPDX SBOM file exists and parses
+        shell: bash
+        run: |
+          sbom_resolved=$(ls "$RUNNER_TEMP"/pkg-action-*/final/tiny-app-cjs-0.0.1.spdx.json 2>/dev/null | head -n1)
+          [ -n "$sbom_resolved" ] || { echo "::error::SPDX SBOM not found"; exit 1; }
+          echo "Found SBOM: $sbom_resolved"
+          spdxVersion=$(jq -r '.spdxVersion' "$sbom_resolved")
+          [ "$spdxVersion" = "SPDX-2.3" ] || { echo "::error::spdxVersion=$spdxVersion"; exit 1; }
+          # DESCRIBES relationship to the project root must exist.
+          count=$(jq '[.relationships[] | select(.relationshipType=="DESCRIBES")] | length' "$sbom_resolved")
+          [ "$count" -ge 1 ] || { echo "::error::no DESCRIBES relationship"; exit 1; }
+          echo "SPDX SBOM OK"

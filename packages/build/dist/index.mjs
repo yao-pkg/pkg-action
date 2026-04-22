@@ -14749,6 +14749,231 @@ var CHECKSUM_ALGORITHMS, init_checksum = __esm({
   }
 });
 
+// packages/core/src/sbom.ts
+import { readFile } from "node:fs/promises";
+import { randomUUID as randomUUID3 } from "node:crypto";
+import { join as join4 } from "node:path";
+function isSbomFormat(v) {
+  return SBOM_FORMATS.includes(v);
+}
+async function readPackageJson(path7, fs8) {
+  let raw;
+  try {
+    raw = await fs8.readFile(path7, "utf8");
+  } catch {
+    return;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return;
+  }
+}
+async function collectDependencyTree(projectDir, fs8 = defaultFs) {
+  let rootPkg = await readPackageJson(join4(projectDir, "package.json"), fs8);
+  if (rootPkg === void 0)
+    throw new ValidationError(`SBOM: cannot read package.json at ${projectDir}`);
+  let seen = /* @__PURE__ */ new Map();
+  async function visit(name, fromDir) {
+    let resolved = await resolveNodeModule(name, fromDir, fs8);
+    if (resolved === void 0) return;
+    let key = `${resolved.pkg.name ?? name}@${resolved.pkg.version ?? "0.0.0"}`;
+    if (seen.has(key)) return;
+    let node = {
+      name: resolved.pkg.name ?? name,
+      version: resolved.pkg.version ?? "0.0.0",
+      purl: toPurl(resolved.pkg.name ?? name, resolved.pkg.version ?? "0.0.0"),
+      license: normalizeLicense(resolved.pkg.license),
+      description: resolved.pkg.description
+    };
+    seen.set(key, node);
+    let children = {
+      ...resolved.pkg.dependencies ?? {},
+      ...resolved.pkg.optionalDependencies ?? {}
+    };
+    for (let childName of Object.keys(children))
+      await visit(childName, resolved.dir);
+  }
+  let directDeps = Object.keys(rootPkg.dependencies ?? {});
+  for (let dep of directDeps)
+    await visit(dep, projectDir);
+  return [...seen.values()].sort(
+    (a, b) => a.name === b.name ? a.version.localeCompare(b.version) : a.name.localeCompare(b.name)
+  );
+}
+async function resolveNodeModule(name, fromDir, fs8) {
+  let current = fromDir;
+  for (; ; ) {
+    let candidate = join4(current, "node_modules", name), pkg = await readPackageJson(join4(candidate, "package.json"), fs8);
+    if (pkg !== void 0) return { dir: candidate, pkg };
+    let parent = join4(current, "..");
+    if (parent === current) return;
+    current = parent;
+  }
+}
+function normalizeLicense(raw) {
+  if (raw !== void 0) {
+    if (typeof raw == "string") return raw;
+    if (typeof raw == "object" && typeof raw.type == "string") return raw.type;
+  }
+}
+function toPurl(name, version3) {
+  if (name.startsWith("@")) {
+    let [scope, bare] = name.split("/", 2);
+    return `pkg:npm/${encodeURIComponent(scope ?? "")}%2F${encodeURIComponent(bare ?? "")}@${encodeURIComponent(version3)}`;
+  }
+  return `pkg:npm/${encodeURIComponent(name)}@${encodeURIComponent(version3)}`;
+}
+function renderCycloneDx(data) {
+  let doc = {
+    $schema: "http://cyclonedx.org/schema/bom-1.5.schema.json",
+    bomFormat: "CycloneDX",
+    specVersion: "1.5",
+    serialNumber: `urn:uuid:${data.serialNumber}`,
+    version: 1,
+    metadata: {
+      timestamp: data.timestamp,
+      tools: [
+        {
+          vendor: "yao-pkg",
+          name: "pkg-action",
+          version: data.actionVersion
+        }
+      ],
+      component: {
+        type: "application",
+        "bom-ref": `${data.project.name}@${data.project.version}`,
+        name: data.project.name,
+        version: data.project.version,
+        purl: toPurl(data.project.name, data.project.version)
+      }
+    },
+    components: data.deps.map((d) => {
+      let comp26 = {
+        type: "library",
+        "bom-ref": d.purl,
+        name: d.name,
+        version: d.version,
+        purl: d.purl
+      };
+      return d.license !== void 0 && (comp26.licenses = [{ license: { id: d.license } }]), d.description !== void 0 && (comp26.description = d.description), comp26;
+    }),
+    ...data.artifacts.length > 0 ? {
+      formulation: [
+        {
+          components: data.artifacts.map((a) => ({
+            type: "file",
+            name: a.filename,
+            hashes: a.hashes.map((h) => ({ alg: h.algo, content: h.value }))
+          }))
+        }
+      ]
+    } : {}
+  };
+  return JSON.stringify(doc, null, 2);
+}
+function renderSpdx(data) {
+  let rootRef = `SPDXRef-Package-${sanitizeSpdxId(data.project.name)}`, packages = [
+    {
+      SPDXID: rootRef,
+      name: data.project.name,
+      versionInfo: data.project.version,
+      downloadLocation: "NOASSERTION",
+      filesAnalyzed: !1,
+      externalRefs: [
+        {
+          referenceCategory: "PACKAGE-MANAGER",
+          referenceType: "purl",
+          referenceLocator: toPurl(data.project.name, data.project.version)
+        }
+      ]
+    }
+  ], relationships = [
+    {
+      spdxElementId: "SPDXRef-DOCUMENT",
+      relationshipType: "DESCRIBES",
+      relatedSpdxElement: rootRef
+    }
+  ];
+  for (let dep of data.deps) {
+    let depRef = `SPDXRef-Package-npm-${sanitizeSpdxId(dep.name)}-${sanitizeSpdxId(dep.version)}`, pkg = {
+      SPDXID: depRef,
+      name: dep.name,
+      versionInfo: dep.version,
+      downloadLocation: "NOASSERTION",
+      filesAnalyzed: !1,
+      externalRefs: [
+        {
+          referenceCategory: "PACKAGE-MANAGER",
+          referenceType: "purl",
+          referenceLocator: dep.purl
+        }
+      ]
+    };
+    dep.license !== void 0 && (pkg.licenseConcluded = dep.license), dep.description !== void 0 && (pkg.description = dep.description), packages.push(pkg), relationships.push({
+      spdxElementId: rootRef,
+      relationshipType: "DEPENDS_ON",
+      relatedSpdxElement: depRef
+    });
+  }
+  for (let artifact of data.artifacts) {
+    let fileRef = `SPDXRef-File-${sanitizeSpdxId(artifact.filename)}`, checksums = artifact.hashes.map((h) => ({
+      algorithm: h.algo.replace("-", ""),
+      checksumValue: h.value
+    }));
+    packages.push({
+      SPDXID: fileRef,
+      name: artifact.filename,
+      versionInfo: data.project.version,
+      downloadLocation: "NOASSERTION",
+      filesAnalyzed: !1,
+      checksums
+    }), relationships.push({
+      spdxElementId: rootRef,
+      relationshipType: "GENERATES",
+      relatedSpdxElement: fileRef
+    });
+  }
+  let doc = {
+    spdxVersion: "SPDX-2.3",
+    dataLicense: "CC0-1.0",
+    SPDXID: "SPDXRef-DOCUMENT",
+    name: `${data.project.name}-${data.project.version}`,
+    documentNamespace: `https://yao-pkg.github.io/pkg-action/spdxdocs/${encodeURIComponent(data.project.name)}-${encodeURIComponent(data.project.version)}-${data.serialNumber}`,
+    creationInfo: {
+      created: data.timestamp,
+      creators: [`Tool: yao-pkg/pkg-action@${data.actionVersion}`]
+    },
+    packages,
+    relationships
+  };
+  return JSON.stringify(doc, null, 2);
+}
+function sanitizeSpdxId(raw) {
+  return raw.replace(/[^A-Za-z0-9.\-]/g, "-");
+}
+async function writeSbom(req) {
+  let suffix = req.format === "cyclonedx" ? "cdx.json" : "spdx.json", base = `${req.data.project.name}-${req.data.project.version}.${suffix}`, outPath = join4(req.outDir, base), body2 = req.format === "cyclonedx" ? renderCycloneDx(req.data) : renderSpdx(req.data);
+  return await atomicWriteFile(outPath, body2), outPath;
+}
+function newSbomSerialNumber() {
+  return randomUUID3();
+}
+function nowTimestamp() {
+  return (/* @__PURE__ */ new Date()).toISOString();
+}
+var SBOM_FORMATS, defaultFs, init_sbom = __esm({
+  "packages/core/src/sbom.ts"() {
+    "use strict";
+    init_fs_utils();
+    init_errors();
+    SBOM_FORMATS = ["none", "cyclonedx", "spdx"];
+    defaultFs = {
+      readFile: (p, enc) => readFile(p, enc)
+    };
+  }
+});
+
 // packages/core/src/inputs.ts
 function specFor(name) {
   return SPEC_BY_NAME.get(name);
@@ -14864,6 +15089,7 @@ function parseInputs(opts = {}) {
     cache: parseBoolean(readInput(env, "cache"), "cache"),
     cacheKey: readInput(env, "cache-key"),
     stepSummary: parseBoolean(readInput(env, "step-summary"), "step-summary"),
+    sbom: parseEnum(readInput(env, "sbom"), "sbom", SBOM_FORMATS),
     provenance: parseBoolean(readInput(env, "provenance"), "provenance")
   };
   if (opts.onUnknownInput !== void 0)
@@ -14904,6 +15130,7 @@ var INPUT_SPECS, SPEC_BY_NAME, init_inputs = __esm({
     init_errors();
     init_targets();
     init_checksum();
+    init_sbom();
     INPUT_SPECS = [
       // Build configuration (§5.1)
       {
@@ -15260,7 +15487,7 @@ var INPUT_SPECS, SPEC_BY_NAME, init_inputs = __esm({
       {
         name: "sbom",
         category: "performance",
-        description: "SBOM format: none | cyclonedx | spdx. (Stretch \u2014 deferred to v1.x.)",
+        description: "Generate a Software Bill of Materials: none | cyclonedx | spdx. Written alongside the artifacts and attached to the release when attach-to-release=true.",
         default: "none"
       },
       {
@@ -15311,7 +15538,7 @@ var init_pkg_runner = __esm({
 
 // packages/core/src/pkg-output-map.ts
 import { access as access2, readdir as readdir2 } from "node:fs/promises";
-import { join as join4 } from "node:path";
+import { join as join5 } from "node:path";
 function predictOutputNames(targets, baseName) {
   if (targets.length === 0) return [];
   if (targets.length === 1) {
@@ -15336,7 +15563,7 @@ async function mapPkgOutputs(targets, baseName, outputDir) {
   for (let i = 0; i < targets.length; i += 1) {
     let target = targets[i], name = predicted[i];
     if (target === void 0 || name === void 0) continue;
-    let candidate = join4(outputDir, name);
+    let candidate = join5(outputDir, name);
     await exists3(candidate) ? entries.push({ target, path: candidate }) : unresolved.push({ target, predicted: name });
   }
   if (unresolved.length > 0) {
@@ -15347,7 +15574,7 @@ async function mapPkgOutputs(targets, baseName, outputDir) {
         throw new PkgRunError(
           `pkg did not produce an output for ${formatTarget(target)}. Expected "${predictedName}" in ${outputDir}; directory contains: ${listing.join(", ") || "(empty)"}.`
         );
-      entries.push({ target, path: join4(outputDir, match) });
+      entries.push({ target, path: join5(outputDir, match) });
     }
   }
   return entries;
@@ -21819,7 +22046,7 @@ var HttpHeadersImpl, init_httpHeaders = __esm({
 });
 
 // node_modules/@typespec/ts-http-runtime/dist/esm/util/uuidUtils.js
-function randomUUID3() {
+function randomUUID4() {
   return crypto.randomUUID();
 }
 var init_uuidUtils = __esm({
@@ -21856,7 +22083,7 @@ var PipelineRequestImpl, init_pipelineRequest = __esm({
       requestOverrides;
       authSchemes;
       constructor(options) {
-        this.url = options.url, this.body = options.body, this.headers = options.headers ?? createHttpHeaders(), this.method = options.method ?? "GET", this.timeout = options.timeout ?? 0, this.multipartBody = options.multipartBody, this.formData = options.formData, this.disableKeepAlive = options.disableKeepAlive ?? !1, this.proxySettings = options.proxySettings, this.streamResponseStatusCodes = options.streamResponseStatusCodes, this.withCredentials = options.withCredentials ?? !1, this.abortSignal = options.abortSignal, this.onUploadProgress = options.onUploadProgress, this.onDownloadProgress = options.onDownloadProgress, this.requestId = options.requestId || randomUUID3(), this.allowInsecureConnection = options.allowInsecureConnection ?? !1, this.enableBrowserStreams = options.enableBrowserStreams ?? !1, this.requestOverrides = options.requestOverrides, this.authSchemes = options.authSchemes;
+        this.url = options.url, this.body = options.body, this.headers = options.headers ?? createHttpHeaders(), this.method = options.method ?? "GET", this.timeout = options.timeout ?? 0, this.multipartBody = options.multipartBody, this.formData = options.formData, this.disableKeepAlive = options.disableKeepAlive ?? !1, this.proxySettings = options.proxySettings, this.streamResponseStatusCodes = options.streamResponseStatusCodes, this.withCredentials = options.withCredentials ?? !1, this.abortSignal = options.abortSignal, this.onUploadProgress = options.onUploadProgress, this.onDownloadProgress = options.onDownloadProgress, this.requestId = options.requestId || randomUUID4(), this.allowInsecureConnection = options.allowInsecureConnection ?? !1, this.enableBrowserStreams = options.enableBrowserStreams ?? !1, this.requestOverrides = options.requestOverrides, this.authSchemes = options.authSchemes;
       }
     };
   }
@@ -23877,7 +24104,7 @@ var init_concat = __esm({
 
 // node_modules/@typespec/ts-http-runtime/dist/esm/policies/multipartPolicy.js
 function generateBoundary() {
-  return `----AzSDKFormBoundary${randomUUID3()}`;
+  return `----AzSDKFormBoundary${randomUUID4()}`;
 }
 function encodeHeaders(headers) {
   let result = "";
@@ -24405,8 +24632,8 @@ var init_typeGuards2 = __esm({
 function isError2(e) {
   return isError(e);
 }
-function randomUUID4() {
-  return randomUUID3();
+function randomUUID5() {
+  return randomUUID4();
 }
 var isNodeLike2, init_esm5 = __esm({
   "node_modules/@azure/core-util/dist/esm/index.js"() {
@@ -46760,7 +46987,7 @@ var BlobLeaseClient, init_BlobLeaseClient = __esm({
        */
       constructor(client2, leaseId2) {
         let clientContext = client2.storageClientContext;
-        this._url = client2.url, client2.name === void 0 ? (this._isContainer = !0, this._containerOrBlobOperation = clientContext.container) : (this._isContainer = !1, this._containerOrBlobOperation = clientContext.blob), leaseId2 || (leaseId2 = randomUUID4()), this._leaseId = leaseId2;
+        this._url = client2.url, client2.name === void 0 ? (this._isContainer = !0, this._containerOrBlobOperation = clientContext.container) : (this._isContainer = !1, this._containerOrBlobOperation = clientContext.blob), leaseId2 || (leaseId2 = randomUUID5()), this._leaseId = leaseId2;
       }
       /**
        * Establishes and manages a lock on a container for delete operations, or on a blob
@@ -50502,7 +50729,7 @@ var BlobClient, AppendBlobClient, BlockBlobClient, PageBlobClient, init_Clients 
           let numBlocks = Math.floor((size - 1) / blockSize) + 1;
           if (numBlocks > 5e4)
             throw new RangeError(`The buffer's size is too big or the BlockSize is too small;the number of blocks must be <= ${5e4}`);
-          let blockList = [], blockIDPrefix = randomUUID4(), transferProgress = 0, batch = new Batch(options.concurrency);
+          let blockList = [], blockIDPrefix = randomUUID5(), transferProgress = 0, batch = new Batch(options.concurrency);
           for (let i = 0; i < numBlocks; i++)
             batch.addOperation(async () => {
               let blockID = generateBlockID(blockIDPrefix, i), start = blockSize * i, contentLength2 = (i === numBlocks - 1 ? size : start + blockSize) - start;
@@ -50562,7 +50789,7 @@ var BlobClient, AppendBlobClient, BlockBlobClient, PageBlobClient, init_Clients 
        */
       async uploadStream(stream4, bufferSize = 8388608, maxConcurrency = 5, options = {}) {
         return options.blobHTTPHeaders || (options.blobHTTPHeaders = {}), options.conditions || (options.conditions = {}), tracingClient.withSpan("BlockBlobClient-uploadStream", options, async (updatedOptions) => {
-          let blockNum = 0, blockIDPrefix = randomUUID4(), transferProgress = 0, blockList = [];
+          let blockNum = 0, blockIDPrefix = randomUUID5(), transferProgress = 0, blockList = [];
           return await new BufferScheduler(
             stream4,
             bufferSize,
@@ -53784,8 +54011,8 @@ GFS4: `), console.error(m);
     function patch(fs9) {
       polyfills(fs9), fs9.gracefulify = patch, fs9.createReadStream = createReadStream4, fs9.createWriteStream = createWriteStream4;
       var fs$readFile = fs9.readFile;
-      fs9.readFile = readFile2;
-      function readFile2(path7, options, cb) {
+      fs9.readFile = readFile3;
+      function readFile3(path7, options, cb) {
         return typeof options == "function" && (cb = options, options = null), go$readFile(path7, options, cb);
         function go$readFile(path8, options2, cb2, startTime) {
           return fs$readFile(path8, options2, function(err) {
@@ -75470,12 +75697,12 @@ var init_uploader = __esm({
 });
 
 // packages/core/src/project-info.ts
-import { readFile } from "node:fs/promises";
-import { join as join6 } from "node:path";
+import { readFile as readFile2 } from "node:fs/promises";
+import { join as join7 } from "node:path";
 async function readProjectInfo(projectDir) {
-  let path7 = join6(projectDir, "package.json"), raw;
+  let path7 = join7(projectDir, "package.json"), raw;
   try {
-    raw = await readFile(path7, "utf8");
+    raw = await readFile2(path7, "utf8");
   } catch (err) {
     throw new ValidationError(`Cannot read package.json at ${path7}`, { cause: err });
   }
@@ -75615,13 +75842,13 @@ function normalizeFileIcons(file) {
   return [...out.values()].sort((a, b) => a.id - b.id);
 }
 async function parseWindowsMetadataInputs(opts = {}) {
-  let env = opts.env ?? process.env, readFile2 = opts.readFile ?? ((path7) => import("node:fs/promises").then((m) => m.readFile(path7, "utf8"))), prefix2 = opts.prefix ?? "windows-", read = (name) => readInputRaw(env, `${prefix2}${name}`), fileRaw = read("metadata-file"), iconRaw = read("icon"), productName = read("product-name"), productVersion = read("product-version"), fileVersion = read("file-version"), fileDescription = read("file-description"), companyName = read("company-name"), legalCopyright = read("legal-copyright"), originalFilename = read("original-filename"), internalName = read("internal-name"), comments = read("comments"), manifestPath = read("manifest"), langRaw = read("lang"), codepageRaw = read("codepage");
+  let env = opts.env ?? process.env, readFile3 = opts.readFile ?? ((path7) => import("node:fs/promises").then((m) => m.readFile(path7, "utf8"))), prefix2 = opts.prefix ?? "windows-", read = (name) => readInputRaw(env, `${prefix2}${name}`), fileRaw = read("metadata-file"), iconRaw = read("icon"), productName = read("product-name"), productVersion = read("product-version"), fileVersion = read("file-version"), fileDescription = read("file-description"), companyName = read("company-name"), legalCopyright = read("legal-copyright"), originalFilename = read("original-filename"), internalName = read("internal-name"), comments = read("comments"), manifestPath = read("manifest"), langRaw = read("lang"), codepageRaw = read("codepage");
   if (!(fileRaw !== void 0 || iconRaw !== void 0 || productName !== void 0 || productVersion !== void 0 || fileVersion !== void 0 || fileDescription !== void 0 || companyName !== void 0 || legalCopyright !== void 0 || originalFilename !== void 0 || internalName !== void 0 || comments !== void 0 || manifestPath !== void 0)) return null;
   let fileData;
   if (fileRaw !== void 0) {
     let contents;
     try {
-      contents = await readFile2(fileRaw);
+      contents = await readFile3(fileRaw);
     } catch (err) {
       throw new ValidationError(`Failed to read windows-metadata-file "${fileRaw}".`, {
         cause: err
@@ -79370,8 +79597,8 @@ var RT_MANIFEST, defaultDeps, init_windows_metadata_apply = __esm({
     init_windows_metadata();
     RT_MANIFEST = 24, defaultDeps = {
       readFile: async (p) => {
-        let { readFile: readFile2 } = await import("node:fs/promises");
-        return readFile2(p);
+        let { readFile: readFile3 } = await import("node:fs/promises");
+        return readFile3(p);
       },
       writeFile: async (p, d) => {
         let { writeFile: writeFile4 } = await import("node:fs/promises");
@@ -79383,7 +79610,7 @@ var RT_MANIFEST, defaultDeps, init_windows_metadata_apply = __esm({
 
 // packages/core/src/signing.ts
 import { writeFile as writeFile3 } from "node:fs/promises";
-import { join as join7 } from "node:path";
+import { join as join8 } from "node:path";
 import { randomBytes } from "node:crypto";
 function parseSigningInputs(opts = {}) {
   let env = opts.env ?? process.env, registerSecret = opts.registerSecret ?? (() => {
@@ -79471,11 +79698,11 @@ async function runCheckedTool(deps, command, args, label, opts = {}) {
     throw new SignError(`${label} failed (exit ${String(result.exitCode)}). See stderr above.`);
 }
 async function writeSecretBase64(deps, tempDir, base64, extension) {
-  let path7 = join7(tempDir, `${randomBytes(8).toString("hex")}.${extension}`), bytes = Buffer.from(base64, "base64");
+  let path7 = join8(tempDir, `${randomBytes(8).toString("hex")}.${extension}`), bytes = Buffer.from(base64, "base64");
   return await (deps.writeFile ?? ((p, d) => writeFile3(p, d, { mode: 384 })))(path7, bytes), path7;
 }
 async function signMacos(binaryPath, cfg, deps) {
-  let keychainPath = join7(
+  let keychainPath = join8(
     deps.tempDir,
     `pkg-action-${randomBytes(6).toString("hex")}.keychain-db`
   ), p12Path = await writeSecretBase64(deps, deps.tempDir, cfg.certificate, "p12");
@@ -79649,6 +79876,7 @@ __export(src_exports, {
   PkgActionError: () => PkgActionError,
   PkgRunError: () => PkgRunError,
   ResEditError: () => ResEditError,
+  SBOM_FORMATS: () => SBOM_FORMATS,
   SignError: () => SignError,
   TEMPLATE_TOKEN_NAMES: () => TEMPLATE_TOKEN_NAMES,
   ToolError: () => ToolError,
@@ -79665,6 +79893,7 @@ __export(src_exports, {
   buildTokens: () => buildTokens,
   closestInputName: () => closestInputName,
   closestToken: () => closestToken,
+  collectDependencyTree: () => collectDependencyTree,
   computeAllChecksums: () => computeAllChecksums,
   computeChecksum: () => computeChecksum,
   createDefaultArtifactUploader: () => createDefaultArtifactUploader,
@@ -79680,8 +79909,11 @@ __export(src_exports, {
   hostTarget: () => hostTarget,
   humanSize: () => humanSize,
   isChecksumAlgorithm: () => isChecksumAlgorithm,
+  isSbomFormat: () => isSbomFormat,
   mapPkgOutputs: () => mapPkgOutputs,
   mergeMetadataFile: () => mergeMetadataFile,
+  newSbomSerialNumber: () => newSbomSerialNumber,
+  nowTimestamp: () => nowTimestamp,
   padVersionQuad: () => padVersionQuad,
   parseIconSpec: () => parseIconSpec,
   parseInputs: () => parseInputs,
@@ -79693,6 +79925,8 @@ __export(src_exports, {
   readInputRaw: () => readInputRaw,
   readProjectInfo: () => readProjectInfo,
   render: () => render,
+  renderCycloneDx: () => renderCycloneDx,
+  renderSpdx: () => renderSpdx,
   renderSummary: () => renderSummary,
   resolveRepoFromEnv: () => resolveRepoFromEnv,
   runPkg: () => runPkg,
@@ -79704,6 +79938,7 @@ __export(src_exports, {
   specFor: () => specFor,
   tokensForTarget: () => tokensForTarget,
   uploadArtifacts: () => uploadArtifacts,
+  writeSbom: () => writeSbom,
   writeShasumsFile: () => writeShasumsFile,
   writeSidecar: () => writeSidecar,
   writeSummary: () => writeSummary,
@@ -79729,6 +79964,7 @@ var VERSION9, init_src4 = __esm({
     init_windows_metadata_apply();
     init_signing();
     init_release_body();
+    init_sbom();
     VERSION9 = "0.0.0";
   }
 });
@@ -79738,7 +79974,7 @@ init_core();
 init_src4();
 init_exec();
 import { mkdir as mkdir3, rename as rename3, stat as stat5 } from "node:fs/promises";
-import { basename as pathBasename, dirname as dirname4, join as join8, resolve as pathResolve } from "node:path";
+import { basename as pathBasename, dirname as dirname4, join as join9, resolve as pathResolve } from "node:path";
 var execBridge = async (command, args, options) => {
   let opts = {};
   if (options.ignoreReturnCode !== void 0 && (opts.ignoreReturnCode = options.ignoreReturnCode), options.cwd !== void 0 && (opts.cwd = options.cwd), options.env !== void 0) {
@@ -79785,7 +80021,7 @@ async function main() {
   logger7.info(`[pkg-action] targets: ${resolvedTargets.map(formatTarget).join(", ")}`);
   let runnerTemp = process.env.RUNNER_TEMP ?? (await import("node:os")).tmpdir(), invocationDir = await createInvocationTemp(runnerTemp);
   saveState("invocationDir", invocationDir);
-  let pkgOutputDir = join8(invocationDir, "pkg-out");
+  let pkgOutputDir = join9(invocationDir, "pkg-out");
   await mkdir3(pkgOutputDir, { recursive: !0 });
   let pkgCommand = inputs.build.pkgPath ?? "pkg", pkgBuildInputs = inputs.build.config !== void 0 && pathBasename(inputs.build.config).toLowerCase() === "package.json" ? { ...inputs.build, config: void 0 } : inputs.build, pkgArgs = buildPkgArgs({
     build: pkgBuildInputs,
@@ -79809,11 +80045,11 @@ async function main() {
   signing !== null && logger7.info(
     `[pkg-action] Signing configured \u2014 macOS=${String(signing.macos !== void 0)}, windows=${signing.windowsMode}.`
   );
-  let finalDir = join8(invocationDir, "final");
+  let finalDir = join9(invocationDir, "final");
   await mkdir3(finalDir, { recursive: !0 });
   let finalizedBinaries = [], finalizedArtifacts = [], shasumEntries = [], summaryRows = [];
   for (let out of pkgOutputs) {
-    let tokens = tokensForTarget(out.target, project, process.env), renamedBase = render(inputs.postBuild.filename, tokens), renamed = out.target.os === "win" && !renamedBase.toLowerCase().endsWith(".exe") ? `${renamedBase}.exe` : renamedBase, renamedPath = join8(finalDir, renamed);
+    let tokens = tokensForTarget(out.target, project, process.env), renamedBase = render(inputs.postBuild.filename, tokens), renamed = out.target.os === "win" && !renamedBase.toLowerCase().endsWith(".exe") ? `${renamedBase}.exe` : renamedBase, renamedPath = join9(finalDir, renamed);
     if (await rename3(out.path, renamedPath), windowsMeta !== null && out.target.os === "win") {
       let perBinary = {
         ...windowsMeta,
@@ -79848,9 +80084,31 @@ async function main() {
     for (let algo of inputs.postBuild.checksum) {
       let entries = shasumEntries.filter((e) => e.algo === algo);
       if (entries.length === 0) continue;
-      let shasumPath = join8(finalDir, `SHASUMS${algo.toUpperCase()}.txt`);
+      let shasumPath = join9(finalDir, `SHASUMS${algo.toUpperCase()}.txt`);
       await writeShasumsFile(shasumPath, entries), shasumsFiles.push(shasumPath);
     }
+  let sbomPath;
+  if (inputs.performance.sbom !== "none") {
+    let deps = await collectDependencyTree(projectDir), artifactRefs = finalizedArtifacts.map((artifact) => {
+      let hashes = shasumEntries.filter((e) => e.path.startsWith(artifact)).map((e) => ({
+        algo: e.algo === "sha256" ? "SHA-256" : e.algo === "sha512" ? "SHA-512" : "MD5",
+        value: e.digest
+      }));
+      return { filename: pathBasename(artifact), hashes };
+    });
+    sbomPath = await writeSbom({
+      format: inputs.performance.sbom,
+      outDir: finalDir,
+      data: {
+        project,
+        deps,
+        artifacts: artifactRefs,
+        actionVersion: VERSION9,
+        timestamp: nowTimestamp(),
+        serialNumber: newSbomSerialNumber()
+      }
+    }), logger7.info(`[pkg-action] SBOM (${inputs.performance.sbom}) written: ${sbomPath}`);
+  }
   if (inputs.publishing.uploadArtifact && finalizedArtifacts.length > 0) {
     let uploader = await (await Promise.resolve().then(() => (init_src4(), src_exports))).createDefaultArtifactUploader(), uploadRequests = pkgOutputs.map((out, i) => {
       let tokens = tokensForTarget(out.target, project, process.env), name = render(inputs.publishing.artifactName, tokens), sidecarFiles = shasumEntries.filter(
@@ -79858,7 +80116,11 @@ async function main() {
       ).map((e) => e.path), files = [finalizedArtifacts[i], ...sidecarFiles];
       return { name, files, rootDirectory: finalDir };
     });
-    await uploadArtifacts(uploadRequests, { artifact: uploader, logger: logger7 });
+    sbomPath !== void 0 && uploadRequests.push({
+      name: `${project.name}-${project.version}-sbom`,
+      files: [sbomPath],
+      rootDirectory: finalDir
+    }), await uploadArtifacts(uploadRequests, { artifact: uploader, logger: logger7 });
   }
   let releaseUrl;
   if (inputs.publishing.attachToRelease) {
@@ -79885,6 +80147,7 @@ async function main() {
       assets.push({ path: artifact, name: pathBasename(artifact) });
     for (let shasumFile of shasumsFiles)
       assets.push({ path: shasumFile, name: pathBasename(shasumFile) });
+    sbomPath !== void 0 && assets.push({ path: sbomPath, name: pathBasename(sbomPath) });
     let attacher = await createDefaultReleaseAttacher(githubToken, { createIfMissing: !0 }), req = {
       owner: repo.owner,
       repo: repo.repo,
