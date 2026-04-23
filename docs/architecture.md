@@ -4,8 +4,8 @@ Living reference for how `pkg-action` is put together. Updated whenever
 structure changes; pipeline intent lives here so `packages/build/src/main.ts`
 can stay focused on wiring.
 
-> Status: authoritative for v1.0 candidate (2026-04-23). If this file and the
-> code disagree, the code wins and this file is a bug.
+> Reflects the v1.0 candidate (as of 2026-04-23). Code is the source of
+> truth — if this file and the code disagree, the file is stale, file a fix.
 
 ---
 

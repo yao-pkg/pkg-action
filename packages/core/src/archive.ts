@@ -14,8 +14,9 @@
 // but the input is tiny enough that run-to-run differences are cosmetic.
 
 import { createWriteStream } from 'node:fs';
-import { stat } from 'node:fs/promises';
-import { basename } from 'node:path';
+import { mkdtemp, rm, stat, symlink, utimes } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { basename, dirname } from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import yazl from 'yazl';
 import type { ExecFn } from './pkg-runner.ts';
@@ -96,10 +97,6 @@ async function shellTar(
   // rename inside the archive only if caller asked for a different entry name.
   // For the common case (entry === basename(inputPath)) we just tar the file
   // as-is. For renames we stage a symlink with the desired name.
-  const { dirname } = await import('node:path');
-  const { mkdtemp, symlink, utimes, rm } = await import('node:fs/promises');
-  const { tmpdir } = await import('node:os');
-
   const compressFlag = compression === 'gz' ? '-z' : '-J';
   let stageDir: string | undefined;
   let workDir = dirname(inputPath);
@@ -179,10 +176,6 @@ async function shell7z(
   entry: string,
   deps: ArchiveDeps,
 ): Promise<void> {
-  const { dirname } = await import('node:path');
-  const { mkdtemp, symlink, rm } = await import('node:fs/promises');
-  const { tmpdir } = await import('node:os');
-
   let stageDir: string | undefined;
   let workDir = dirname(inputPath);
   let fileName = basename(inputPath);

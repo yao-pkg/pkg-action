@@ -8,9 +8,9 @@ hardware that matches the target — so you never rely on cross-compilation.
 
 ## Status
 
-> **M2 — under construction.** See [`STATUS.yaml`](../STATUS.yaml) for the
-> current milestone state. Pin a commit SHA if you depend on this before
-> `v1.0.0`.
+> **ALPHA — ready for early adopters.** Surface is stable for M2; see
+> [`STATUS.yaml`](../STATUS.yaml) for full milestone state. Pin a commit
+> SHA if you depend on this before `v1.0.0`.
 
 ## Inputs
 

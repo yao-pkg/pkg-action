@@ -17,6 +17,7 @@
 //     own resedit integration emits, so re-running the sub-action is
 //     idempotent.
 
+import { readFile, writeFile } from 'node:fs/promises';
 import { Data, NtExecutable, NtExecutableResource, Resource } from 'resedit';
 import { ResEditError } from './errors.ts';
 import { padVersionQuad, type IconSpec, type WindowsMetadataInputs } from './windows-metadata.ts';
@@ -30,12 +31,8 @@ export interface WindowsMetadataApplyDeps {
 }
 
 const defaultDeps: WindowsMetadataApplyDeps = {
-  readFile: async (p) => {
-    const { readFile } = await import('node:fs/promises');
-    return readFile(p);
-  },
+  readFile: (p) => readFile(p),
   writeFile: async (p, d) => {
-    const { writeFile } = await import('node:fs/promises');
     await writeFile(p, d);
   },
 };

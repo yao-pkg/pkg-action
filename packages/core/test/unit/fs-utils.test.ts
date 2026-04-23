@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import { strictEqual, ok } from 'node:assert/strict';
-import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -47,7 +47,6 @@ test('atomicWriteFile leaves no .tmp- sibling on success', async () => {
   await withTempParent(async (parent) => {
     const target = join(parent, 'a.bin');
     await atomicWriteFile(target, new Uint8Array([1, 2, 3]));
-    const { readdir } = await import('node:fs/promises');
     const entries = await readdir(parent);
     strictEqual(entries.filter((e) => e.includes('.tmp-')).length, 0);
     strictEqual(entries.length, 1);

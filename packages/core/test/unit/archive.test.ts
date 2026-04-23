@@ -5,7 +5,7 @@
 
 import { test } from 'node:test';
 import { strictEqual, ok, rejects } from 'node:assert/strict';
-import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, stat, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { archive } from '../../src/archive.ts';
@@ -142,7 +142,6 @@ test('archive: tar normalizes the source mtime in addition to --mtime', async ()
   await withTempPair(async (inputPath, outputPath) => {
     // Pre-bump the input mtime to a recent timestamp; archive() must overwrite it.
     const bumped = new Date(Date.UTC(2025, 5, 15, 12, 0, 0));
-    const { utimes } = await import('node:fs/promises');
     await utimes(inputPath, bumped, bumped);
 
     const exec: ExecFn = async () => ({ exitCode: 0, stdout: '', stderr: '' });

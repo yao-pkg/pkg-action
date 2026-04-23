@@ -26,6 +26,7 @@
 
 import * as core from '@actions/core';
 import { mkdir, rename, stat } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { basename as pathBasename, dirname, join, resolve as pathResolve } from 'node:path';
 import {
   actionsLogger,
@@ -144,7 +145,7 @@ async function main(): Promise<void> {
   logger.info(`[pkg-action] targets: ${resolvedTargets.map(formatTarget).join(', ')}`);
 
   // 4. Invocation-scoped temp dir + output dir.
-  const runnerTemp = process.env['RUNNER_TEMP'] ?? (await import('node:os')).tmpdir();
+  const runnerTemp = process.env['RUNNER_TEMP'] ?? tmpdir();
   const invocationDir = await createInvocationTemp(runnerTemp);
   core.saveState('invocationDir', invocationDir);
   const pkgOutputDir = join(invocationDir, 'pkg-out');

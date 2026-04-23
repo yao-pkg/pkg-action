@@ -13759,13 +13759,13 @@ function normalizeFileIcons(file) {
   return [...out.values()].sort((a, b) => a.id - b.id);
 }
 async function parseWindowsMetadataInputs(opts = {}) {
-  let env = opts.env ?? process.env, readFile = opts.readFile ?? ((path) => import("node:fs/promises").then((m) => m.readFile(path, "utf8"))), prefix = opts.prefix ?? "windows-", read = (name) => readInputRaw(env, `${prefix}${name}`), fileRaw = read("metadata-file"), iconRaw = read("icon"), productName = read("product-name"), productVersion = read("product-version"), fileVersion = read("file-version"), fileDescription = read("file-description"), companyName = read("company-name"), legalCopyright = read("legal-copyright"), originalFilename = read("original-filename"), internalName = read("internal-name"), comments = read("comments"), manifestPath = read("manifest"), langRaw = read("lang"), codepageRaw = read("codepage");
+  let env = opts.env ?? process.env, readFile2 = opts.readFile ?? ((path) => import("node:fs/promises").then((m) => m.readFile(path, "utf8"))), prefix = opts.prefix ?? "windows-", read = (name) => readInputRaw(env, `${prefix}${name}`), fileRaw = read("metadata-file"), iconRaw = read("icon"), productName = read("product-name"), productVersion = read("product-version"), fileVersion = read("file-version"), fileDescription = read("file-description"), companyName = read("company-name"), legalCopyright = read("legal-copyright"), originalFilename = read("original-filename"), internalName = read("internal-name"), comments = read("comments"), manifestPath = read("manifest"), langRaw = read("lang"), codepageRaw = read("codepage");
   if (!(fileRaw !== void 0 || iconRaw !== void 0 || productName !== void 0 || productVersion !== void 0 || fileVersion !== void 0 || fileDescription !== void 0 || companyName !== void 0 || legalCopyright !== void 0 || originalFilename !== void 0 || internalName !== void 0 || comments !== void 0 || manifestPath !== void 0)) return null;
   let fileData;
   if (fileRaw !== void 0) {
     let contents;
     try {
-      contents = await readFile(fileRaw);
+      contents = await readFile2(fileRaw);
     } catch (err) {
       throw new ValidationError(`Failed to read windows-metadata-file "${fileRaw}".`, {
         cause: err
@@ -13807,6 +13807,9 @@ function parseUint16(raw, inputName) {
     throw new ValidationError(`${inputName} must be a uint16 integer, got "${raw}".`);
   return n;
 }
+
+// packages/core/src/windows-metadata-apply.ts
+import { readFile, writeFile as writeFile2 } from "node:fs/promises";
 
 // node_modules/pe-library/dist/format/FormatBase.js
 var FormatBase = (
@@ -17179,12 +17182,8 @@ var SpcPeImageAttributeTypeAndOptionalValue = (
 
 // packages/core/src/windows-metadata-apply.ts
 var RT_MANIFEST = 24, defaultDeps = {
-  readFile: async (p) => {
-    let { readFile } = await import("node:fs/promises");
-    return readFile(p);
-  },
+  readFile: (p) => readFile(p),
   writeFile: async (p, d) => {
-    let { writeFile: writeFile2 } = await import("node:fs/promises");
     await writeFile2(p, d);
   }
 };

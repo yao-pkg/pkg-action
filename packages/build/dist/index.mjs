@@ -14498,7 +14498,8 @@ function getState(name) {
 
 // packages/build/src/main.ts
 import { mkdir as mkdir3, rename as rename3, stat as stat4 } from "node:fs/promises";
-import { basename as pathBasename, dirname as dirname4, join as join7, resolve as pathResolve } from "node:path";
+import { tmpdir as tmpdir2 } from "node:os";
+import { basename as pathBasename, dirname as dirname5, join as join7, resolve as pathResolve } from "node:path";
 
 // packages/core/src/errors.ts
 var PkgActionError = class extends Error {
@@ -15277,8 +15278,9 @@ async function exists2(path4) {
 // packages/core/src/archive.ts
 var import_yazl = __toESM(require_yazl(), 1);
 import { createWriteStream } from "node:fs";
-import { stat as stat3 } from "node:fs/promises";
-import { basename as basename4 } from "node:path";
+import { mkdtemp, rm as rm3, stat as stat3, symlink as symlink2, utimes } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { basename as basename4, dirname as dirname4 } from "node:path";
 import { pipeline as pipeline2 } from "node:stream/promises";
 async function archive(req, deps) {
   let entry = req.entryName ?? basename4(req.inputPath), mode = req.mode ?? 493;
@@ -15300,7 +15302,7 @@ async function archive(req, deps) {
 }
 var REPRO_MTIME = new Date(Date.UTC(2020, 0, 1, 0, 0, 0)), REPRO_MTIME_TAR = "2020-01-01 00:00:00 UTC";
 async function shellTar(inputPath, outputPath, compression, entry, deps) {
-  let { dirname: dirname5 } = await import("node:path"), { mkdtemp, symlink: symlink2, utimes, rm: rm3 } = await import("node:fs/promises"), { tmpdir } = await import("node:os"), compressFlag = compression === "gz" ? "-z" : "-J", stageDir, workDir = dirname5(inputPath), fileName = basename4(inputPath);
+  let compressFlag = compression === "gz" ? "-z" : "-J", stageDir, workDir = dirname4(inputPath), fileName = basename4(inputPath);
   if (entry !== basename4(inputPath)) {
     stageDir = await mkdtemp(`${tmpdir()}/pkgaction-tar-`);
     let linkPath = `${stageDir}/${entry}`;
@@ -15344,7 +15346,7 @@ async function writeZip(inputPath, outputPath, entry, mode) {
   }
 }
 async function shell7z(inputPath, outputPath, entry, deps) {
-  let { dirname: dirname5 } = await import("node:path"), { mkdtemp, symlink: symlink2, rm: rm3 } = await import("node:fs/promises"), { tmpdir } = await import("node:os"), stageDir, workDir = dirname5(inputPath), fileName = basename4(inputPath);
+  let stageDir, workDir = dirname4(inputPath), fileName = basename4(inputPath);
   if (entry !== basename4(inputPath)) {
     stageDir = await mkdtemp(`${tmpdir()}/pkgaction-7z-`);
     let linkPath = `${stageDir}/${entry}`;
@@ -15548,13 +15550,13 @@ function normalizeFileIcons(file) {
   return [...out.values()].sort((a, b) => a.id - b.id);
 }
 async function parseWindowsMetadataInputs(opts = {}) {
-  let env = opts.env ?? process.env, readFile2 = opts.readFile ?? ((path4) => import("node:fs/promises").then((m) => m.readFile(path4, "utf8"))), prefix = opts.prefix ?? "windows-", read = (name) => readInputRaw(env, `${prefix}${name}`), fileRaw = read("metadata-file"), iconRaw = read("icon"), productName = read("product-name"), productVersion = read("product-version"), fileVersion = read("file-version"), fileDescription = read("file-description"), companyName = read("company-name"), legalCopyright = read("legal-copyright"), originalFilename = read("original-filename"), internalName = read("internal-name"), comments = read("comments"), manifestPath = read("manifest"), langRaw = read("lang"), codepageRaw = read("codepage");
+  let env = opts.env ?? process.env, readFile3 = opts.readFile ?? ((path4) => import("node:fs/promises").then((m) => m.readFile(path4, "utf8"))), prefix = opts.prefix ?? "windows-", read = (name) => readInputRaw(env, `${prefix}${name}`), fileRaw = read("metadata-file"), iconRaw = read("icon"), productName = read("product-name"), productVersion = read("product-version"), fileVersion = read("file-version"), fileDescription = read("file-description"), companyName = read("company-name"), legalCopyright = read("legal-copyright"), originalFilename = read("original-filename"), internalName = read("internal-name"), comments = read("comments"), manifestPath = read("manifest"), langRaw = read("lang"), codepageRaw = read("codepage");
   if (!(fileRaw !== void 0 || iconRaw !== void 0 || productName !== void 0 || productVersion !== void 0 || fileVersion !== void 0 || fileDescription !== void 0 || companyName !== void 0 || legalCopyright !== void 0 || originalFilename !== void 0 || internalName !== void 0 || comments !== void 0 || manifestPath !== void 0)) return null;
   let fileData;
   if (fileRaw !== void 0) {
     let contents;
     try {
-      contents = await readFile2(fileRaw);
+      contents = await readFile3(fileRaw);
     } catch (err) {
       throw new ValidationError(`Failed to read windows-metadata-file "${fileRaw}".`, {
         cause: err
@@ -15596,6 +15598,9 @@ function parseUint16(raw, inputName) {
     throw new ValidationError(`${inputName} must be a uint16 integer, got "${raw}".`);
   return n;
 }
+
+// packages/core/src/windows-metadata-apply.ts
+import { readFile as readFile2, writeFile as writeFile3 } from "node:fs/promises";
 
 // node_modules/pe-library/dist/format/FormatBase.js
 var FormatBase = (
@@ -18968,13 +18973,9 @@ var SpcPeImageAttributeTypeAndOptionalValue = (
 
 // packages/core/src/windows-metadata-apply.ts
 var RT_MANIFEST = 24, defaultDeps = {
-  readFile: async (p) => {
-    let { readFile: readFile2 } = await import("node:fs/promises");
-    return readFile2(p);
-  },
+  readFile: (p) => readFile2(p),
   writeFile: async (p, d) => {
-    let { writeFile: writeFile4 } = await import("node:fs/promises");
-    await writeFile4(p, d);
+    await writeFile3(p, d);
   }
 };
 function toArrayBuffer(u) {
@@ -19044,7 +19045,7 @@ async function writeManifest(res, meta, deps) {
 }
 
 // packages/core/src/signing.ts
-import { writeFile as writeFile3 } from "node:fs/promises";
+import { writeFile as writeFile4 } from "node:fs/promises";
 import { join as join6 } from "node:path";
 import { randomBytes } from "node:crypto";
 function parseSigningInputs(opts = {}) {
@@ -19134,7 +19135,7 @@ async function runCheckedTool(deps, command, args, label, opts = {}) {
 }
 async function writeSecretBase64(deps, tempDir, base64, extension) {
   let path4 = join6(tempDir, `${randomBytes(8).toString("hex")}.${extension}`), bytes = Buffer.from(base64, "base64");
-  return await (deps.writeFile ?? ((p, d) => writeFile3(p, d, { mode: 384 })))(path4, bytes), path4;
+  return await (deps.writeFile ?? ((p, d) => writeFile4(p, d, { mode: 384 })))(path4, bytes), path4;
 }
 async function signMacos(binaryPath, cfg, deps) {
   let keychainPath = join6(
@@ -19299,14 +19300,14 @@ async function main() {
     if (cfg !== void 0) {
       let absCfg = pathResolve(workspace, cfg);
       if (pathBasename(absCfg).toLowerCase() === "package.json")
-        return dirname4(absCfg);
+        return dirname5(absCfg);
     }
     return workspace;
   })(), project = await readProjectInfo(projectDir);
   logger.info(`[pkg-action] project dir: ${projectDir}`), logger.info(`[pkg-action] project: ${project.name}@${project.version}`);
   let resolvedTargets = inputs.build.targets === "host" ? [hostTarget()] : [...inputs.build.targets];
   logger.info(`[pkg-action] targets: ${resolvedTargets.map(formatTarget).join(", ")}`);
-  let runnerTemp = process.env.RUNNER_TEMP ?? (await import("node:os")).tmpdir(), invocationDir = await createInvocationTemp(runnerTemp);
+  let runnerTemp = process.env.RUNNER_TEMP ?? tmpdir2(), invocationDir = await createInvocationTemp(runnerTemp);
   saveState("invocationDir", invocationDir);
   let pkgOutputDir = join7(invocationDir, "pkg-out");
   await mkdir3(pkgOutputDir, { recursive: !0 });

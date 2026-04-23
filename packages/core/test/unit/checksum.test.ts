@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import { strictEqual, ok, rejects } from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -80,7 +81,6 @@ test('computeChecksum streams multi-chunk input correctly', async () => {
     const digest = await computeChecksum(path, 'sha256');
     strictEqual(digest.length, 64);
     // Compute directly in-memory for cross-check.
-    const { createHash } = await import('node:crypto');
     const expected = createHash('sha256').update(payload).digest('hex');
     strictEqual(digest, expected);
   });
