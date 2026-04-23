@@ -295,18 +295,25 @@ jobs:
           mkdir -p "$fix"
           cd "$fix"
           npm init -y >/dev/null
-          # --omit=dev + --ignore-scripts: we want the package contents on
-          # disk; postinstall fetches native helpers we don't need for a
-          # `claude --version` smoke.
-          npm install --omit=dev --ignore-scripts @anthropic-ai/claude-code
-          # Resolve the package's own `bin` entry to pin the exact path
-          # regardless of future layout changes.
+          # Pin 2.1.114 — the last pure-JS release of
+          # @anthropic-ai/claude-code. Starting at 2.1.117 the package
+          # ships as a thin wrapper around a native binary distributed
+          # via platform optionalDependencies, which pkg can't bundle.
+          # --ignore-scripts keeps postinstall (native-binary fetcher)
+          # out of the fixture.
+          npm install --omit=dev --ignore-scripts @anthropic-ai/claude-code@2.1.114
+          # Resolve the package's `claude` bin entry. Prefer the named
+          # 'claude' key so we don't accidentally pick a future per-OS
+          # alias (e.g. 'claude.exe') that would break pkg on Linux.
           entry=$(node -e "
             const path = require('path');
             const pkgPath = require.resolve('@anthropic-ai/claude-code/package.json', { paths: [process.cwd()] });
             const pkgDir = path.dirname(pkgPath);
             const pkg = require(pkgPath);
-            const bin = typeof pkg.bin === 'string' ? pkg.bin : Object.values(pkg.bin)[0];
+            const bin = typeof pkg.bin === 'string'
+              ? pkg.bin
+              : (pkg.bin && pkg.bin.claude) || Object.values(pkg.bin || {})[0];
+            if (!bin) throw new Error('claude bin not found in package.json');
             console.log(path.relative(process.cwd(), path.resolve(pkgDir, bin)).split(path.sep).join('/'));
           ")
           echo "entry=$entry"
@@ -333,6 +340,9 @@ jobs:
           targets: ${{ matrix.target }}
           mode: sea
           compress-node: Zstd
+          # Zstd landed in @yao-pkg/pkg 6.17. The action's default
+          # (~6.16.0) predates it, so pin a Zstd-capable version.
+          pkg-version: ~6.18.0
           compress: tar.gz
           checksum: sha256
           filename: 'claude-{version}-{os}-{arch}'
