@@ -76,42 +76,6 @@ Every `pkg-action` input, grouped by category.
 | `azure-endpoint` | — | no | no | Azure Trusted Signing: endpoint URL. |
 | `azure-cert-profile` | — | no | no | Azure Trusted Signing: certificate profile name. |
 
-## Publishing
-
-| Input | Default | Required | Secret | Description |
-| --- | --- | --- | --- | --- |
-| `upload-artifact` | `true` | no | no | Upload each produced file as a workflow artifact. |
-| `artifact-name` | `{name}-{version}-{target}` | no | no | Artifact name template. Must be unique per target (@actions/artifact v2 rejects collisions). |
-| `attach-to-release` | `false` | no | no | Attach artifacts to the release matching the triggering tag. |
-| `release-tag` | — | no | no | Override the release tag. Required for non-tag triggers when attach-to-release is true. |
-| `release-name` | — | no | no | Release title (optional override). |
-| `release-body` | — | no | no | Release body (optional override). |
-| `release-draft` | `false` | no | no | Mark the release as draft. |
-| `release-prerelease` | `false` | no | no | Mark the release as prerelease. |
-| `generate-release-table` | `true` | no | no | Append a markdown table of binaries + sizes + checksums to the release body. |
-| `homebrew-tap-repo` | — | no | no | owner/repo of a homebrew-tap. When set, opens a PR with an updated formula. |
-| `homebrew-tap-token` | — | no | yes | PAT with contents:write on the tap repo. Falls back to GITHUB_TOKEN. |
-| `homebrew-formula-name` | — | no | no | Formula filename without .rb. Defaults to the project name. |
-| `homebrew-formula-description` | — | no | no | Formula description (desc). Defaults to package.json "description". |
-| `homebrew-formula-homepage` | — | no | no | Formula homepage. Defaults to the repository URL. |
-| `homebrew-formula-license` | — | no | no | Formula license string. Defaults to package.json "license". |
-| `homebrew-formula-binary` | — | no | no | Binary name installed into $prefix/bin. Defaults to the formula name. |
-| `homebrew-tap-branch` | — | no | no | Branch to push the updated formula on. Defaults to pkg-action/<project>-<version>. |
-| `docker-image` | — | no | no | OCI image reference with optional {version}/{tag}/{sha} tokens, e.g. ghcr.io/org/app:{version}. When set, the linux-* binaries are pushed as an OCI image. |
-| `docker-registry` | — | no | no | Registry host for auth. Derived from docker-image when unset. |
-| `docker-username` | — | no | yes | Registry username. Paired with docker-password. |
-| `docker-password` | — | no | yes | Registry password or token. |
-| `docker-base-image` | `gcr.io/distroless/cc-debian12:latest` | no | no | Base image the generated Dockerfile FROMs. Defaults to distroless/cc — the cc variant bundles libc/libstdc++/libgcc that the pkg-packaged Node binary links against. |
-| `docker-dockerfile` | — | no | no | Path to a user-supplied Dockerfile. Skips the generated minimal layout. |
-| `scoop-bucket-repo` | — | no | no | owner/repo of a scoop bucket. When set, opens a PR with an updated manifest. |
-| `scoop-bucket-token` | — | no | yes | PAT with contents:write on the bucket repo. Falls back to GITHUB_TOKEN. |
-| `scoop-manifest-name` | — | no | no | Manifest filename without .json. Defaults to the project name. |
-| `scoop-manifest-description` | — | no | no | Manifest description. Defaults to package.json "description". |
-| `scoop-manifest-homepage` | — | no | no | Manifest homepage. Defaults to the repository URL. |
-| `scoop-manifest-license` | — | no | no | Manifest license. Defaults to package.json "license". |
-| `scoop-manifest-binary` | — | no | no | Binary name inside the archive. Defaults to <manifest-name>.exe. |
-| `scoop-bucket-branch` | — | no | no | Branch to push the updated manifest on. Defaults to pkg-action/<project>-<version>. |
-
 ## Performance & observability
 
 | Input | Default | Required | Secret | Description |
@@ -119,8 +83,6 @@ Every `pkg-action` input, grouped by category.
 | `cache` | `true` | no | no | Cache the pkg-fetch Node downloads between runs. |
 | `cache-key` | — | no | no | Override the auto-derived cache key. |
 | `step-summary` | `true` | no | no | Write a markdown summary of build time / size / checksum to the job summary. |
-| `sbom` | `none` | no | no | Generate a Software Bill of Materials: none \| cyclonedx \| spdx. Written alongside the artifacts and attached to the release when attach-to-release=true. |
-| `provenance` | `false` | no | no | Emit SLSA provenance attestation via actions/attest-build-provenance. |
 
 ## Outputs
 
@@ -129,5 +91,5 @@ Every `pkg-action` input, grouped by category.
 | `binaries` | JSON array of pre-archive binary absolute paths. |
 | `artifacts` | JSON array of post-archive artifact absolute paths. |
 | `checksums` | JSON array of absolute paths to SHASUMS*.txt files. |
+| `digests` | JSON object mapping each artifact basename to its {algo: hex} digest map, e.g. {"app-1.0.0-linux-x64.tar.gz": {"sha256": "…"}}. |
 | `version` | Resolved package.json version used in filename templates. |
-| `release-url` | Absolute URL to the GitHub release the action attached to. Empty when attach-to-release=false. |

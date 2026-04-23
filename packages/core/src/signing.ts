@@ -331,6 +331,16 @@ export async function signMacos(
   codesignArgs.push(binaryPath);
   await runCheckedTool(deps, 'codesign', codesignArgs, 'codesign');
 
+  // Post-sign sanity: re-invoke codesign in verify mode to confirm the
+  // signature actually landed. Catches bad identities, revoked certs, and
+  // silent signtool/codesign failures that still exit 0.
+  await runCheckedTool(
+    deps,
+    'codesign',
+    ['--verify', '--strict', '--verbose=2', binaryPath],
+    'codesign --verify',
+  );
+
   if (cfg.notarize) {
     // notarytool only needs the three secrets — appleId/teamId/appPassword.
     // Validated up front in parseSigningInputs.
@@ -387,6 +397,9 @@ export async function signWindowsSigntool(
   if (cfg.description !== undefined) args.push('/d', cfg.description);
   args.push(binaryPath);
   await runCheckedTool(deps, 'signtool', args, 'signtool sign');
+  // Post-sign sanity: verify the signature embedded in the PE. `/pa` uses
+  // the default Authenticode chain policy; `/v` is verbose.
+  await runCheckedTool(deps, 'signtool', ['verify', '/pa', '/v', binaryPath], 'signtool verify');
 }
 
 // ─── Azure Trusted Signing ────────────────────────────────────────────────
@@ -421,4 +434,7 @@ export async function signWindowsTrustedSigning(
   if (cfg.description !== undefined) args.push('-d', cfg.description);
   args.push(binaryPath);
   await runCheckedTool(deps, 'azuresigntool', args, 'azuresigntool sign', { env });
+  // azuresigntool produces a standard Authenticode signature, so the same
+  // signtool verify path applies. No azure creds required to verify.
+  await runCheckedTool(deps, 'signtool', ['verify', '/pa', '/v', binaryPath], 'signtool verify');
 }

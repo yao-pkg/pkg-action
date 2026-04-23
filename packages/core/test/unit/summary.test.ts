@@ -35,13 +35,6 @@ test('renderSummary: Signed column only appears when at least one row is signed'
   ok(/— \|/.test(signed));
 });
 
-test('renderSummary: releaseUrl trailer appears when supplied', () => {
-  const md = renderSummary([ROW_A], {
-    releaseUrl: 'https://github.com/acme/tiny/releases/tag/v1',
-  });
-  ok(md.includes('**Release:** https://github.com/acme/tiny/releases/tag/v1'));
-});
-
 test('renderSummary respects custom title', () => {
   const md = renderSummary([ROW_A], { title: 'My Build' });
   ok(md.startsWith('## My Build\n'));

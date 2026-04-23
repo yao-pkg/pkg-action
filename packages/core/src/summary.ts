@@ -25,8 +25,6 @@ export interface SummaryOptions {
   readonly title?: string;
   readonly pkgVersion?: string;
   readonly actionVersion?: string;
-  /** Appears as a "Release" trailer line when the orchestrator attached to one. */
-  readonly releaseUrl?: string;
 }
 
 /**
@@ -84,11 +82,6 @@ export function renderSummary(rows: readonly SummaryRow[], opts: SummaryOptions 
     parts.push(`| ${cells.join(' | ')} |`);
   }
   parts.push('');
-
-  if (opts.releaseUrl !== undefined && opts.releaseUrl !== '') {
-    parts.push(`**Release:** ${opts.releaseUrl}`);
-    parts.push('');
-  }
   return parts.join('\n');
 }
 

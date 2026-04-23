@@ -12,13 +12,22 @@ meta:
   branch: main
   last-updated: '2026-04-23'
   action-status: ALPHA — ready for early adopters to try in their own workflows
-  ci-status: green (296 unit tests, 94.87% line coverage, gate 85%)
+  ci-status: green (222 unit tests)
   e2e-status: |
-    green on ubuntu/macos/windows — 15 jobs pass (run 24820663378, 2026-04-23).
-    Covers: tiny-app-cjs round-trip (tar.gz + zip + sha256), matrix plan→fanout,
-    multi-target-linux, windows-metadata, provenance (attest + verify),
-    sbom (cyclonedx + spdx), docker (ghcr.io push + pull + run).
-    Deferred until live credentials: signing, homebrew tap, scoop bucket.
+    6 jobs after the scope cut — tiny-cjs (ubuntu/macos/windows), codegen-drift,
+    matrix plan→fanout, multi-target-linux, windows-metadata. Signing e2e still
+    deferred until live credentials are available.
+
+# ─── Scope decision (2026-04-23) ─────────────────────────────────────────
+#
+# The action does ONE thing: build a pkg binary, optionally patch Windows
+# PE resources, optionally sign, optionally archive, always checksum.
+# Emits file paths via step outputs. That's the whole contract.
+#
+# Distribution concerns (release attach, Docker, Homebrew, Scoop, SBOM,
+# SLSA provenance, workflow artifact upload) are out of scope. Users chain
+# dedicated first-party actions against the outputs. See README "After the
+# build" and docs/architecture.md §2.
 
 # ─── Shipped ─────────────────────────────────────────────────────────────
 # One-line summaries. Sub-chunk detail has moved to commit history + tests.
@@ -26,40 +35,57 @@ meta:
 shipped:
   M-1 spikes: runs.using:node24 verified on hosted runners; strip-types + esbuild pipeline proven.
   M0 scaffold: monorepo, yarn workspaces, .node-version, tsconfig, eslint/prettier.
-  M1 core build path: inputs/targets/templates/checksum/pkg-runner/archive/uploader/orchestrator; codegen'd action.yml; tiny-app-{cjs,esm} fixtures.
+  M1 core build path: inputs/targets/templates/checksum/pkg-runner/archive/orchestrator; codegen'd action.yml; tiny-app-{cjs,esm} fixtures.
   M2 matrix sub-action: parseTargetList → expandMatrix, native-runner pinning, cross-compile warnings; matrix-plan→fanout e2e job.
   M3 windows metadata: resedit integration; icon/version-info/manifest patching; e2e asserts round-trip via pe-library.
   M4 signing & notarization: macOS codesign + notarytool, Windows signtool, Azure Trusted Signing — all behind ExecFn DI; secret-never-in-argv invariant.
-  M5 release attach + docs: ReleaseAttacher; buildReleaseBody; step-summary Signed column + Release trailer; dependabot grouped updates.
-  M6 stretch: provenance (attest-build-provenance@v4), SBOM (CycloneDX 1.5 + SPDX 2.3), Docker (multi-arch manifest, ghcr.io e2e green), Homebrew tap PR, Scoop manifest PR.
 
-# ─── Architectural hardening (shipped 2026-04-23) ─────────────────────────
+# ─── Architectural hardening (shipped 2026-04-23 on PR #9) ───────────────
 
 recent-hardening:
-  - 'Dynamic `await import("@pkg-action/core")` in orchestrator replaced with static named import (S4).'
-  - 'E2E workflow pull_request trigger now path-filtered so docs-only PRs do not burn CI minutes (S12).'
+  - 'E2E workflow pull_request trigger path-filtered so docs-only PRs do not burn CI minutes (S12).'
   - 'VERSION export driven by root package.json via esbuild `define`; runtime fallback reads the file in dev (S1).'
-  - '`yamlString` codegen helper now throws on embedded control chars — prevents silent action.yml corruption (S2).'
+  - '`yamlString` codegen helper throws on embedded control chars — prevents silent action.yml corruption (S2).'
   - 'CI coverage gate at 85% via scripts/check-coverage.ts parsing lcov (S6).'
-  - '`createDefaultDistributionPublisher` now takes `{ token }` deps object — shape symmetrical with createDefaultDockerPublisher (S11).'
+
+# ─── Removed (2026-04-23) ────────────────────────────────────────────────
+# Distribution scope reset. Use dedicated downstream actions instead.
+
+removed:
+  M5 release attach + release body templating:
+    what: 'attach-to-release, release-{tag,name,body,draft,prerelease}, generate-release-table inputs + ReleaseAttacher + buildReleaseBody + step-summary Release trailer.'
+    replacement: 'softprops/action-gh-release against steps.<id>.outputs.artifacts + outputs.checksums.'
+  M6.1 SLSA provenance:
+    what: 'provenance input + attest-build-provenance wiring in composite action.yml.'
+    replacement: 'actions/attest-build-provenance@v4 — one step chained after pkg-action.'
+  M6.2 SBOM:
+    what: 'sbom input + packages/core/src/sbom.ts (CycloneDX 1.5 + SPDX 2.3).'
+    replacement: 'anchore/sbom-action (Syft) against the produced binaries.'
+  M6.3 Docker OCI publish:
+    what: 'docker-* inputs + packages/core/src/docker.ts (multi-arch buildx + push + manifest list).'
+    replacement: 'docker/build-push-action against a hand-authored Dockerfile that COPYs the binary path from steps.<id>.outputs.binaries.'
+  M6.4 Homebrew tap PR:
+    what: 'homebrew-* inputs + renderHomebrewFormula + Octokit-backed DistributionPublisher.'
+    replacement: 'dedicated tap-updater actions (e.g. dawidd6/action-homebrew-bump-formula).'
+  M6.5 Scoop manifest PR:
+    what: 'scoop-* inputs + renderScoopManifest.'
+    replacement: 'dedicated bucket-updater actions.'
+  Workflow artifact upload:
+    what: 'upload-artifact + artifact-name inputs + @actions/artifact integration.'
+    replacement: 'actions/upload-artifact@v4 with path set from steps.<id>.outputs.artifacts.'
 
 # ─── Pending ─────────────────────────────────────────────────────────────
 
 pending:
   architecture:
     orchestrator-refactor:
-      issue: packages/build/src/main.ts is ~780 lines, mixing wiring with transforms.
-      plan: |
-        Extract into @pkg-action/core:
-          - finalizeBinary(out, ctx, deps) — rename → windows-metadata → sign → archive → checksum.
-          - createActionsExecBridge() — current inline execBridge (88-112) becomes testable.
-          - publishers.ts — publishHomebrew / publishScoop / publishDocker helpers.
-        Target: main.ts collapses to ~280 lines of wiring + error boundary.
-      size: 4-6 hours, dedicated PR.
+      issue: packages/build/src/main.ts now ~380 lines (down from ~780 after scope cut) but still mixes wiring with transforms.
+      plan: 'Extract `finalizeBinary(out, ctx, deps)` (rename → windows-metadata → sign → archive → checksum) into @pkg-action/core. Optional — cosmetic, not blocking v1.0.0.'
+      size: 2-3 hours, dedicated PR.
 
     subpath-exports:
-      issue: '@pkg-action/core barrel re-exports everything; unit tests pay unused transitive cost.'
-      plan: 'Add `"./signing"`, `"./distribution"`, `"./docker"`, `"./sbom"` subpath exports in packages/core/package.json.'
+      issue: '@pkg-action/core barrel re-exports everything; unit tests pay unused transitive cost. Less acute after distribution code removal.'
+      plan: 'Add `"./signing"`, `"./windows-metadata-apply"` subpath exports in packages/core/package.json.'
       size: 1 hour. Cosmetic unless test startup measured slow.
 
   e2e-coverage:
@@ -69,14 +95,12 @@ pending:
     - Wire self-signed certificate e2e for signing — ad-hoc codesign on macOS, New-SelfSignedCertificate on Windows. Exercises argv shape without real Developer ID.
 
   live-credential-e2e:
-    - Homebrew tap — disposable tap repo under the org + short-lived PAT.
-    - Scoop bucket — disposable bucket repo under the org + short-lived PAT.
     - Real signing — macOS Developer ID cert, Apple notarization creds, Windows code-signing cert.
-    Blocked on: organization decision about test-infra repos and secret provisioning.
+    Blocked on: organization decision about secret provisioning.
 
   release-readiness:
     - Bump root `package.json#version` to 1.0.0 at tag time — auto-propagates via esbuild define into every bundled sub-action.
-    - Write CHANGELOG.md covering M0 → M6 from git history.
+    - Write CHANGELOG.md covering M0 → M4 from git history (include 2026-04-23 scope cut as a prominent BREAKING note).
     - Self-hosted runner smoke for node24 (carried over from M-1).
     - GHES verification (out of reach without a GHES instance).
 
@@ -90,12 +114,6 @@ runtime-deps:
   '@actions/exec':
     version: ^3.0.0
     purpose: process spawning with GH log streaming.
-  '@actions/artifact':
-    version: ^6.2.1
-    purpose: workflow artifact upload (internal endpoint, cannot reimplement).
-  '@actions/github':
-    version: ^9.1.0
-    purpose: Octokit for release attach + Homebrew/Scoop PR creation.
   resedit:
     version: ^3.0.2
     purpose: Windows PE resource editing (pulls pe-library@^2.0.1 transitively).
@@ -126,9 +144,7 @@ gh-actions:
   actions/checkout: v6
   actions/setup-node: v6
   actions/cache: v5
-  actions/attest-build-provenance: v4
   github/codeql-action: v4
 
 known-issues:
-  - '@actions/artifact v6 client loaded via dynamic import + lazy access so tests never pull it.'
   - 'yarn install pulls transitive bare-os/bare-fs emitting invalid-engine warnings — cosmetic.'

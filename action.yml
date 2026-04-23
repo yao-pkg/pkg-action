@@ -2,7 +2,7 @@
 # Source of truth: packages/core/src/inputs.ts (INPUT_SPECS).
 # Regenerate with: yarn gen
 name: 'yao-pkg/pkg-action'
-description: 'Build, sign, archive, checksum, and publish Node.js binaries with @yao-pkg/pkg.'
+description: 'Build, optionally sign, archive, and checksum Node.js binaries with @yao-pkg/pkg.'
 author: 'yao-pkg contributors'
 branding:
   icon: 'package'
@@ -130,75 +130,6 @@ inputs:
     description: 'Azure Trusted Signing: endpoint URL.'
   azure-cert-profile:
     description: 'Azure Trusted Signing: certificate profile name.'
-  upload-artifact:
-    description: 'Upload each produced file as a workflow artifact.'
-    default: 'true'
-  artifact-name:
-    description: 'Artifact name template. Must be unique per target (@actions/artifact v2 rejects collisions).'
-    default: '{name}-{version}-{target}'
-  attach-to-release:
-    description: 'Attach artifacts to the release matching the triggering tag.'
-    default: 'false'
-  release-tag:
-    description: 'Override the release tag. Required for non-tag triggers when attach-to-release is true.'
-  release-name:
-    description: 'Release title (optional override).'
-  release-body:
-    description: 'Release body (optional override).'
-  release-draft:
-    description: 'Mark the release as draft.'
-    default: 'false'
-  release-prerelease:
-    description: 'Mark the release as prerelease.'
-    default: 'false'
-  generate-release-table:
-    description: 'Append a markdown table of binaries + sizes + checksums to the release body.'
-    default: 'true'
-  homebrew-tap-repo:
-    description: 'owner/repo of a homebrew-tap. When set, opens a PR with an updated formula.'
-  homebrew-tap-token:
-    description: 'PAT with contents:write on the tap repo. Falls back to GITHUB_TOKEN.'
-  homebrew-formula-name:
-    description: 'Formula filename without .rb. Defaults to the project name.'
-  homebrew-formula-description:
-    description: 'Formula description (desc). Defaults to package.json "description".'
-  homebrew-formula-homepage:
-    description: 'Formula homepage. Defaults to the repository URL.'
-  homebrew-formula-license:
-    description: 'Formula license string. Defaults to package.json "license".'
-  homebrew-formula-binary:
-    description: 'Binary name installed into $prefix/bin. Defaults to the formula name.'
-  homebrew-tap-branch:
-    description: 'Branch to push the updated formula on. Defaults to pkg-action/<project>-<version>.'
-  docker-image:
-    description: 'OCI image reference with optional {version}/{tag}/{sha} tokens, e.g. ghcr.io/org/app:{version}. When set, the linux-* binaries are pushed as an OCI image.'
-  docker-registry:
-    description: 'Registry host for auth. Derived from docker-image when unset.'
-  docker-username:
-    description: 'Registry username. Paired with docker-password.'
-  docker-password:
-    description: 'Registry password or token.'
-  docker-base-image:
-    description: 'Base image the generated Dockerfile FROMs. Defaults to distroless/cc — the cc variant bundles libc/libstdc++/libgcc that the pkg-packaged Node binary links against.'
-    default: 'gcr.io/distroless/cc-debian12:latest'
-  docker-dockerfile:
-    description: 'Path to a user-supplied Dockerfile. Skips the generated minimal layout.'
-  scoop-bucket-repo:
-    description: 'owner/repo of a scoop bucket. When set, opens a PR with an updated manifest.'
-  scoop-bucket-token:
-    description: 'PAT with contents:write on the bucket repo. Falls back to GITHUB_TOKEN.'
-  scoop-manifest-name:
-    description: 'Manifest filename without .json. Defaults to the project name.'
-  scoop-manifest-description:
-    description: 'Manifest description. Defaults to package.json "description".'
-  scoop-manifest-homepage:
-    description: 'Manifest homepage. Defaults to the repository URL.'
-  scoop-manifest-license:
-    description: 'Manifest license. Defaults to package.json "license".'
-  scoop-manifest-binary:
-    description: 'Binary name inside the archive. Defaults to <manifest-name>.exe.'
-  scoop-bucket-branch:
-    description: 'Branch to push the updated manifest on. Defaults to pkg-action/<project>-<version>.'
   cache:
     description: 'Cache the pkg-fetch Node downloads between runs.'
     default: 'true'
@@ -207,12 +138,6 @@ inputs:
   step-summary:
     description: 'Write a markdown summary of build time / size / checksum to the job summary.'
     default: 'true'
-  sbom:
-    description: 'Generate a Software Bill of Materials: none | cyclonedx | spdx. Written alongside the artifacts and attached to the release when attach-to-release=true.'
-    default: 'none'
-  provenance:
-    description: 'Emit SLSA provenance attestation via actions/attest-build-provenance.'
-    default: 'false'
 
 outputs:
   binaries:
@@ -224,12 +149,12 @@ outputs:
   checksums:
     description: 'JSON array of absolute paths to SHASUMS*.txt files.'
     value: ${{ steps.pkg-action-build.outputs.checksums }}
+  digests:
+    description: 'JSON object mapping each artifact basename to its {algo: hex} digest map, e.g. {"app-1.0.0-linux-x64.tar.gz": {"sha256": "…"}}.'
+    value: ${{ steps.pkg-action-build.outputs.digests }}
   version:
     description: 'Resolved package.json version used in filename templates.'
     value: ${{ steps.pkg-action-build.outputs.version }}
-  release-url:
-    description: 'Absolute URL to the GitHub release the action attached to. Empty when attach-to-release=false.'
-    value: ${{ steps.pkg-action-build.outputs.release-url }}
 
 runs:
   using: 'composite'
@@ -308,63 +233,6 @@ runs:
           azure-client-secret: ${{ inputs.azure-client-secret }}
           azure-endpoint: ${{ inputs.azure-endpoint }}
           azure-cert-profile: ${{ inputs.azure-cert-profile }}
-          upload-artifact: ${{ inputs.upload-artifact }}
-          artifact-name: ${{ inputs.artifact-name }}
-          attach-to-release: ${{ inputs.attach-to-release }}
-          release-tag: ${{ inputs.release-tag }}
-          release-name: ${{ inputs.release-name }}
-          release-body: ${{ inputs.release-body }}
-          release-draft: ${{ inputs.release-draft }}
-          release-prerelease: ${{ inputs.release-prerelease }}
-          generate-release-table: ${{ inputs.generate-release-table }}
-          homebrew-tap-repo: ${{ inputs.homebrew-tap-repo }}
-          homebrew-tap-token: ${{ inputs.homebrew-tap-token }}
-          homebrew-formula-name: ${{ inputs.homebrew-formula-name }}
-          homebrew-formula-description: ${{ inputs.homebrew-formula-description }}
-          homebrew-formula-homepage: ${{ inputs.homebrew-formula-homepage }}
-          homebrew-formula-license: ${{ inputs.homebrew-formula-license }}
-          homebrew-formula-binary: ${{ inputs.homebrew-formula-binary }}
-          homebrew-tap-branch: ${{ inputs.homebrew-tap-branch }}
-          docker-image: ${{ inputs.docker-image }}
-          docker-registry: ${{ inputs.docker-registry }}
-          docker-username: ${{ inputs.docker-username }}
-          docker-password: ${{ inputs.docker-password }}
-          docker-base-image: ${{ inputs.docker-base-image }}
-          docker-dockerfile: ${{ inputs.docker-dockerfile }}
-          scoop-bucket-repo: ${{ inputs.scoop-bucket-repo }}
-          scoop-bucket-token: ${{ inputs.scoop-bucket-token }}
-          scoop-manifest-name: ${{ inputs.scoop-manifest-name }}
-          scoop-manifest-description: ${{ inputs.scoop-manifest-description }}
-          scoop-manifest-homepage: ${{ inputs.scoop-manifest-homepage }}
-          scoop-manifest-license: ${{ inputs.scoop-manifest-license }}
-          scoop-manifest-binary: ${{ inputs.scoop-manifest-binary }}
-          scoop-bucket-branch: ${{ inputs.scoop-bucket-branch }}
           cache: ${{ inputs.cache }}
           cache-key: ${{ inputs.cache-key }}
           step-summary: ${{ inputs.step-summary }}
-          sbom: ${{ inputs.sbom }}
-          provenance: ${{ inputs.provenance }}
-
-    # ── Provenance (SLSA build-provenance attestation) ──────────────────
-    # Gated on inputs.provenance=='true'. Requires permissions:
-    #   id-token: write
-    #   attestations: write
-    # on the caller workflow. Without them, attest-build-provenance fails
-    # fast with a clear error — we do NOT swallow it because a silent
-    # missing attestation defeats the point of the feature.
-    - name: Collect provenance subject paths
-      if: ${{ inputs.provenance == 'true' }}
-      id: pkg-action-provenance-subjects
-      shell: bash
-      run: |
-        {
-          echo 'paths<<PKG_ACTION_EOF'
-          echo '${{ steps.pkg-action-build.outputs.artifacts }}' | jq -r '.[]'
-          echo 'PKG_ACTION_EOF'
-        } >> "${GITHUB_OUTPUT}"
-
-    - name: Attest build provenance
-      if: ${{ inputs.provenance == 'true' }}
-      uses: actions/attest-build-provenance@v4
-      with:
-        subject-path: ${{ steps.pkg-action-provenance-subjects.outputs.paths }}
