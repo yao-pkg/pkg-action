@@ -32,7 +32,6 @@ import {
   actionsLogger,
   applyWindowsMetadata,
   archive,
-  buildPkgArgs,
   computeAllChecksums,
   createInvocationTemp,
   formatErrorChain,
@@ -99,6 +98,7 @@ const execBridge: ExecFn = async (command, args, options) => {
 
 async function main(): Promise<void> {
   const logger = actionsLogger;
+  const overallStart = Date.now();
   logger.info(`pkg-action build v${VERSION} — orchestrator starting`);
 
   // 1. Parse inputs. Secrets are registered via core.setSecret BEFORE any
@@ -162,23 +162,31 @@ async function main(): Promise<void> {
     inputs.build.config !== undefined &&
     pathBasename(inputs.build.config).toLowerCase() === 'package.json';
   const pkgBuildInputs = cfgIsPackageJson ? { ...inputs.build, config: undefined } : inputs.build;
-  const pkgArgs = buildPkgArgs({
-    build: pkgBuildInputs,
-    targets: resolvedTargets,
-    outputDir: pkgOutputDir,
-  });
-  logger.info(`[pkg-action] pkg ${pkgArgs.join(' ')}`);
-  const started = Date.now();
-  await runPkg(
-    {
-      build: pkgBuildInputs,
-      targets: resolvedTargets,
-      outputDir: pkgOutputDir,
-      cwd: projectDir,
-    },
-    { exec: execBridge, logger, pkgCommand },
-  );
-  const pkgDurationMs = Date.now() - started;
+  // Fold the pkg invocation into its own group — "Walking dependencies",
+  // "Downloading nodejs executable", "Generating SEA assets", plus the
+  // GH-Actions `[command]` echo and any warnings, can easily be 30+ lines
+  // on a multi-target run. The summary line below the group gives wall
+  // time at a glance without expanding.
+  // runPkg logs the full command itself via "Invoking: …" — no need to
+  // pre-log the argv here.
+  const pkgTargetsLabel = resolvedTargets.map(formatTarget).join(', ');
+  logger.startGroup(`[pkg-action] pkg build (targets=${pkgTargetsLabel})`);
+  const runStart = Date.now();
+  try {
+    await runPkg(
+      {
+        build: pkgBuildInputs,
+        targets: resolvedTargets,
+        outputDir: pkgOutputDir,
+        cwd: projectDir,
+      },
+      { exec: execBridge, logger, pkgCommand },
+    );
+  } finally {
+    logger.endGroup();
+  }
+  const pkgDurationMs = Date.now() - runStart;
+  logger.info(`[pkg-action] pkg finished in ${formatSeconds(pkgDurationMs)}`);
 
   // 6. Reconcile on-disk outputs to targets.
   const pkgOutputs = await mapPkgOutputs(resolvedTargets, project.name, pkgOutputDir);
@@ -220,65 +228,86 @@ async function main(): Promise<void> {
     const renamedPath = join(finalDir, renamed);
     await rename(out.path, renamedPath);
 
-    // 7.5. Patch Windows metadata in-place before archiving. Only win-*
-    //      targets receive a PE resource section; the call is a no-op
-    //      otherwise, but skipping it avoids reading the binary off disk.
-    if (windowsMeta !== null && out.target.os === 'win') {
-      const perBinary: WindowsMetadataInputs = {
-        ...windowsMeta,
-        originalFilename: windowsMeta.originalFilename ?? pathBasename(renamedPath),
+    // Group per-target work in the GH Actions log so each target folds
+    // into its own collapsible section — makes matrix logs scannable.
+    logger.startGroup(`[pkg-action] finalize ${formatTarget(out.target)} → ${renamed}`);
+    try {
+      // 7.5. Patch Windows metadata in-place before archiving. Only win-*
+      //      targets receive a PE resource section; the call is a no-op
+      //      otherwise, but skipping it avoids reading the binary off disk.
+      if (windowsMeta !== null && out.target.os === 'win') {
+        const perBinary: WindowsMetadataInputs = {
+          ...windowsMeta,
+          originalFilename: windowsMeta.originalFilename ?? pathBasename(renamedPath),
+        };
+        await applyWindowsMetadata(renamedPath, renamedPath, perBinary);
+        logger.info(`[pkg-action] Patched Windows resources on ${renamedPath}.`);
+      }
+
+      // 7.6. Sign the binary, if configured for this target's OS. We sign
+      //      AFTER the metadata patch (signing covers the whole binary
+      //      including its resource section) and BEFORE archive/checksum
+      //      so the shasum reflects the signed bytes.
+      let signedFlag = false;
+      if (signing !== null) {
+        signedFlag = await signOneTarget(
+          { targetOs: out.target.os, binaryPath: renamedPath },
+          signing,
+          {
+            exec: execBridge,
+            logger,
+            tempDir: invocationDir,
+          },
+        );
+      }
+
+      finalizedBinaries.push(renamedPath);
+
+      let finalPath: string;
+      if (inputs.postBuild.compress === 'none') {
+        finalPath = renamedPath;
+      } else {
+        logger.info(
+          `[pkg-action] archive → ${pathBasename(renamedPath)} (format=${inputs.postBuild.compress})`,
+        );
+        const archStart = Date.now();
+        finalPath = await archiveBinary(out, renamedPath, inputs, tokens);
+        const archSize = (await stat(finalPath)).size;
+        logger.info(
+          `[pkg-action] archived ${pathBasename(finalPath)} (${formatBytes(archSize)}, ${formatSeconds(Date.now() - archStart)})`,
+        );
+      }
+      finalizedArtifacts.push(finalPath);
+
+      // Checksums — log each digest so a downstream failure trivially
+      // diffs against a local recompute.
+      const rowDigest = await finalizeChecksums(finalPath, inputs.postBuild.checksum);
+      for (const entry of rowDigest.entries) {
+        shasumEntries.push(entry);
+        logger.info(`[pkg-action] ${entry.algo} ${entry.digest}  ${pathBasename(finalPath)}`);
+      }
+      if (rowDigest.entries.length > 0) {
+        const key = pathBasename(finalPath);
+        const byAlgo: Partial<Record<ChecksumAlgorithm, string>> = {};
+        for (const entry of rowDigest.entries) byAlgo[entry.algo] = entry.digest;
+        digestsByArtifact[key] = byAlgo;
+      }
+
+      const { size } = await stat(finalPath);
+      const row: SummaryRow = {
+        target: formatTarget(out.target),
+        filename: finalPath,
+        sizeBytes: size,
+        ...(signedFlag ? { signed: true } : {}),
       };
-      await applyWindowsMetadata(renamedPath, renamedPath, perBinary);
-      logger.info(`[pkg-action] Patched Windows resources on ${renamedPath}.`);
+      if (rowDigest.primary !== undefined) {
+        (row as { primaryDigest?: { algo: ChecksumAlgorithm; value: string } }).primaryDigest =
+          rowDigest.primary;
+      }
+      summaryRows.push(row);
+    } finally {
+      logger.endGroup();
     }
-
-    // 7.6. Sign the binary, if configured for this target's OS. We sign
-    //      AFTER the metadata patch (signing covers the whole binary
-    //      including its resource section) and BEFORE archive/checksum
-    //      so the shasum reflects the signed bytes.
-    let signedFlag = false;
-    if (signing !== null) {
-      signedFlag = await signOneTarget(
-        { targetOs: out.target.os, binaryPath: renamedPath },
-        signing,
-        {
-          exec: execBridge,
-          logger,
-          tempDir: invocationDir,
-        },
-      );
-    }
-
-    finalizedBinaries.push(renamedPath);
-
-    const finalPath =
-      inputs.postBuild.compress === 'none'
-        ? renamedPath
-        : await archiveBinary(out, renamedPath, inputs, tokens);
-    finalizedArtifacts.push(finalPath);
-
-    // Checksums.
-    const rowDigest = await finalizeChecksums(finalPath, inputs.postBuild.checksum);
-    for (const entry of rowDigest.entries) shasumEntries.push(entry);
-    if (rowDigest.entries.length > 0) {
-      const key = pathBasename(finalPath);
-      const byAlgo: Partial<Record<ChecksumAlgorithm, string>> = {};
-      for (const entry of rowDigest.entries) byAlgo[entry.algo] = entry.digest;
-      digestsByArtifact[key] = byAlgo;
-    }
-
-    const { size } = await stat(finalPath);
-    const row: SummaryRow = {
-      target: formatTarget(out.target),
-      filename: finalPath,
-      sizeBytes: size,
-      ...(signedFlag ? { signed: true } : {}),
-    };
-    if (rowDigest.primary !== undefined) {
-      (row as { primaryDigest?: { algo: ChecksumAlgorithm; value: string } }).primaryDigest =
-        rowDigest.primary;
-    }
-    summaryRows.push(row);
   }
 
   // 8. Combined SHASUMS file(s) — one per requested algo.
@@ -290,6 +319,9 @@ async function main(): Promise<void> {
       const shasumPath = join(finalDir, `SHASUMS${algo.toUpperCase()}.txt`);
       await writeShasumsFile(shasumPath, entries);
       shasumsFiles.push(shasumPath);
+      logger.info(
+        `[pkg-action] wrote ${pathBasename(shasumPath)} (${String(entries.length)} entr${entries.length === 1 ? 'y' : 'ies'})`,
+      );
     }
   }
 
@@ -313,7 +345,22 @@ async function main(): Promise<void> {
   core.setOutput('digests', JSON.stringify(digestsByArtifact));
   core.setOutput('version', project.version);
 
-  logger.info(`pkg-action build — done (${String(pkgOutputs.length)} binary/binaries produced)`);
+  logger.info(
+    `pkg-action build — done (${String(pkgOutputs.length)} binary/binaries in ${formatSeconds(Date.now() - overallStart)})`,
+  );
+}
+
+// ─── Log helpers ──────────────────────────────────────────────────────────
+
+function formatSeconds(ms: number): string {
+  return `${(ms / 1000).toFixed(1)}s`;
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${String(bytes)} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────

@@ -110,20 +110,22 @@ async function shellTar(
     fileName = entry;
   }
 
-  // Normalize the on-disk mtime in addition to passing --mtime to tar. Both
-  // GNU tar and bsdtar honor --mtime, but pinning the source file is the
-  // belt-and-suspenders guarantee (bsdtar before libarchive 3.3 used to
-  // ignore --mtime in some modes). Also defends zero-byte-delta across OSes
-  // when tar's flag handling diverges on edge cases.
+  // Normalize the on-disk mtime so the tar header inherits the pinned
+  // timestamp regardless of whether the caller's tar supports --mtime.
+  // Required: bsdtar builds on the macos-latest GitHub runner reject
+  // `--mtime` outright ("Option --mtime is not supported"), despite the
+  // libarchive upstream accepting it — so we can't rely on the flag.
   await utimes(inputPath, REPRO_MTIME, REPRO_MTIME);
 
   // Owner/group zeroing flags diverge:
   //   GNU tar (linux)      → --owner=0 --group=0
   //   bsdtar (macos, win)  → --uid=0 --gid=0
-  // `--numeric-owner` + `--mtime` are common to both. Branching on host
-  // platform avoids a `tar --version` probe per archive.
-  const ownerFlags =
-    process.platform === 'linux' ? ['--owner=0', '--group=0'] : ['--uid=0', '--gid=0'];
+  // `--numeric-owner` is common to both. `--mtime` is GNU-tar only in
+  // practice — we drop it on non-Linux and rely on the utimes pre-pin
+  // above (archive() is single-file, so the header inherits that mtime).
+  const isLinux = process.platform === 'linux';
+  const ownerFlags = isLinux ? ['--owner=0', '--group=0'] : ['--uid=0', '--gid=0'];
+  const mtimeFlags = isLinux ? ['--mtime', REPRO_MTIME_TAR] : [];
 
   try {
     const result = await deps.exec(
@@ -133,8 +135,7 @@ async function shellTar(
         compressFlag,
         '-f',
         outputPath,
-        '--mtime',
-        REPRO_MTIME_TAR,
+        ...mtimeFlags,
         ...ownerFlags,
         '--numeric-owner',
         '-C',

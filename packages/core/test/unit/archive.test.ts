@@ -112,7 +112,7 @@ test('archive: tar.gz shells out with correct args', async () => {
   });
 });
 
-test('archive: tar passes reproducibility flags (--mtime + owner/group zero + --numeric-owner)', async () => {
+test('archive: tar passes reproducibility flags (--mtime on GNU tar + owner/group zero + --numeric-owner)', async () => {
   await withTempPair(async (inputPath, outputPath) => {
     const calls: Array<{ cmd: string; args: readonly string[] }> = [];
     const exec: ExecFn = async (cmd, args) => {
@@ -122,18 +122,21 @@ test('archive: tar passes reproducibility flags (--mtime + owner/group zero + --
     const tarOut = outputPath.replace('.zip', '.tar.gz');
     await archive({ inputPath, outputPath: tarOut, format: 'tar.gz' }, { exec });
     const args = calls[0]?.args ?? [];
-    ok(args.includes('--mtime'));
-    const mtimeIdx = args.indexOf('--mtime');
-    strictEqual(args[mtimeIdx + 1], '2020-01-01 00:00:00 UTC');
     ok(args.includes('--numeric-owner'));
-    // Owner-zero flags diverge between GNU and bsdtar; the pair must land
-    // together and match the host platform.
+    // Flags that diverge between GNU tar and bsdtar:
+    //   --owner/--group vs --uid/--gid (both accept --numeric-owner).
+    //   --mtime is GNU-only in practice — the macOS runner's bsdtar
+    //   rejects it, so we emit it on Linux only.
     if (process.platform === 'linux') {
       ok(args.includes('--owner=0'), 'GNU tar expects --owner=0');
       ok(args.includes('--group=0'), 'GNU tar expects --group=0');
+      ok(args.includes('--mtime'), 'GNU tar path should pin --mtime');
+      const mtimeIdx = args.indexOf('--mtime');
+      strictEqual(args[mtimeIdx + 1], '2020-01-01 00:00:00 UTC');
     } else {
       ok(args.includes('--uid=0'), 'bsdtar expects --uid=0');
       ok(args.includes('--gid=0'), 'bsdtar expects --gid=0');
+      ok(!args.includes('--mtime'), 'bsdtar path should omit --mtime');
     }
   });
 });
