@@ -125,7 +125,7 @@ runs:
       uses: actions/cache@v5
       with:
         path: \${{ runner.temp }}/pkg-cache
-        key: \${{ inputs.cache-key || format('pkg-fetch-{0}-{1}-node{2}-{3}', runner.os, runner.arch, inputs.node-version, hashFiles('**/package.json', '.pkgrc*', '**/pkg.config.{js,ts,json}')) }}
+        key: \${{ inputs.cache-key || format('pkg-fetch-{0}-{1}-{2}', runner.os, runner.arch, hashFiles('**/package.json', '.pkgrc*', '**/pkg.config.{js,ts,json}')) }}
 
     - name: Install @yao-pkg/pkg
       if: \${{ inputs.pkg-path == '' }}

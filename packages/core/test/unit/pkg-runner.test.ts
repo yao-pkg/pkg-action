@@ -9,20 +9,21 @@ const BASE_BUILD: BuildInputs = {
   config: undefined,
   entry: undefined,
   targets: 'host',
-  mode: 'standard',
-  nodeVersion: '22',
-  compressNode: 'None',
-  fallbackToSource: false,
-  public: false,
-  publicPackages: [],
-  options: [],
-  noBytecode: false,
-  noDict: [],
-  debug: false,
-  extraArgs: undefined,
   pkgVersion: '~6.16.0',
   pkgPath: undefined,
 };
+
+const PKG_FLAGS_OWNED_BY_CONFIG = [
+  '--sea',
+  '--compress',
+  '--fallback-to-source',
+  '--public',
+  '--public-packages',
+  '--options',
+  '--no-bytecode',
+  '--no-dict',
+  '--debug',
+];
 
 test('buildPkgArgs: minimal invocation', () => {
   const args = buildPkgArgs({
@@ -33,43 +34,15 @@ test('buildPkgArgs: minimal invocation', () => {
   deepStrictEqual(args, ['--targets', 'node22-linux-x64', '--out-path', '/tmp/out', '.']);
 });
 
-test('buildPkgArgs: SEA mode + compression + fallback', () => {
+test('buildPkgArgs: never emits pkg-layer flags (those belong in config)', () => {
   const args = buildPkgArgs({
-    build: { ...BASE_BUILD, mode: 'sea', compressNode: 'Brotli', fallbackToSource: true },
+    build: BASE_BUILD,
     targets: [{ node: 22, os: 'linux', arch: 'x64' }],
     outputDir: '/tmp/out',
   });
-  const joined = args.join(' ');
-  strictEqual(joined.includes('--sea'), true);
-  strictEqual(joined.includes('--compress Brotli'), true);
-  strictEqual(joined.includes('--fallback-to-source'), true);
-});
-
-test('buildPkgArgs: public + public-packages + options', () => {
-  const args = buildPkgArgs({
-    build: {
-      ...BASE_BUILD,
-      public: true,
-      publicPackages: ['express', 'lodash'],
-      options: ['expose-gc', 'max-old-space-size=4096'],
-    },
-    targets: [{ node: 22, os: 'linux', arch: 'x64' }],
-    outputDir: '/tmp/out',
-  });
-  strictEqual(args.includes('--public'), true);
-  strictEqual(args.indexOf('--public-packages') + 1, args.indexOf('express,lodash'));
-  strictEqual(args.indexOf('--options') + 1, args.indexOf('expose-gc,max-old-space-size=4096'));
-});
-
-test('buildPkgArgs: no-bytecode + no-dict + debug', () => {
-  const args = buildPkgArgs({
-    build: { ...BASE_BUILD, noBytecode: true, noDict: ['*'], debug: true },
-    targets: [{ node: 22, os: 'linux', arch: 'x64' }],
-    outputDir: '/tmp/out',
-  });
-  strictEqual(args.includes('--no-bytecode'), true);
-  strictEqual(args.indexOf('--no-dict') + 1, args.indexOf('*'));
-  strictEqual(args.includes('--debug'), true);
+  for (const flag of PKG_FLAGS_OWNED_BY_CONFIG) {
+    strictEqual(args.includes(flag), false, `unexpected flag ${flag}`);
+  }
 });
 
 test('buildPkgArgs: custom config + entry', () => {
@@ -95,22 +68,6 @@ test('buildPkgArgs: multi-target list is comma-joined', () => {
   });
   const i = args.indexOf('--targets');
   strictEqual(args[i + 1], 'node22-linux-x64,node22-macos-arm64,node22-win-x64');
-});
-
-test('buildPkgArgs: extra-args tokens get appended before entry', () => {
-  const args = buildPkgArgs({
-    build: { ...BASE_BUILD, extraArgs: '--foo bar --baz' },
-    targets: [{ node: 22, os: 'linux', arch: 'x64' }],
-    outputDir: '/tmp/out',
-  });
-  // Extra args appear after --out-path but before entry.
-  const outIdx = args.indexOf('--out-path');
-  const fooIdx = args.indexOf('--foo');
-  const bazIdx = args.indexOf('--baz');
-  const entryIdx = args.indexOf('.');
-  strictEqual(outIdx < fooIdx, true);
-  strictEqual(fooIdx < bazIdx, true);
-  strictEqual(bazIdx < entryIdx, true);
 });
 
 test('runPkg passes through a successful exec', async () => {

@@ -14777,63 +14777,6 @@ var INPUT_SPECS = [
     description: "Comma- or newline-separated pkg target triples, e.g. node22-linux-x64,node22-macos-arm64. Defaults to the host target."
   },
   {
-    name: "mode",
-    category: "build",
-    description: "standard | sea \u2014 selects pkg Standard or SEA mode.",
-    default: "standard"
-  },
-  {
-    name: "node-version",
-    category: "build",
-    description: "pkg's bundled Node.js major (e.g. 22, 24). Does not affect the action's own Node runtime.",
-    default: "22"
-  },
-  {
-    name: "compress-node",
-    category: "build",
-    description: "pkg's bundled-binary compression: Brotli | GZip | None.",
-    default: "None"
-  },
-  {
-    name: "fallback-to-source",
-    category: "build",
-    description: "Pass pkg --fallback-to-source for bytecode-fabricator failures.",
-    default: "false"
-  },
-  {
-    name: "public",
-    category: "build",
-    description: "Pass pkg --public (ships sources as plaintext).",
-    default: "false"
-  },
-  {
-    name: "public-packages",
-    category: "build",
-    description: "Comma-separated package names to mark public (pkg --public-packages)."
-  },
-  {
-    name: "options",
-    category: "build",
-    description: "Comma-separated V8 options baked into the binary (pkg --options)."
-  },
-  {
-    name: "no-bytecode",
-    category: "build",
-    description: "Pass pkg --no-bytecode.",
-    default: "false"
-  },
-  {
-    name: "no-dict",
-    category: "build",
-    description: "Comma-separated list of packages for pkg --no-dict (or * for all)."
-  },
-  { name: "debug", category: "build", description: "Pass pkg --debug.", default: "false" },
-  {
-    name: "extra-args",
-    category: "build",
-    description: "Raw extra flags appended to the pkg CLI invocation."
-  },
-  {
     name: "pkg-version",
     category: "build",
     description: "npm version specifier for @yao-pkg/pkg (e.g. ~6.16.0). Bypassed when pkg-path is set.",
@@ -15124,21 +15067,6 @@ function parseInputs(opts = {}) {
     config: readInput(env, "config"),
     entry: readInput(env, "entry"),
     targets,
-    mode: parseEnum(readInput(env, "mode"), "mode", ["standard", "sea"]),
-    nodeVersion: readInput(env, "node-version") ?? "22",
-    compressNode: parseEnum(readInput(env, "compress-node"), "compress-node", [
-      "Brotli",
-      "GZip",
-      "None"
-    ]),
-    fallbackToSource: parseBoolean(readInput(env, "fallback-to-source"), "fallback-to-source"),
-    public: parseBoolean(readInput(env, "public"), "public"),
-    publicPackages: parseList(readInput(env, "public-packages")),
-    options: parseList(readInput(env, "options")),
-    noBytecode: parseBoolean(readInput(env, "no-bytecode"), "no-bytecode"),
-    noDict: parseList(readInput(env, "no-dict")),
-    debug: parseBoolean(readInput(env, "debug"), "debug"),
-    extraArgs: readInput(env, "extra-args"),
     pkgVersion: readInput(env, "pkg-version") ?? "~6.16.0",
     pkgPath: readInput(env, "pkg-path")
   }, postBuild = {
@@ -15193,9 +15121,7 @@ function levenshtein2(a, b) {
 // packages/core/src/pkg-runner.ts
 function buildPkgArgs(inv) {
   let args = [];
-  if (inv.targets.length > 0 && args.push("--targets", inv.targets.map(formatTarget).join(",")), inv.build.config !== void 0 && args.push("--config", inv.build.config), inv.build.mode === "sea" && args.push("--sea"), inv.build.compressNode !== "None" && args.push("--compress", inv.build.compressNode), inv.build.fallbackToSource && args.push("--fallback-to-source"), inv.build.public && args.push("--public"), inv.build.publicPackages.length > 0 && args.push("--public-packages", inv.build.publicPackages.join(",")), inv.build.options.length > 0 && args.push("--options", inv.build.options.join(",")), inv.build.noBytecode && args.push("--no-bytecode"), inv.build.noDict.length > 0 && args.push("--no-dict", inv.build.noDict.join(",")), inv.build.debug && args.push("--debug"), args.push("--out-path", inv.outputDir), inv.build.extraArgs !== void 0 && inv.build.extraArgs.trim() !== "")
-    for (let tok of inv.build.extraArgs.split(/\s+/).filter((s) => s.length > 0))
-      args.push(tok);
+  inv.targets.length > 0 && args.push("--targets", inv.targets.map(formatTarget).join(",")), inv.build.config !== void 0 && args.push("--config", inv.build.config), args.push("--out-path", inv.outputDir);
   let entry = inv.build.entry ?? ".";
   return args.push(entry), args;
 }

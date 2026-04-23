@@ -48,6 +48,27 @@ recent-hardening:
   - '`yamlString` codegen helper throws on embedded control chars — prevents silent action.yml corruption (S2).'
   - 'CI coverage gate at 85% via scripts/check-coverage.ts parsing lcov (S6).'
 
+# ─── Input-surface slim (2026-04-23) ─────────────────────────────────────
+# Stop mirroring pkg's CLI. Pkg-specific knobs live in the user's pkg config;
+# the action owns only concerns pkg config cannot express (CI-matrix targets,
+# pkg install version, archive, checksum, windows-metadata, signing, cache).
+
+input-surface-slim:
+  dropped-inputs:
+    - mode
+    - node-version
+    - compress-node
+    - fallback-to-source
+    - public
+    - public-packages
+    - options
+    - no-bytecode
+    - no-dict
+    - debug
+    - extra-args
+  migration: 'Move each value into .pkgrc / pkg.config.{js,ts,json} or the `pkg` field of package.json. `buildPkgArgs` forwards the config path to pkg.'
+  breaking: 'yes — users setting any dropped input will see the unknown-input warning and the value will be ignored. Release note required.'
+
 # ─── Removed (2026-04-23) ────────────────────────────────────────────────
 # Distribution scope reset. Use dedicated downstream actions instead.
 

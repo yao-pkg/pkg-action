@@ -31,6 +31,40 @@ Tracking issue: [yao-pkg/pkg#248](https://github.com/yao-pkg/pkg/issues/248).
     path: "${{ join(fromJson(steps.build.outputs.artifacts), '\n') }}"
 ```
 
+## pkg configuration
+
+The action does **not** mirror pkg's CLI flags as inputs. Pkg-specific knobs
+— SEA mode, bundled Node compression, `public` / `publicPackages`, V8
+`options`, `noBytecode`, `noDict`, `debug`, bytecode-fabricator fallback —
+live in your pkg config file (`.pkgrc.json`, `pkg.config.{js,ts,json}`, or
+the `pkg` field of `package.json`). See
+[yao-pkg/pkg's README](https://github.com/yao-pkg/pkg#config) for the full
+schema.
+
+Example — SEA mode with Brotli-compressed Node + fallback:
+
+```jsonc
+// .pkgrc.json
+{
+  "bin": "src/main.js",
+  "mode": "sea",
+  "compressNode": "Brotli",
+  "fallbackToSource": true,
+}
+```
+
+```yaml
+- uses: yao-pkg/pkg-action@v1
+  with:
+    config: .pkgrc.json
+    targets: node22-linux-x64
+```
+
+The action's inputs cover only concerns pkg config cannot express: matrix
+targets, pkg install version/path, archive format, filename template,
+checksum algorithms, Windows-metadata resedit patch, macOS/Windows signing,
+cache, step summary.
+
 ## Outputs
 
 | Output      | Shape                                                                     |

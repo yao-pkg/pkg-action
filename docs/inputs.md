@@ -11,17 +11,6 @@ Every `pkg-action` input, grouped by category.
 | `config` | — | no | no | Path to a pkg config (.pkgrc, pkg.config.{js,ts,json}, or package.json). Auto-detected when omitted. |
 | `entry` | — | no | no | Entry script when not specified in the config. |
 | `targets` | — | no | no | Comma- or newline-separated pkg target triples, e.g. node22-linux-x64,node22-macos-arm64. Defaults to the host target. |
-| `mode` | `standard` | no | no | standard \| sea — selects pkg Standard or SEA mode. |
-| `node-version` | `22` | no | no | pkg's bundled Node.js major (e.g. 22, 24). Does not affect the action's own Node runtime. |
-| `compress-node` | `None` | no | no | pkg's bundled-binary compression: Brotli \| GZip \| None. |
-| `fallback-to-source` | `false` | no | no | Pass pkg --fallback-to-source for bytecode-fabricator failures. |
-| `public` | `false` | no | no | Pass pkg --public (ships sources as plaintext). |
-| `public-packages` | — | no | no | Comma-separated package names to mark public (pkg --public-packages). |
-| `options` | — | no | no | Comma-separated V8 options baked into the binary (pkg --options). |
-| `no-bytecode` | `false` | no | no | Pass pkg --no-bytecode. |
-| `no-dict` | — | no | no | Comma-separated list of packages for pkg --no-dict (or * for all). |
-| `debug` | `false` | no | no | Pass pkg --debug. |
-| `extra-args` | — | no | no | Raw extra flags appended to the pkg CLI invocation. |
 | `pkg-version` | `~6.16.0` | no | no | npm version specifier for @yao-pkg/pkg (e.g. ~6.16.0). Bypassed when pkg-path is set. |
 | `pkg-path` | — | no | no | Absolute path to a pre-installed pkg binary. Skips the implicit npm i -g. |
 

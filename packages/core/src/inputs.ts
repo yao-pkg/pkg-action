@@ -50,64 +50,6 @@ export const INPUT_SPECS: readonly InputSpec[] = [
       'Comma- or newline-separated pkg target triples, e.g. node22-linux-x64,node22-macos-arm64. Defaults to the host target.',
   },
   {
-    name: 'mode',
-    category: 'build',
-    description: 'standard | sea — selects pkg Standard or SEA mode.',
-    default: 'standard',
-  },
-  {
-    name: 'node-version',
-    category: 'build',
-    description:
-      "pkg's bundled Node.js major (e.g. 22, 24). Does not affect the action's own Node runtime.",
-    default: '22',
-  },
-  {
-    name: 'compress-node',
-    category: 'build',
-    description: "pkg's bundled-binary compression: Brotli | GZip | None.",
-    default: 'None',
-  },
-  {
-    name: 'fallback-to-source',
-    category: 'build',
-    description: 'Pass pkg --fallback-to-source for bytecode-fabricator failures.',
-    default: 'false',
-  },
-  {
-    name: 'public',
-    category: 'build',
-    description: 'Pass pkg --public (ships sources as plaintext).',
-    default: 'false',
-  },
-  {
-    name: 'public-packages',
-    category: 'build',
-    description: 'Comma-separated package names to mark public (pkg --public-packages).',
-  },
-  {
-    name: 'options',
-    category: 'build',
-    description: 'Comma-separated V8 options baked into the binary (pkg --options).',
-  },
-  {
-    name: 'no-bytecode',
-    category: 'build',
-    description: 'Pass pkg --no-bytecode.',
-    default: 'false',
-  },
-  {
-    name: 'no-dict',
-    category: 'build',
-    description: 'Comma-separated list of packages for pkg --no-dict (or * for all).',
-  },
-  { name: 'debug', category: 'build', description: 'Pass pkg --debug.', default: 'false' },
-  {
-    name: 'extra-args',
-    category: 'build',
-    description: 'Raw extra flags appended to the pkg CLI invocation.',
-  },
-  {
     name: 'pkg-version',
     category: 'build',
     description:
@@ -354,32 +296,20 @@ export function specFor(name: string): InputSpec | undefined {
 
 // ─── Typed parsed inputs ──────────────────────────────────────────────────
 
-export type CompressionMode = 'Brotli' | 'GZip' | 'None';
 /** Archive format as seen by the input layer — extends archive.ts's set with 'none' (skip archiving). */
 export type ArchiveFormatInput = 'tar.gz' | 'tar.xz' | 'zip' | '7z' | 'none';
-export type PkgMode = 'standard' | 'sea';
 
 /**
- * Parsed inputs — the M1-active subset. Later milestones extend this shape
- * with Windows/signing/publishing fields. We keep separate interfaces per
- * category so M3/M4 can add their own without perturbing the base.
+ * Parsed inputs. The build surface is intentionally thin: pkg-specific knobs
+ * (mode, compression, public, bytecode, v8 options, debug, raw extra-args, …)
+ * are expressed in the user's pkg config file, not mirrored as action inputs.
+ * This keeps the action decoupled from pkg's CLI evolution.
  */
 export interface BuildInputs {
   readonly config: string | undefined;
   readonly entry: string | undefined;
   /** 'host' = use the host target; otherwise a non-empty list. */
   readonly targets: Target[] | 'host';
-  readonly mode: PkgMode;
-  readonly nodeVersion: string;
-  readonly compressNode: CompressionMode;
-  readonly fallbackToSource: boolean;
-  readonly public: boolean;
-  readonly publicPackages: string[];
-  readonly options: string[];
-  readonly noBytecode: boolean;
-  readonly noDict: string[];
-  readonly debug: boolean;
-  readonly extraArgs: string | undefined;
   readonly pkgVersion: string;
   readonly pkgPath: string | undefined;
 }
@@ -526,21 +456,6 @@ export function parseInputs(opts: ParseInputsOptions = {}): ActionInputs {
     config: readInput(env, 'config'),
     entry: readInput(env, 'entry'),
     targets,
-    mode: parseEnum(readInput(env, 'mode'), 'mode', ['standard', 'sea'] as const),
-    nodeVersion: readInput(env, 'node-version') ?? '22',
-    compressNode: parseEnum(readInput(env, 'compress-node'), 'compress-node', [
-      'Brotli',
-      'GZip',
-      'None',
-    ] as const),
-    fallbackToSource: parseBoolean(readInput(env, 'fallback-to-source'), 'fallback-to-source'),
-    public: parseBoolean(readInput(env, 'public'), 'public'),
-    publicPackages: parseList(readInput(env, 'public-packages')),
-    options: parseList(readInput(env, 'options')),
-    noBytecode: parseBoolean(readInput(env, 'no-bytecode'), 'no-bytecode'),
-    noDict: parseList(readInput(env, 'no-dict')),
-    debug: parseBoolean(readInput(env, 'debug'), 'debug'),
-    extraArgs: readInput(env, 'extra-args'),
     pkgVersion: readInput(env, 'pkg-version') ?? '~6.16.0',
     pkgPath: readInput(env, 'pkg-path'),
   };

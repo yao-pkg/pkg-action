@@ -15,35 +15,6 @@ inputs:
     description: 'Entry script when not specified in the config.'
   targets:
     description: 'Comma- or newline-separated pkg target triples, e.g. node22-linux-x64,node22-macos-arm64. Defaults to the host target.'
-  mode:
-    description: 'standard | sea — selects pkg Standard or SEA mode.'
-    default: 'standard'
-  node-version:
-    description: 'pkg''s bundled Node.js major (e.g. 22, 24). Does not affect the action''s own Node runtime.'
-    default: '22'
-  compress-node:
-    description: 'pkg''s bundled-binary compression: Brotli | GZip | None.'
-    default: 'None'
-  fallback-to-source:
-    description: 'Pass pkg --fallback-to-source for bytecode-fabricator failures.'
-    default: 'false'
-  public:
-    description: 'Pass pkg --public (ships sources as plaintext).'
-    default: 'false'
-  public-packages:
-    description: 'Comma-separated package names to mark public (pkg --public-packages).'
-  options:
-    description: 'Comma-separated V8 options baked into the binary (pkg --options).'
-  no-bytecode:
-    description: 'Pass pkg --no-bytecode.'
-    default: 'false'
-  no-dict:
-    description: 'Comma-separated list of packages for pkg --no-dict (or * for all).'
-  debug:
-    description: 'Pass pkg --debug.'
-    default: 'false'
-  extra-args:
-    description: 'Raw extra flags appended to the pkg CLI invocation.'
   pkg-version:
     description: 'npm version specifier for @yao-pkg/pkg (e.g. ~6.16.0). Bypassed when pkg-path is set.'
     default: '~6.16.0'
@@ -169,7 +140,7 @@ runs:
       uses: actions/cache@v5
       with:
         path: ${{ runner.temp }}/pkg-cache
-        key: ${{ inputs.cache-key || format('pkg-fetch-{0}-{1}-node{2}-{3}', runner.os, runner.arch, inputs.node-version, hashFiles('**/package.json', '.pkgrc*', '**/pkg.config.{js,ts,json}')) }}
+        key: ${{ inputs.cache-key || format('pkg-fetch-{0}-{1}-{2}', runner.os, runner.arch, hashFiles('**/package.json', '.pkgrc*', '**/pkg.config.{js,ts,json}')) }}
 
     - name: Install @yao-pkg/pkg
       if: ${{ inputs.pkg-path == '' }}
@@ -184,17 +155,6 @@ runs:
           config: ${{ inputs.config }}
           entry: ${{ inputs.entry }}
           targets: ${{ inputs.targets }}
-          mode: ${{ inputs.mode }}
-          node-version: ${{ inputs.node-version }}
-          compress-node: ${{ inputs.compress-node }}
-          fallback-to-source: ${{ inputs.fallback-to-source }}
-          public: ${{ inputs.public }}
-          public-packages: ${{ inputs.public-packages }}
-          options: ${{ inputs.options }}
-          no-bytecode: ${{ inputs.no-bytecode }}
-          no-dict: ${{ inputs.no-dict }}
-          debug: ${{ inputs.debug }}
-          extra-args: ${{ inputs.extra-args }}
           pkg-version: ${{ inputs.pkg-version }}
           pkg-path: ${{ inputs.pkg-path }}
           strip: ${{ inputs.strip }}
