@@ -338,15 +338,11 @@ jobs:
             fs.writeFileSync(p, JSON.stringify(pkg, null, 2));
           " "$entry"
           cat ./package.json
-          # Emit a POSIX-form path via cygpath on Windows git-bash so
-          # the downstream composite step sees a consistent separator.
-          # No-op on Linux/macOS. Same helper pattern as the verify step.
-          if command -v cygpath >/dev/null 2>&1; then
-            fix_out=$(cygpath -u "$fix")
-          else
-            fix_out="$fix"
-          fi
-          echo "fixture=$fix_out" >> "$GITHUB_OUTPUT"
+          # Emit drive-letter + forward-slash form (e.g. `D:/a/_temp/…`).
+          # The downstream composite is Node-based: Node's fs resolves
+          # `D:/a/…` correctly on Windows but mis-parses cygpath's POSIX
+          # form (`/d/a/…`) as drive-relative, yielding `D:\d\a\…`.
+          echo "fixture=${fix//\\//}" >> "$GITHUB_OUTPUT"
 
       - name: Build claude binary
         id: build
