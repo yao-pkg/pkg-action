@@ -9,10 +9,10 @@
 meta:
   repo: yao-pkg/pkg-action
   branch: main
-  last-updated: '2026-04-22'
+  last-updated: '2026-04-23'
   action-status: ALPHA — ready for early adopters to try in their own workflows
-  ci-status: green (provenance verify-flag bug fixed 2026-04-22)
-  e2e-status: green on ubuntu-latest / macos-latest / windows-latest (tiny-app-cjs: tar.gz + zip + sha256 sidecar round-trip verified); matrix plan→fanout + multi-target-linux + windows-metadata + provenance + sbom-cyclonedx + sbom-spdx jobs — await first CI run post-2026-04-22. Signing + Docker + Homebrew + Scoop e2e deferred until their respective real credentials (macOS/Windows certs, registry user/pass, tap PAT, bucket PAT) can be supplied via org secrets.
+  ci-status: green
+  e2e-status: green on ubuntu-latest / macos-latest / windows-latest — all 15 jobs pass on 2026-04-23 (run 24820663378). Covers tiny-app-cjs round-trip (tar.gz + zip + sha256), matrix plan→fanout (3 OSes), multi-target-linux, windows-metadata, provenance (attest-build-provenance@v4 + gh attestation verify), sbom-cyclonedx, sbom-spdx, and docker (ghcr.io push + pull + run). Signing + Homebrew + Scoop e2e still deferred until real credentials (macOS/Windows certs, tap PAT, bucket PAT) are available via org secrets.
 
 milestones:
   M-1:
@@ -103,12 +103,12 @@ milestones:
 
   M6:
     title: 'Stretch: SBOM / provenance / Docker / Homebrew / Scoop'
-    status: done (all five sub-chunks shipped; e2e for Docker/Homebrew/Scoop deferred until live registry/tap/bucket credentials are available)
+    status: done (Docker e2e now green against ghcr.io; Homebrew/Scoop e2e still deferred until tap + bucket credentials are available)
     depends-on: M5
     sub-chunks:
       '6.1 provenance — actions/attest-build-provenance@v4 wired into composite action.yml, gated on inputs.provenance=="true"; subject-path spans every entry in artifacts[]; docs/provenance.md + e2e smoke': done (e2e verify flag corrected 2026-04-22 — was --source-repo which gh does not accept; now --repo)
       '6.2 SBOM — cyclonedx or spdx generator + sbom:* input wire-up': done (packages/core/src/sbom.ts — 16 unit tests; zero new runtime deps; emits CycloneDX 1.5 or SPDX 2.3 JSON; uploaded as its own workflow artifact and attached to release; e2e jobs sbom-cyclonedx + sbom-spdx added)
-      '6.3 Docker publishing — OCI image push alongside the raw binary': done (packages/core/src/docker.ts — per-linux-target buildx build+push with arch suffix, manifest list combining multi-arch; registry auth via private DOCKER_CONFIG dir so password never rides argv; 15 unit tests including argv-secret-leak assertion; orchestrator wire-up independent of attach-to-release; docs/docker.md added)
+      '6.3 Docker publishing — OCI image push alongside the raw binary': done (packages/core/src/docker.ts — per-linux-target buildx build+push with arch suffix, manifest list combining multi-arch; registry auth via private DOCKER_CONFIG dir so password never rides argv; 15 unit tests including argv-secret-leak assertion; orchestrator wire-up independent of attach-to-release; docs/docker.md added. e2e green on 2026-04-23: default base image switched from distroless/base to distroless/cc because pkg's Node binary links libstdc++; docker-publish job now pushes to ghcr.io + re-logs-in to host daemon + pulls + runs + greps the version line)
       '6.4 Homebrew tap — auto-open a PR against a homebrew-tap repo': done (packages/core/src/distribution.ts — renderHomebrewFormula + DistributionPublisher; Octokit-backed createDefaultDistributionPublisher creates branch + commits Formula/<name>.rb + opens PR; orchestrator wire-up gated on attach-to-release=true; 8 unit tests covering PascalCase derivation, on_arm/on_intel branches, license omission, on_linux block, escape-quoting, mac-or-linux invariant, binary override)
       '6.5 Scoop manifest — auto-generate + commit to a scoop bucket': done (packages/core/src/distribution.ts — renderScoopManifest shares DistributionPublisher with Homebrew; writes bucket/<name>.json; 6 unit tests covering 64bit/arm64 arch keys, extract_dir drop when compress=none, bin override, trailing-newline invariant, win-asset requirement)
 
@@ -187,9 +187,9 @@ known-issues:
   - 'Orchestrator must resolve a project-dir separately from GITHUB_WORKSPACE when config points at a package.json — FIXED: derives projectDir = dirname(config) in that case and invokes pkg with cwd: projectDir.'
 
 next:
-  - First post-M6 CI run — watch for e2e provenance + sbom-cyclonedx + sbom-spdx to go green; check the stretched dist/index.mjs (now ~3.6 MB) still runs under node24 on all three OSes.
-  - Docker e2e — requires either GITHUB_TOKEN (ghcr.io pushes are free with the built-in token) or an ad-hoc registry. Plan: add a docker-e2e job on ubuntu-latest that builds tiny-app-cjs with docker-image=ghcr.io/${{github.repository}}:e2e-{sha} and docker-username/password={github.actor}/secrets.GITHUB_TOKEN, then docker pull + exec the image and assert stdout. Write after first post-M6 CI run is green.
   - Homebrew + Scoop e2e — requires a disposable tap + bucket repo under the org + a short-lived PAT. Block on org decision about test-infra repos.
+  - Signing e2e — needs real macOS Developer ID cert + Apple notarization creds, plus a code-signing cert for Windows signtool. Block on org secret provisioning.
   - Integration-test shard (archive tar/7z round-trip against system tools) — deferred from M1.3.
   - Add the ESM fixture (tiny-app-esm with mode: sea) to the e2e matrix once @yao-pkg/pkg's SEA path is smoke-tested via the action.
-  - v1.0.0 release — once the first post-M6 CI run is green across all three OSes and Docker e2e lands, delete STATUS.yaml and cut the first stable tag.
+  - node24 smoke on self-hosted runner (listed under M-1 pending).
+  - v1.0.0 release — outstanding blockers above are test-surface gaps, not action-correctness gaps. Once the team decides whether to hold for them, delete STATUS.yaml and cut the first stable tag.
