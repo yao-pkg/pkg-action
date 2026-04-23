@@ -19280,7 +19280,7 @@ var execBridge = async (command, args, options) => {
   };
 };
 async function main() {
-  let logger = actionsLogger;
+  let logger = actionsLogger, overallStart = Date.now();
   logger.info(`pkg-action build v${VERSION} \u2014 orchestrator starting`);
   let inputs;
   try {
@@ -19311,13 +19311,7 @@ async function main() {
   saveState("invocationDir", invocationDir);
   let pkgOutputDir = join7(invocationDir, "pkg-out");
   await mkdir3(pkgOutputDir, { recursive: !0 });
-  let pkgCommand = inputs.build.pkgPath ?? "pkg", pkgBuildInputs = inputs.build.config !== void 0 && pathBasename(inputs.build.config).toLowerCase() === "package.json" ? { ...inputs.build, config: void 0 } : inputs.build, pkgArgs = buildPkgArgs({
-    build: pkgBuildInputs,
-    targets: resolvedTargets,
-    outputDir: pkgOutputDir
-  });
-  logger.info(`[pkg-action] pkg ${pkgArgs.join(" ")}`);
-  let started = Date.now();
+  let pkgCommand = inputs.build.pkgPath ?? "pkg", pkgBuildInputs = inputs.build.config !== void 0 && pathBasename(inputs.build.config).toLowerCase() === "package.json" ? { ...inputs.build, config: void 0 } : inputs.build, runStart = Date.now();
   await runPkg(
     {
       build: pkgBuildInputs,
@@ -19327,7 +19321,9 @@ async function main() {
     },
     { exec: execBridge, logger, pkgCommand }
   );
-  let pkgDurationMs = Date.now() - started, pkgOutputs = await mapPkgOutputs(resolvedTargets, project.name, pkgOutputDir), windowsMeta = await parseWindowsMetadataInputs();
+  let pkgDurationMs = Date.now() - runStart;
+  logger.info(`[pkg-action] pkg finished in ${formatSeconds(pkgDurationMs)}`);
+  let pkgOutputs = await mapPkgOutputs(resolvedTargets, project.name, pkgOutputDir), windowsMeta = await parseWindowsMetadataInputs();
   windowsMeta !== null && logger.info("[pkg-action] Windows metadata detected \u2014 will patch win-* binaries post-rename.");
   let signing = parseSigningInputs({ registerSecret: (v) => setSecret(v) });
   signing !== null && logger.info(
@@ -19338,39 +19334,58 @@ async function main() {
   let finalizedBinaries = [], finalizedArtifacts = [], shasumEntries = [], summaryRows = [], digestsByArtifact = {};
   for (let out of pkgOutputs) {
     let tokens = tokensForTarget(out.target, project, process.env), renamedBase = render(inputs.postBuild.filename, tokens), renamed = out.target.os === "win" && !renamedBase.toLowerCase().endsWith(".exe") ? `${renamedBase}.exe` : renamedBase, renamedPath = join7(finalDir, renamed);
-    if (await rename3(out.path, renamedPath), windowsMeta !== null && out.target.os === "win") {
-      let perBinary = {
-        ...windowsMeta,
-        originalFilename: windowsMeta.originalFilename ?? pathBasename(renamedPath)
-      };
-      await applyWindowsMetadata(renamedPath, renamedPath, perBinary), logger.info(`[pkg-action] Patched Windows resources on ${renamedPath}.`);
-    }
-    let signedFlag = !1;
-    signing !== null && (signedFlag = await signOneTarget(
-      { targetOs: out.target.os, binaryPath: renamedPath },
-      signing,
-      {
-        exec: execBridge,
-        logger,
-        tempDir: invocationDir
+    await rename3(out.path, renamedPath), logger.startGroup(`[pkg-action] finalize ${formatTarget(out.target)} \u2192 ${renamed}`);
+    try {
+      if (windowsMeta !== null && out.target.os === "win") {
+        let perBinary = {
+          ...windowsMeta,
+          originalFilename: windowsMeta.originalFilename ?? pathBasename(renamedPath)
+        };
+        await applyWindowsMetadata(renamedPath, renamedPath, perBinary), logger.info(`[pkg-action] Patched Windows resources on ${renamedPath}.`);
       }
-    )), finalizedBinaries.push(renamedPath);
-    let finalPath = inputs.postBuild.compress === "none" ? renamedPath : await archiveBinary(out, renamedPath, inputs, tokens);
-    finalizedArtifacts.push(finalPath);
-    let rowDigest = await finalizeChecksums(finalPath, inputs.postBuild.checksum);
-    for (let entry of rowDigest.entries) shasumEntries.push(entry);
-    if (rowDigest.entries.length > 0) {
-      let key = pathBasename(finalPath), byAlgo = {};
-      for (let entry of rowDigest.entries) byAlgo[entry.algo] = entry.digest;
-      digestsByArtifact[key] = byAlgo;
+      let signedFlag = !1;
+      signing !== null && (signedFlag = await signOneTarget(
+        { targetOs: out.target.os, binaryPath: renamedPath },
+        signing,
+        {
+          exec: execBridge,
+          logger,
+          tempDir: invocationDir
+        }
+      )), finalizedBinaries.push(renamedPath);
+      let finalPath;
+      if (inputs.postBuild.compress === "none")
+        finalPath = renamedPath;
+      else {
+        logger.info(
+          `[pkg-action] archive \u2192 ${pathBasename(renamedPath)} (format=${inputs.postBuild.compress})`
+        );
+        let archStart = Date.now();
+        finalPath = await archiveBinary(out, renamedPath, inputs, tokens);
+        let archSize = (await stat4(finalPath)).size;
+        logger.info(
+          `[pkg-action] archived ${pathBasename(finalPath)} (${formatBytes2(archSize)}, ${formatSeconds(Date.now() - archStart)})`
+        );
+      }
+      finalizedArtifacts.push(finalPath);
+      let rowDigest = await finalizeChecksums(finalPath, inputs.postBuild.checksum);
+      for (let entry of rowDigest.entries)
+        shasumEntries.push(entry), logger.info(`[pkg-action] ${entry.algo} ${entry.digest}  ${pathBasename(finalPath)}`);
+      if (rowDigest.entries.length > 0) {
+        let key = pathBasename(finalPath), byAlgo = {};
+        for (let entry of rowDigest.entries) byAlgo[entry.algo] = entry.digest;
+        digestsByArtifact[key] = byAlgo;
+      }
+      let { size } = await stat4(finalPath), row = {
+        target: formatTarget(out.target),
+        filename: finalPath,
+        sizeBytes: size,
+        ...signedFlag ? { signed: !0 } : {}
+      };
+      rowDigest.primary !== void 0 && (row.primaryDigest = rowDigest.primary), summaryRows.push(row);
+    } finally {
+      logger.endGroup();
     }
-    let { size } = await stat4(finalPath), row = {
-      target: formatTarget(out.target),
-      filename: finalPath,
-      sizeBytes: size,
-      ...signedFlag ? { signed: !0 } : {}
-    };
-    rowDigest.primary !== void 0 && (row.primaryDigest = rowDigest.primary), summaryRows.push(row);
   }
   let shasumsFiles = [];
   if (shasumEntries.length > 0)
@@ -19378,7 +19393,9 @@ async function main() {
       let entries = shasumEntries.filter((e) => e.algo === algo);
       if (entries.length === 0) continue;
       let shasumPath = join7(finalDir, `SHASUMS${algo.toUpperCase()}.txt`);
-      await writeShasumsFile(shasumPath, entries), shasumsFiles.push(shasumPath);
+      await writeShasumsFile(shasumPath, entries), shasumsFiles.push(shasumPath), logger.info(
+        `[pkg-action] wrote ${pathBasename(shasumPath)} (${String(entries.length)} entr${entries.length === 1 ? "y" : "ies"})`
+      );
     }
   if (inputs.performance.stepSummary) {
     let durationForFirst = summaryRows.length > 0 ? Math.round(pkgDurationMs / summaryRows.length) : void 0, rowsWithTime = summaryRows.map(
@@ -19389,7 +19406,15 @@ async function main() {
       pkgVersion: inputs.build.pkgVersion
     });
   }
-  setOutput("binaries", JSON.stringify(finalizedBinaries)), setOutput("artifacts", JSON.stringify(finalizedArtifacts)), setOutput("checksums", JSON.stringify(shasumsFiles)), setOutput("digests", JSON.stringify(digestsByArtifact)), setOutput("version", project.version), logger.info(`pkg-action build \u2014 done (${String(pkgOutputs.length)} binary/binaries produced)`);
+  setOutput("binaries", JSON.stringify(finalizedBinaries)), setOutput("artifacts", JSON.stringify(finalizedArtifacts)), setOutput("checksums", JSON.stringify(shasumsFiles)), setOutput("digests", JSON.stringify(digestsByArtifact)), setOutput("version", project.version), logger.info(
+    `pkg-action build \u2014 done (${String(pkgOutputs.length)} binary/binaries in ${formatSeconds(Date.now() - overallStart)})`
+  );
+}
+function formatSeconds(ms) {
+  return `${(ms / 1e3).toFixed(1)}s`;
+}
+function formatBytes2(bytes) {
+  return bytes < 1024 ? `${String(bytes)} B` : bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(1)} KB` : bytes < 1024 * 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} MB` : `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 async function signOneTarget(spec, signing, deps) {
   if (spec.targetOs === "macos" && signing.macos !== void 0) {
