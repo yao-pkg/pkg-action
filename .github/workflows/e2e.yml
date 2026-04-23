@@ -319,6 +319,14 @@ jobs:
             console.log(path.relative(process.cwd(), path.resolve(pkgDir, bin)).split(path.sep).join('/'));
           ")
           echo "entry=$entry"
+          # Trip-wire: if the pin ever drifts to a claude-code version
+          # that again points `bin.claude` at a shell-script placeholder
+          # (bin/claude.exe), fail loudly here rather than letting pkg
+          # silently bundle a non-JS file.
+          case "$entry" in
+            *.js|*.mjs|*.cjs) ;;
+            *) echo "::error::claude bin is not a JS entrypoint ($entry) — pin may have drifted past 2.1.112"; exit 1 ;;
+          esac
           node -e "
             const fs = require('fs');
             const p = './package.json';
@@ -330,9 +338,15 @@ jobs:
             fs.writeFileSync(p, JSON.stringify(pkg, null, 2));
           " "$entry"
           cat ./package.json
-          # Forward to GITHUB_OUTPUT with forward-slash separators so the
-          # composite receives a consistent path on Windows bash.
-          echo "fixture=${fix//\\//}" >> "$GITHUB_OUTPUT"
+          # Emit a POSIX-form path via cygpath on Windows git-bash so
+          # the downstream composite step sees a consistent separator.
+          # No-op on Linux/macOS. Same helper pattern as the verify step.
+          if command -v cygpath >/dev/null 2>&1; then
+            fix_out=$(cygpath -u "$fix")
+          else
+            fix_out="$fix"
+          fi
+          echo "fixture=$fix_out" >> "$GITHUB_OUTPUT"
 
       - name: Build claude binary
         id: build
