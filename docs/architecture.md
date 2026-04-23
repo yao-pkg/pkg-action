@@ -56,8 +56,10 @@ users already have their own answer to.
 ### `@pkg-action/core`
 
 Pure library, no GitHub Action entry point. Consumers: the three sub-actions
-in this repo. All effectful operations (exec, fs) are injected so
-tests can swap in doubles.
+in this repo. Test seams exist around the current injected boundaries
+(notably exec/logger-facing behavior); filesystem access is not
+universally injected today (modules call `node:fs`/`node:fs/promises`
+directly).
 
 | Module                      | Purpose                                                                       |
 | --------------------------- | ----------------------------------------------------------------------------- |
@@ -165,8 +167,9 @@ Emitted:
 
 - `/matrix/action.yml` and `/windows-metadata/action.yml` (different surfaces).
 
-**CI gate**: `e2e.yml` runs `yarn gen` + `git diff --exit-code` — a missing
-regeneration fails the PR.
+**CI gate**: `ci.yml` runs `yarn gen` + `git diff --exit-code`, and `e2e.yml`
+also includes a separate `codegen-drift` job — missing regeneration fails the
+PR.
 
 **Safety**: `yamlString()` rejects embedded control characters rather than
 silently emitting an invalid single-quoted scalar (see S2 hardening).

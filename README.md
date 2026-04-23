@@ -28,7 +28,7 @@ Tracking issue: [yao-pkg/pkg#248](https://github.com/yao-pkg/pkg/issues/248).
 - uses: actions/upload-artifact@v4
   with:
     name: pkg-binaries
-    path: ${{ steps.build.outputs.artifacts }}
+    path: "${{ join(fromJson(steps.build.outputs.artifacts), '\n') }}"
 ```
 
 ## Outputs
