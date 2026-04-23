@@ -14497,7 +14497,7 @@ function getState(name) {
 }
 
 // packages/build/src/main.ts
-import { mkdir as mkdir3, rename as rename3, stat as stat4 } from "node:fs/promises";
+import { mkdir as mkdir3, rename as rename3, stat as stat4, writeFile as writeFile5 } from "node:fs/promises";
 import { tmpdir as tmpdir2 } from "node:os";
 import { basename as pathBasename, dirname as dirname5, join as join7, resolve as pathResolve } from "node:path";
 
@@ -14764,7 +14764,12 @@ var INPUT_SPECS = [
   {
     name: "config",
     category: "build",
-    description: "Path to a pkg config (.pkgrc, pkg.config.{js,ts,json}, or package.json). Auto-detected when omitted."
+    description: "Path to a pkg config (.pkgrc, pkg.config.{js,ts,json}, or package.json). Auto-detected when omitted. Mutually exclusive with config-inline."
+  },
+  {
+    name: "config-inline",
+    category: "build",
+    description: "Pkg config as a JSON string. Written to a temp file and passed to pkg via --config. Mutually exclusive with config. Do not embed secrets \u2014 this input is not masked."
   },
   {
     name: "entry",
@@ -15063,8 +15068,26 @@ function parseInputs(opts = {}) {
   let targetsRaw = readInput(env, "targets"), targets = targetsRaw === void 0 ? "host" : parseTargetList(targetsRaw);
   if (Array.isArray(targets) && targets.length === 0)
     throw new ValidationError('Input "targets" was set but resolved to an empty list.');
+  let configPath = readInput(env, "config"), configInline = readInput(env, "config-inline");
+  if (configPath !== void 0 && configInline !== void 0)
+    throw new ValidationError(
+      'Inputs "config" and "config-inline" are mutually exclusive \u2014 pick one.'
+    );
+  if (configInline !== void 0)
+    try {
+      let parsed = JSON.parse(configInline);
+      if (parsed === null || typeof parsed != "object" || Array.isArray(parsed))
+        throw new ValidationError(
+          'Input "config-inline" must parse to a JSON object (got ' + (parsed === null ? "null" : Array.isArray(parsed) ? "array" : typeof parsed) + ")."
+        );
+    } catch (err) {
+      throw err instanceof ValidationError ? err : new ValidationError(
+        `Input "config-inline" is not valid JSON: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
   let build = {
-    config: readInput(env, "config"),
+    config: configPath,
+    configInline,
     entry: readInput(env, "entry"),
     targets,
     pkgVersion: readInput(env, "pkg-version") ?? "~6.16.0",
@@ -19237,7 +19260,15 @@ async function main() {
   saveState("invocationDir", invocationDir);
   let pkgOutputDir = join7(invocationDir, "pkg-out");
   await mkdir3(pkgOutputDir, { recursive: !0 });
-  let pkgCommand = inputs.build.pkgPath ?? "pkg", pkgBuildInputs = inputs.build.config !== void 0 && pathBasename(inputs.build.config).toLowerCase() === "package.json" ? { ...inputs.build, config: void 0 } : inputs.build, pkgArgs = buildPkgArgs({
+  let effectiveConfig = inputs.build.config;
+  if (inputs.build.configInline !== void 0) {
+    let inlinePath = join7(invocationDir, "pkg-config.inline.json");
+    await writeFile5(inlinePath, inputs.build.configInline, "utf8"), effectiveConfig = inlinePath, logger.info(`[pkg-action] materialized config-inline \u2192 ${inlinePath}`);
+  }
+  let pkgCommand = inputs.build.pkgPath ?? "pkg", cfgIsPackageJson = effectiveConfig !== void 0 && pathBasename(effectiveConfig).toLowerCase() === "package.json", pkgBuildInputs = {
+    ...inputs.build,
+    config: cfgIsPackageJson ? void 0 : effectiveConfig
+  }, pkgArgs = buildPkgArgs({
     build: pkgBuildInputs,
     targets: resolvedTargets,
     outputDir: pkgOutputDir

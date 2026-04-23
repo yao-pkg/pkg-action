@@ -25,7 +25,7 @@
 // `checksums` outputs.
 
 import * as core from '@actions/core';
-import { mkdir, rename, stat } from 'node:fs/promises';
+import { mkdir, rename, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename as pathBasename, dirname, join, resolve as pathResolve } from 'node:path';
 import {
@@ -151,6 +151,18 @@ async function main(): Promise<void> {
   const pkgOutputDir = join(invocationDir, 'pkg-out');
   await mkdir(pkgOutputDir, { recursive: true });
 
+  // 4.5. Materialize `config-inline` to disk, if set. parseInputs already
+  //      validated it as a JSON object and enforced mutual exclusion with
+  //      `config`, so this step just writes the bytes and threads the resulting
+  //      path through as the effective config.
+  let effectiveConfig = inputs.build.config;
+  if (inputs.build.configInline !== undefined) {
+    const inlinePath = join(invocationDir, 'pkg-config.inline.json');
+    await writeFile(inlinePath, inputs.build.configInline, 'utf8');
+    effectiveConfig = inlinePath;
+    logger.info(`[pkg-action] materialized config-inline → ${inlinePath}`);
+  }
+
   // 5. Run pkg from the project directory.
   //
   // When a package.json was used to locate the project, drop the explicit
@@ -159,9 +171,11 @@ async function main(): Promise<void> {
   // standalone pkg config like .pkgrc.json).
   const pkgCommand = inputs.build.pkgPath ?? 'pkg';
   const cfgIsPackageJson =
-    inputs.build.config !== undefined &&
-    pathBasename(inputs.build.config).toLowerCase() === 'package.json';
-  const pkgBuildInputs = cfgIsPackageJson ? { ...inputs.build, config: undefined } : inputs.build;
+    effectiveConfig !== undefined && pathBasename(effectiveConfig).toLowerCase() === 'package.json';
+  const pkgBuildInputs = {
+    ...inputs.build,
+    config: cfgIsPackageJson ? undefined : effectiveConfig,
+  };
   const pkgArgs = buildPkgArgs({
     build: pkgBuildInputs,
     targets: resolvedTargets,

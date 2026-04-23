@@ -62,6 +62,7 @@ test('parseInputs with no env uses defaults', () => {
   const inputs = parseInputs({ env: {} });
   strictEqual(inputs.build.targets, 'host');
   strictEqual(inputs.build.config, undefined);
+  strictEqual(inputs.build.configInline, undefined);
   strictEqual(inputs.build.entry, undefined);
   strictEqual(inputs.build.pkgVersion, '~6.16.0');
   strictEqual(inputs.build.pkgPath, undefined);
@@ -101,6 +102,46 @@ test('parseInputs parses a realistic build config', () => {
   strictEqual(inputs.postBuild.compress, 'tar.gz');
   deepStrictEqual(inputs.postBuild.checksum, ['sha256', 'sha512']);
   strictEqual(inputs.postBuild.strip, true);
+});
+
+test('parseInputs accepts config-inline with valid JSON object', () => {
+  const inputs = parseInputs({
+    env: env(['config-inline', '{"bin":"src/main.js","mode":"sea"}']),
+  });
+  strictEqual(inputs.build.config, undefined);
+  strictEqual(inputs.build.configInline, '{"bin":"src/main.js","mode":"sea"}');
+});
+
+test('parseInputs rejects config + config-inline set together', () => {
+  throws(
+    () =>
+      parseInputs({
+        env: env(['config', '.pkgrc.json'], ['config-inline', '{"bin":"x.js"}']),
+      }),
+    ValidationError,
+  );
+});
+
+test('parseInputs rejects config-inline with invalid JSON', () => {
+  throws(
+    () => parseInputs({ env: env(['config-inline', '{not json']) }),
+    (err: unknown) => err instanceof ValidationError && /not valid JSON/.test(err.message),
+  );
+});
+
+test('parseInputs rejects config-inline that is not a JSON object', () => {
+  throws(
+    () => parseInputs({ env: env(['config-inline', '"bare-string"']) }),
+    (err: unknown) => err instanceof ValidationError && /JSON object/.test(err.message),
+  );
+  throws(
+    () => parseInputs({ env: env(['config-inline', '[1,2,3]']) }),
+    (err: unknown) => err instanceof ValidationError && /JSON object/.test(err.message),
+  );
+  throws(
+    () => parseInputs({ env: env(['config-inline', 'null']) }),
+    (err: unknown) => err instanceof ValidationError && /JSON object/.test(err.message),
+  );
 });
 
 test('parseInputs flags removed pkg-layer inputs as unknown', () => {

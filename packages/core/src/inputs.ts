@@ -36,7 +36,13 @@ export const INPUT_SPECS: readonly InputSpec[] = [
     name: 'config',
     category: 'build',
     description:
-      'Path to a pkg config (.pkgrc, pkg.config.{js,ts,json}, or package.json). Auto-detected when omitted.',
+      'Path to a pkg config (.pkgrc, pkg.config.{js,ts,json}, or package.json). Auto-detected when omitted. Mutually exclusive with config-inline.',
+  },
+  {
+    name: 'config-inline',
+    category: 'build',
+    description:
+      'Pkg config as a JSON string. Written to a temp file and passed to pkg via --config. Mutually exclusive with config. Do not embed secrets — this input is not masked.',
   },
   {
     name: 'entry',
@@ -307,6 +313,12 @@ export type ArchiveFormatInput = 'tar.gz' | 'tar.xz' | 'zip' | '7z' | 'none';
  */
 export interface BuildInputs {
   readonly config: string | undefined;
+  /**
+   * Inline JSON pkg config. Mutually exclusive with `config`. Orchestrator
+   * materializes this to a file under the invocation temp dir and forwards
+   * the resulting path to pkg via `--config`.
+   */
+  readonly configInline: string | undefined;
   readonly entry: string | undefined;
   /** 'host' = use the host target; otherwise a non-empty list. */
   readonly targets: Target[] | 'host';
@@ -452,8 +464,34 @@ export function parseInputs(opts: ParseInputsOptions = {}): ActionInputs {
     throw new ValidationError(`Input "targets" was set but resolved to an empty list.`);
   }
 
+  const configPath = readInput(env, 'config');
+  const configInline = readInput(env, 'config-inline');
+  if (configPath !== undefined && configInline !== undefined) {
+    throw new ValidationError(
+      'Inputs "config" and "config-inline" are mutually exclusive — pick one.',
+    );
+  }
+  if (configInline !== undefined) {
+    try {
+      const parsed: unknown = JSON.parse(configInline);
+      if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        throw new ValidationError(
+          'Input "config-inline" must parse to a JSON object (got ' +
+            (parsed === null ? 'null' : Array.isArray(parsed) ? 'array' : typeof parsed) +
+            ').',
+        );
+      }
+    } catch (err) {
+      if (err instanceof ValidationError) throw err;
+      throw new ValidationError(
+        `Input "config-inline" is not valid JSON: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
   const build: BuildInputs = {
-    config: readInput(env, 'config'),
+    config: configPath,
+    configInline,
     entry: readInput(env, 'entry'),
     targets,
     pkgVersion: readInput(env, 'pkg-version') ?? '~6.16.0',

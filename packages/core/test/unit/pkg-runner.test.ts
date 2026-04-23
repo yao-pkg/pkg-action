@@ -7,6 +7,7 @@ import { PkgRunError } from '../../src/errors.ts';
 
 const BASE_BUILD: BuildInputs = {
   config: undefined,
+  configInline: undefined,
   entry: undefined,
   targets: 'host',
   pkgVersion: '~6.16.0',

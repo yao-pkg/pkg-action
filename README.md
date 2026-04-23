@@ -60,6 +60,28 @@ Example — SEA mode with Brotli-compressed Node + fallback:
     targets: node22-linux-x64
 ```
 
+### Inline config
+
+For trivial setups you can skip the file and pass the config as a JSON string
+via `config-inline` — the action writes it to a temp file and points pkg at
+it. Mutually exclusive with `config`.
+
+```yaml
+- uses: yao-pkg/pkg-action@v1
+  with:
+    targets: node22-linux-x64
+    config-inline: |
+      {
+        "bin": "src/main.js",
+        "mode": "sea",
+        "compressNode": "Brotli"
+      }
+```
+
+> **Do not embed secrets in `config-inline`** — the value is written to disk
+> and echoed into the build log. It is not registered with
+> `core.setSecret`.
+
 The action's inputs cover only concerns pkg config cannot express: matrix
 targets, pkg install version/path, archive format, filename template,
 checksum algorithms, Windows-metadata resedit patch, macOS/Windows signing,

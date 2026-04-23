@@ -13363,7 +13363,12 @@ var INPUT_SPECS = [
   {
     name: "config",
     category: "build",
-    description: "Path to a pkg config (.pkgrc, pkg.config.{js,ts,json}, or package.json). Auto-detected when omitted."
+    description: "Path to a pkg config (.pkgrc, pkg.config.{js,ts,json}, or package.json). Auto-detected when omitted. Mutually exclusive with config-inline."
+  },
+  {
+    name: "config-inline",
+    category: "build",
+    description: "Pkg config as a JSON string. Written to a temp file and passed to pkg via --config. Mutually exclusive with config. Do not embed secrets \u2014 this input is not masked."
   },
   {
     name: "entry",

@@ -8,7 +8,8 @@ Every `pkg-action` input, grouped by category.
 
 | Input | Default | Required | Secret | Description |
 | --- | --- | --- | --- | --- |
-| `config` | — | no | no | Path to a pkg config (.pkgrc, pkg.config.{js,ts,json}, or package.json). Auto-detected when omitted. |
+| `config` | — | no | no | Path to a pkg config (.pkgrc, pkg.config.{js,ts,json}, or package.json). Auto-detected when omitted. Mutually exclusive with config-inline. |
+| `config-inline` | — | no | no | Pkg config as a JSON string. Written to a temp file and passed to pkg via --config. Mutually exclusive with config. Do not embed secrets — this input is not masked. |
 | `entry` | — | no | no | Entry script when not specified in the config. |
 | `targets` | — | no | no | Comma- or newline-separated pkg target triples, e.g. node22-linux-x64,node22-macos-arm64. Defaults to the host target. |
 | `pkg-version` | `~6.16.0` | no | no | npm version specifier for @yao-pkg/pkg (e.g. ~6.16.0). Bypassed when pkg-path is set. |
