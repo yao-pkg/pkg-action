@@ -375,7 +375,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          archive=$(echo '${{ steps.build.outputs.artifacts }}' | jq -r '.[0]')
+          # GNU tar in git-bash parses `D:\a\...` / `D:/a/...` as
+          # host:path (colon-separated remote rsh target). cygpath
+          # converts to the POSIX form (`/d/a/...`) that GNU tar treats
+          # as a local absolute path. No-op on Linux/macOS.
+          to_posix() {
+            if command -v cygpath >/dev/null 2>&1; then
+              cygpath -u "$1"
+            else
+              echo "$1"
+            fi
+          }
+          archive=$(to_posix "$(echo '${{ steps.build.outputs.artifacts }}' | jq -r '.[0]')")
           [ -f "$archive" ] || { echo "::error::archive missing: $archive"; exit 1; }
           case "$archive" in
             *.tar.gz) ;;
@@ -407,7 +418,7 @@ jobs:
           # lands inside, then run --version on the extracted copy so we
           # know the archive itself — not just the pre-archive binary — is
           # usable.
-          extract="${RUNNER_TEMP}/claude-extract"
+          extract=$(to_posix "${RUNNER_TEMP}/claude-extract")
           rm -rf "$extract"
           mkdir -p "$extract"
           tar -tzf "$archive" >/dev/null
