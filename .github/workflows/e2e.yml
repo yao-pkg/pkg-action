@@ -253,16 +253,22 @@ jobs:
 
   # ──────────────────────────────────────────────────────────────────────
   # Real-world smoke: pull @anthropic-ai/claude-code from npm, build a
-  # native binary per runner OS/arch with Zstd-compressed pkg payload +
-  # tar.gz archive, execute the binary with --version, then verify the
-  # archive round-trips and the sha256 sidecar matches the archive bytes.
+  # native binary per runner OS/arch in SEA mode, tar.gz archive, execute
+  # the binary with --version, then verify the archive round-trips and
+  # the sha256 sidecar matches the archive bytes.
   #
-  # claude-code is ESM, so mode: sea (standard pkg can't bytecode-compile
-  # ESM). Each matrix entry builds for the runner's native target so the
-  # produced binary can be launched in-place for the smoke assertion,
+  # claude-code is ESM, so SEA mode is required (standard pkg can't
+  # bytecode-compile ESM). SEA is expressed via `sea: true` in the pkg
+  # config (package.json#pkg). Each matrix entry builds for the runner's
+  # native target so the produced binary can be launched in-place,
   # giving real cross-OS + cross-arch coverage (x64 and arm64 on Linux,
-  # arm64 on macOS, x64 on Windows). Zstd bundled-binary compression
-  # requires Node.js >= 22.15 on the build host; .node-version is 22.22.
+  # arm64 on macOS, x64 on Windows).
+  #
+  # NOTE: Zstd bundled-binary compression (`--compress Zstd`) is a
+  # CLI-only flag on @yao-pkg/pkg today; there is no pkg-config key for
+  # it yet. Since this branch doesn't mirror CLI-only flags as action
+  # inputs, the job can't exercise Zstd until the upstream pkg issue
+  # lands config support. See docs/upstream-pkg-config-issue.md.
   claude-code-smoke:
     name: claude-code-smoke / ${{ matrix.os }} / ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
@@ -332,12 +338,13 @@ jobs:
             const p = './package.json';
             const pkg = JSON.parse(fs.readFileSync(p, 'utf8'));
             pkg.bin = './' + process.argv[1];
-            // pkg-layer knobs (mode, compressNode) live in the pkg config now
-            // that the action stopped mirroring pkg's CLI flags as inputs.
+            // SEA mode is expressible in pkg config (sea: true). Other pkg
+            // build knobs (compress, fallbackToSource, …) are CLI-only
+            // today — this branch waits on upstream config support rather
+            // than mirror them as action inputs.
             pkg.pkg = {
               assets: ['node_modules/@anthropic-ai/claude-code/**/*'],
-              mode: 'sea',
-              compressNode: 'Zstd',
+              sea: true,
             };
             fs.writeFileSync(p, JSON.stringify(pkg, null, 2));
           " "$entry"
@@ -354,10 +361,9 @@ jobs:
         with:
           config: ${{ steps.fix.outputs.fixture }}/package.json
           targets: ${{ matrix.target }}
-          # Zstd landed in @yao-pkg/pkg 6.17. The action's default
-          # (~6.16.0) predates it, so pin a Zstd-capable version.
-          # pkg-layer knobs (mode: sea, compressNode: Zstd) are set in the
-          # package.json#pkg field, not as action inputs.
+          # Pin a recent pkg — 6.18 line is what main's e2e was validated
+          # against. SEA (`sea: true`) is set in the package.json#pkg field,
+          # not as an action input.
           pkg-version: ~6.18.0
           compress: tar.gz
           checksum: sha256
