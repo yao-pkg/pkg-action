@@ -15,14 +15,7 @@ function env(...pairs: Array<[string, string]>): Record<string, string> {
 
 test('INPUT_SPECS covers every documented category', () => {
   const categories = new Set(INPUT_SPECS.map((s) => s.category));
-  for (const c of [
-    'build',
-    'post-build',
-    'windows-metadata',
-    'signing',
-    'publishing',
-    'performance',
-  ]) {
+  for (const c of ['build', 'post-build', 'windows-metadata', 'signing', 'performance']) {
     ok(categories.has(c as never), `missing category ${c}`);
   }
 });
@@ -80,17 +73,8 @@ test('parseInputs with no env uses defaults', () => {
   strictEqual(inputs.postBuild.filename, '{name}-{version}-{os}-{arch}');
   deepStrictEqual(inputs.postBuild.checksum, ['sha256']);
 
-  strictEqual(inputs.publishing.uploadArtifact, true);
-  strictEqual(inputs.publishing.artifactName, '{name}-{version}-{target}');
-  strictEqual(inputs.publishing.attachToRelease, false);
-  strictEqual(inputs.publishing.releaseTag, undefined);
-  strictEqual(inputs.publishing.releaseDraft, false);
-  strictEqual(inputs.publishing.releasePrerelease, false);
-  strictEqual(inputs.publishing.generateReleaseTable, true);
-
   strictEqual(inputs.performance.cache, true);
   strictEqual(inputs.performance.stepSummary, true);
-  strictEqual(inputs.performance.provenance, false);
 });
 
 test('parseInputs parses a realistic build config', () => {
@@ -140,146 +124,12 @@ test('parseInputs rejects invalid enum value', () => {
   throws(() => parseInputs({ env: env(['compress-node', 'zstd']) }), ValidationError);
 });
 
-test('parseInputs: attach-to-release=true auto-detects the tag from GITHUB_REF', () => {
-  const inputs = parseInputs({
-    env: {
-      ...env(['attach-to-release', 'true']),
-      GITHUB_REF: 'refs/tags/v1.2.3',
-    },
-  });
-  strictEqual(inputs.publishing.attachToRelease, true);
-  // releaseTag isn't auto-populated — we still derive from GITHUB_REF in the
-  // orchestrator. The parser only validates that SOME tag is resolvable.
-  strictEqual(inputs.publishing.releaseTag, undefined);
-});
-
-test('parseInputs: attach-to-release=true requires a tag (direct or via GITHUB_REF)', () => {
-  throws(() => parseInputs({ env: env(['attach-to-release', 'true']) }), ValidationError);
-});
-
-test('parseInputs: attach-to-release=true + release-tag override is accepted', () => {
-  const inputs = parseInputs({
-    env: env(['attach-to-release', 'true'], ['release-tag', 'nightly-2026-04-20']),
-  });
-  strictEqual(inputs.publishing.releaseTag, 'nightly-2026-04-20');
-});
-
-test('parseInputs: release-draft / release-prerelease coerce from booleans', () => {
-  const inputs = parseInputs({
-    env: env(
-      ['attach-to-release', 'true'],
-      ['release-tag', 'v1'],
-      ['release-draft', 'true'],
-      ['release-prerelease', 'yes'],
-      ['generate-release-table', 'false'],
-    ),
-  });
-  strictEqual(inputs.publishing.releaseDraft, true);
-  strictEqual(inputs.publishing.releasePrerelease, true);
-  strictEqual(inputs.publishing.generateReleaseTable, false);
-});
-
 test('parseInputs checksum accepts "none" and drops to empty list', () => {
   deepStrictEqual(parseInputs({ env: env(['checksum', 'none']) }).postBuild.checksum, []);
 });
 
 test('parseInputs checksum rejects mixing none with algos', () => {
   throws(() => parseInputs({ env: env(['checksum', 'none,sha256']) }), ValidationError);
-});
-
-test('parseInputs: sbom defaults to "none" and accepts cyclonedx|spdx', () => {
-  strictEqual(parseInputs({ env: {} }).performance.sbom, 'none');
-  strictEqual(parseInputs({ env: env(['sbom', 'cyclonedx']) }).performance.sbom, 'cyclonedx');
-  strictEqual(parseInputs({ env: env(['sbom', 'spdx']) }).performance.sbom, 'spdx');
-});
-
-test('parseInputs: sbom rejects unknown format', () => {
-  throws(() => parseInputs({ env: env(['sbom', 'swid']) }), ValidationError);
-});
-
-test('parseInputs: homebrew-tap-repo captures the full homebrew bag', () => {
-  const inputs = parseInputs({
-    env: env(
-      ['attach-to-release', 'true'],
-      ['release-tag', 'v1'],
-      ['homebrew-tap-repo', 'yao-pkg/homebrew-tap'],
-      ['homebrew-formula-name', 'my-app'],
-      ['homebrew-formula-description', 'My app'],
-      ['homebrew-formula-homepage', 'https://example.test'],
-      ['homebrew-formula-license', 'MIT'],
-      ['homebrew-formula-binary', 'myapp'],
-      ['homebrew-tap-branch', 'release/v1'],
-    ),
-  });
-  ok(inputs.publishing.homebrew !== undefined);
-  strictEqual(inputs.publishing.homebrew.tapRepo, 'yao-pkg/homebrew-tap');
-  strictEqual(inputs.publishing.homebrew.formulaName, 'my-app');
-  strictEqual(inputs.publishing.homebrew.formulaDescription, 'My app');
-  strictEqual(inputs.publishing.homebrew.formulaHomepage, 'https://example.test');
-  strictEqual(inputs.publishing.homebrew.formulaLicense, 'MIT');
-  strictEqual(inputs.publishing.homebrew.formulaBinary, 'myapp');
-  strictEqual(inputs.publishing.homebrew.tapBranch, 'release/v1');
-});
-
-test('parseInputs: scoop-bucket-repo captures the full scoop bag', () => {
-  const inputs = parseInputs({
-    env: env(
-      ['attach-to-release', 'true'],
-      ['release-tag', 'v1'],
-      ['scoop-bucket-repo', 'yao-pkg/scoop-bucket'],
-      ['scoop-manifest-name', 'my-app'],
-    ),
-  });
-  ok(inputs.publishing.scoop !== undefined);
-  strictEqual(inputs.publishing.scoop.bucketRepo, 'yao-pkg/scoop-bucket');
-  strictEqual(inputs.publishing.scoop.manifestName, 'my-app');
-});
-
-test('parseInputs: homebrew/scoop require attach-to-release=true', () => {
-  throws(() => parseInputs({ env: env(['homebrew-tap-repo', 'yao-pkg/tap']) }), ValidationError);
-  throws(() => parseInputs({ env: env(['scoop-bucket-repo', 'yao-pkg/bucket']) }), ValidationError);
-});
-
-test('parseInputs: homebrew/scoop undefined when their inputs are unset', () => {
-  const inputs = parseInputs({ env: {} });
-  strictEqual(inputs.publishing.homebrew, undefined);
-  strictEqual(inputs.publishing.scoop, undefined);
-});
-
-test('parseInputs: docker-image captures the docker bag + defaults base image', () => {
-  const inputs = parseInputs({
-    env: env(
-      ['docker-image', 'ghcr.io/org/app:{version}'],
-      ['docker-username', 'bot'],
-      ['docker-password', 'secret'],
-    ),
-  });
-  ok(inputs.publishing.docker !== undefined);
-  strictEqual(inputs.publishing.docker.image, 'ghcr.io/org/app:{version}');
-  strictEqual(inputs.publishing.docker.username, 'bot');
-  strictEqual(inputs.publishing.docker.password, 'secret');
-  strictEqual(inputs.publishing.docker.baseImage, 'gcr.io/distroless/cc-debian12:latest');
-});
-
-test('parseInputs: docker-username without docker-password is a hard error', () => {
-  throws(
-    () =>
-      parseInputs({
-        env: env(['docker-image', 'ghcr.io/org/app'], ['docker-username', 'bot']),
-      }),
-    ValidationError,
-  );
-  throws(
-    () =>
-      parseInputs({
-        env: env(['docker-image', 'ghcr.io/org/app'], ['docker-password', 'secret']),
-      }),
-    ValidationError,
-  );
-});
-
-test('parseInputs: docker undefined when docker-image is unset', () => {
-  strictEqual(parseInputs({ env: {} }).publishing.docker, undefined);
 });
 
 test('parseInputs checksum deduplicates', () => {

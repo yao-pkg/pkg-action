@@ -6,27 +6,14 @@
 // No zod, no ajv, no runtime schema library. Inputs are strings (they arrive
 // as `INPUT_<NAME>` environment variables per the GH Actions runner protocol);
 // coercion and mutual-exclusion checks live here and are 100% unit-tested.
-//
-// M1 scope: build-config + post-build + minimal publishing + perf/observability.
-// Windows metadata (§5.3), signing (§5.4), and advanced publishing (§5.5) land
-// in M3/M4/M5 — their specs are registered here with category tags so codegen
-// can still emit stub entries in action.yml. The validator only parses the
-// M1-active subset.
 
 import { ValidationError } from './errors.ts';
 import { parseTargetList, type Target } from './targets.ts';
 import { CHECKSUM_ALGORITHMS, type ChecksumAlgorithm } from './checksum.ts';
-import { SBOM_FORMATS, type SbomFormat } from './sbom.ts';
 
 // ─── Metadata ─────────────────────────────────────────────────────────────
 
-export type InputCategory =
-  | 'build'
-  | 'post-build'
-  | 'windows-metadata'
-  | 'signing'
-  | 'publishing'
-  | 'performance';
+export type InputCategory = 'build' | 'post-build' | 'windows-metadata' | 'signing' | 'performance';
 
 export interface InputSpec {
   readonly name: string;
@@ -336,186 +323,6 @@ export const INPUT_SPECS: readonly InputSpec[] = [
     description: 'Azure Trusted Signing: certificate profile name.',
   },
 
-  // Publishing (§5.5)
-  {
-    name: 'upload-artifact',
-    category: 'publishing',
-    description: 'Upload each produced file as a workflow artifact.',
-    default: 'true',
-  },
-  {
-    name: 'artifact-name',
-    category: 'publishing',
-    description:
-      'Artifact name template. Must be unique per target (@actions/artifact v2 rejects collisions).',
-    default: '{name}-{version}-{target}',
-  },
-  {
-    name: 'attach-to-release',
-    category: 'publishing',
-    description: 'Attach artifacts to the release matching the triggering tag.',
-    default: 'false',
-  },
-  {
-    name: 'release-tag',
-    category: 'publishing',
-    description:
-      'Override the release tag. Required for non-tag triggers when attach-to-release is true.',
-  },
-  {
-    name: 'release-name',
-    category: 'publishing',
-    description: 'Release title (optional override).',
-  },
-  {
-    name: 'release-body',
-    category: 'publishing',
-    description: 'Release body (optional override).',
-  },
-  {
-    name: 'release-draft',
-    category: 'publishing',
-    description: 'Mark the release as draft.',
-    default: 'false',
-  },
-  {
-    name: 'release-prerelease',
-    category: 'publishing',
-    description: 'Mark the release as prerelease.',
-    default: 'false',
-  },
-  {
-    name: 'generate-release-table',
-    category: 'publishing',
-    description: 'Append a markdown table of binaries + sizes + checksums to the release body.',
-    default: 'true',
-  },
-
-  // Homebrew tap (§6.4)
-  {
-    name: 'homebrew-tap-repo',
-    category: 'publishing',
-    description: 'owner/repo of a homebrew-tap. When set, opens a PR with an updated formula.',
-  },
-  {
-    name: 'homebrew-tap-token',
-    category: 'publishing',
-    description: 'PAT with contents:write on the tap repo. Falls back to GITHUB_TOKEN.',
-    secret: true,
-  },
-  {
-    name: 'homebrew-formula-name',
-    category: 'publishing',
-    description: 'Formula filename without .rb. Defaults to the project name.',
-  },
-  {
-    name: 'homebrew-formula-description',
-    category: 'publishing',
-    description: 'Formula description (desc). Defaults to package.json "description".',
-  },
-  {
-    name: 'homebrew-formula-homepage',
-    category: 'publishing',
-    description: 'Formula homepage. Defaults to the repository URL.',
-  },
-  {
-    name: 'homebrew-formula-license',
-    category: 'publishing',
-    description: 'Formula license string. Defaults to package.json "license".',
-  },
-  {
-    name: 'homebrew-formula-binary',
-    category: 'publishing',
-    description: 'Binary name installed into $prefix/bin. Defaults to the formula name.',
-  },
-  {
-    name: 'homebrew-tap-branch',
-    category: 'publishing',
-    description:
-      'Branch to push the updated formula on. Defaults to pkg-action/<project>-<version>.',
-  },
-
-  // Docker publishing (§6.3)
-  {
-    name: 'docker-image',
-    category: 'publishing',
-    description:
-      'OCI image reference with optional {version}/{tag}/{sha} tokens, e.g. ghcr.io/org/app:{version}. When set, the linux-* binaries are pushed as an OCI image.',
-  },
-  {
-    name: 'docker-registry',
-    category: 'publishing',
-    description: 'Registry host for auth. Derived from docker-image when unset.',
-  },
-  {
-    name: 'docker-username',
-    category: 'publishing',
-    description: 'Registry username. Paired with docker-password.',
-    secret: true,
-  },
-  {
-    name: 'docker-password',
-    category: 'publishing',
-    description: 'Registry password or token.',
-    secret: true,
-  },
-  {
-    name: 'docker-base-image',
-    category: 'publishing',
-    description:
-      'Base image the generated Dockerfile FROMs. Defaults to distroless/cc — the cc variant bundles libc/libstdc++/libgcc that the pkg-packaged Node binary links against.',
-    default: 'gcr.io/distroless/cc-debian12:latest',
-  },
-  {
-    name: 'docker-dockerfile',
-    category: 'publishing',
-    description: 'Path to a user-supplied Dockerfile. Skips the generated minimal layout.',
-  },
-
-  // Scoop bucket (§6.5)
-  {
-    name: 'scoop-bucket-repo',
-    category: 'publishing',
-    description: 'owner/repo of a scoop bucket. When set, opens a PR with an updated manifest.',
-  },
-  {
-    name: 'scoop-bucket-token',
-    category: 'publishing',
-    description: 'PAT with contents:write on the bucket repo. Falls back to GITHUB_TOKEN.',
-    secret: true,
-  },
-  {
-    name: 'scoop-manifest-name',
-    category: 'publishing',
-    description: 'Manifest filename without .json. Defaults to the project name.',
-  },
-  {
-    name: 'scoop-manifest-description',
-    category: 'publishing',
-    description: 'Manifest description. Defaults to package.json "description".',
-  },
-  {
-    name: 'scoop-manifest-homepage',
-    category: 'publishing',
-    description: 'Manifest homepage. Defaults to the repository URL.',
-  },
-  {
-    name: 'scoop-manifest-license',
-    category: 'publishing',
-    description: 'Manifest license. Defaults to package.json "license".',
-  },
-  {
-    name: 'scoop-manifest-binary',
-    category: 'publishing',
-    description: 'Binary name inside the archive. Defaults to <manifest-name>.exe.',
-  },
-  {
-    name: 'scoop-bucket-branch',
-    category: 'publishing',
-    description:
-      'Branch to push the updated manifest on. Defaults to pkg-action/<project>-<version>.',
-  },
-
   // Performance / observability (§5.6)
   {
     name: 'cache',
@@ -533,19 +340,6 @@ export const INPUT_SPECS: readonly InputSpec[] = [
     category: 'performance',
     description: 'Write a markdown summary of build time / size / checksum to the job summary.',
     default: 'true',
-  },
-  {
-    name: 'sbom',
-    category: 'performance',
-    description:
-      'Generate a Software Bill of Materials: none | cyclonedx | spdx. Written alongside the artifacts and attached to the release when attach-to-release=true.',
-    default: 'none',
-  },
-  {
-    name: 'provenance',
-    category: 'performance',
-    description: 'Emit SLSA provenance attestation via actions/attest-build-provenance.',
-    default: 'false',
   },
 ];
 
@@ -597,66 +391,15 @@ export interface PostBuildInputs {
   readonly checksum: ChecksumAlgorithm[]; // empty when 'none'
 }
 
-export interface PublishingInputs {
-  readonly uploadArtifact: boolean;
-  readonly artifactName: string;
-  readonly attachToRelease: boolean;
-  /** Tag override. When attach-to-release=true and the workflow was NOT
-   *  triggered by a tag push, this must be set — we fail fast otherwise. */
-  readonly releaseTag: string | undefined;
-  readonly releaseName: string | undefined;
-  readonly releaseBody: string | undefined;
-  readonly releaseDraft: boolean;
-  readonly releasePrerelease: boolean;
-  readonly generateReleaseTable: boolean;
-  readonly homebrew: HomebrewInputs | undefined;
-  readonly scoop: ScoopInputs | undefined;
-  readonly docker: DockerPublishInputs | undefined;
-}
-
-export interface DockerPublishInputs {
-  readonly image: string;
-  readonly registry: string | undefined;
-  readonly username: string | undefined;
-  readonly password: string | undefined;
-  readonly baseImage: string;
-  readonly dockerfile: string | undefined;
-}
-
-export interface HomebrewInputs {
-  readonly tapRepo: string;
-  readonly tapToken: string | undefined;
-  readonly formulaName: string | undefined;
-  readonly formulaDescription: string | undefined;
-  readonly formulaHomepage: string | undefined;
-  readonly formulaLicense: string | undefined;
-  readonly formulaBinary: string | undefined;
-  readonly tapBranch: string | undefined;
-}
-
-export interface ScoopInputs {
-  readonly bucketRepo: string;
-  readonly bucketToken: string | undefined;
-  readonly manifestName: string | undefined;
-  readonly manifestDescription: string | undefined;
-  readonly manifestHomepage: string | undefined;
-  readonly manifestLicense: string | undefined;
-  readonly manifestBinary: string | undefined;
-  readonly bucketBranch: string | undefined;
-}
-
 export interface PerformanceInputs {
   readonly cache: boolean;
   readonly cacheKey: string | undefined;
   readonly stepSummary: boolean;
-  readonly sbom: SbomFormat;
-  readonly provenance: boolean;
 }
 
 export interface ActionInputs {
   readonly build: BuildInputs;
   readonly postBuild: PostBuildInputs;
-  readonly publishing: PublishingInputs;
   readonly performance: PerformanceInputs;
 }
 
@@ -816,101 +559,11 @@ export function parseInputs(opts: ParseInputsOptions = {}): ActionInputs {
     checksum: parseChecksumList(readInput(env, 'checksum'), 'checksum'),
   };
 
-  // Publishing (M5-extended)
-  const attachToRelease = parseBoolean(readInput(env, 'attach-to-release'), 'attach-to-release');
-  const releaseTag = readInput(env, 'release-tag');
-  if (attachToRelease) {
-    // Either a tag-triggered run (GITHUB_REF=refs/tags/*) OR an explicit
-    // release-tag input is required. We check here so the error surfaces
-    // before we spend minutes on pkg + sign.
-    const ref = env['GITHUB_REF'];
-    const refTag =
-      ref !== undefined && ref.startsWith('refs/tags/')
-        ? ref.slice('refs/tags/'.length)
-        : undefined;
-    if (releaseTag === undefined && (refTag === undefined || refTag === '')) {
-      throw new ValidationError(
-        'attach-to-release=true requires either a tag-triggered run (GITHUB_REF=refs/tags/...) or an explicit release-tag input.',
-      );
-    }
-  }
-  const homebrewTapRepo = readInput(env, 'homebrew-tap-repo');
-  const homebrew: HomebrewInputs | undefined =
-    homebrewTapRepo !== undefined
-      ? {
-          tapRepo: homebrewTapRepo,
-          tapToken: readInput(env, 'homebrew-tap-token'),
-          formulaName: readInput(env, 'homebrew-formula-name'),
-          formulaDescription: readInput(env, 'homebrew-formula-description'),
-          formulaHomepage: readInput(env, 'homebrew-formula-homepage'),
-          formulaLicense: readInput(env, 'homebrew-formula-license'),
-          formulaBinary: readInput(env, 'homebrew-formula-binary'),
-          tapBranch: readInput(env, 'homebrew-tap-branch'),
-        }
-      : undefined;
-  const scoopBucketRepo = readInput(env, 'scoop-bucket-repo');
-  const scoop: ScoopInputs | undefined =
-    scoopBucketRepo !== undefined
-      ? {
-          bucketRepo: scoopBucketRepo,
-          bucketToken: readInput(env, 'scoop-bucket-token'),
-          manifestName: readInput(env, 'scoop-manifest-name'),
-          manifestDescription: readInput(env, 'scoop-manifest-description'),
-          manifestHomepage: readInput(env, 'scoop-manifest-homepage'),
-          manifestLicense: readInput(env, 'scoop-manifest-license'),
-          manifestBinary: readInput(env, 'scoop-manifest-binary'),
-          bucketBranch: readInput(env, 'scoop-bucket-branch'),
-        }
-      : undefined;
-  const dockerImage = readInput(env, 'docker-image');
-  const docker: DockerPublishInputs | undefined =
-    dockerImage !== undefined
-      ? {
-          image: dockerImage,
-          registry: readInput(env, 'docker-registry'),
-          username: readInput(env, 'docker-username'),
-          password: readInput(env, 'docker-password'),
-          baseImage: readInput(env, 'docker-base-image') ?? 'gcr.io/distroless/cc-debian12:latest',
-          dockerfile: readInput(env, 'docker-dockerfile'),
-        }
-      : undefined;
-  if ((homebrew !== undefined || scoop !== undefined) && !attachToRelease) {
-    throw new ValidationError(
-      'homebrew-tap-repo / scoop-bucket-repo require attach-to-release=true (the generated manifest points at release download URLs).',
-    );
-  }
-  if (docker !== undefined) {
-    if ((docker.username === undefined) !== (docker.password === undefined)) {
-      throw new ValidationError(
-        'docker-username and docker-password must be set together (or both left unset for an unauthenticated registry).',
-      );
-    }
-  }
-  const publishing: PublishingInputs = {
-    uploadArtifact: parseBoolean(readInput(env, 'upload-artifact'), 'upload-artifact'),
-    artifactName: readInput(env, 'artifact-name') ?? '{name}-{version}-{target}',
-    attachToRelease,
-    releaseTag,
-    releaseName: readInput(env, 'release-name'),
-    releaseBody: readInput(env, 'release-body'),
-    releaseDraft: parseBoolean(readInput(env, 'release-draft'), 'release-draft'),
-    releasePrerelease: parseBoolean(readInput(env, 'release-prerelease'), 'release-prerelease'),
-    generateReleaseTable: parseBoolean(
-      readInput(env, 'generate-release-table'),
-      'generate-release-table',
-    ),
-    homebrew,
-    scoop,
-    docker,
-  };
-
   // Performance / observability
   const performance: PerformanceInputs = {
     cache: parseBoolean(readInput(env, 'cache'), 'cache'),
     cacheKey: readInput(env, 'cache-key'),
     stepSummary: parseBoolean(readInput(env, 'step-summary'), 'step-summary'),
-    sbom: parseEnum(readInput(env, 'sbom'), 'sbom', SBOM_FORMATS),
-    provenance: parseBoolean(readInput(env, 'provenance'), 'provenance'),
   };
 
   // Undeclared-input detector (plan §10). Scan env for INPUT_* keys without a
@@ -927,7 +580,7 @@ export function parseInputs(opts: ParseInputsOptions = {}): ActionInputs {
     }
   }
 
-  return { build, postBuild, publishing, performance };
+  return { build, postBuild, performance };
 }
 
 /**

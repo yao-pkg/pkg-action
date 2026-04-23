@@ -27,11 +27,6 @@ const OUTPUTS = [
   { id: 'artifacts', description: 'JSON array of post-archive artifact absolute paths.' },
   { id: 'checksums', description: 'JSON array of absolute paths to SHASUMS*.txt files.' },
   { id: 'version', description: 'Resolved package.json version used in filename templates.' },
-  {
-    id: 'release-url',
-    description:
-      'Absolute URL to the GitHub release the action attached to. Empty when attach-to-release=false.',
-  },
 ] as const;
 
 const GENERATED_BANNER = [
@@ -100,7 +95,7 @@ function renderCompositeActionYml(): string {
   ).join('\n');
 
   return `${GENERATED_BANNER}name: 'yao-pkg/pkg-action'
-description: 'Build, sign, archive, checksum, and publish Node.js binaries with @yao-pkg/pkg.'
+description: 'Build, optionally sign, archive, and checksum Node.js binaries with @yao-pkg/pkg.'
 author: 'yao-pkg contributors'
 branding:
   icon: 'package'
@@ -138,30 +133,6 @@ runs:
       uses: ./packages/build
       with:
 ${passthrough}
-
-    # ── Provenance (SLSA build-provenance attestation) ──────────────────
-    # Gated on inputs.provenance=='true'. Requires permissions:
-    #   id-token: write
-    #   attestations: write
-    # on the caller workflow. Without them, attest-build-provenance fails
-    # fast with a clear error — we do NOT swallow it because a silent
-    # missing attestation defeats the point of the feature.
-    - name: Collect provenance subject paths
-      if: \${{ inputs.provenance == 'true' }}
-      id: pkg-action-provenance-subjects
-      shell: bash
-      run: |
-        {
-          echo 'paths<<PKG_ACTION_EOF'
-          echo '\${{ steps.pkg-action-build.outputs.artifacts }}' | jq -r '.[]'
-          echo 'PKG_ACTION_EOF'
-        } >> "\${GITHUB_OUTPUT}"
-
-    - name: Attest build provenance
-      if: \${{ inputs.provenance == 'true' }}
-      uses: actions/attest-build-provenance@v4
-      with:
-        subject-path: \${{ steps.pkg-action-provenance-subjects.outputs.paths }}
 `;
 }
 
