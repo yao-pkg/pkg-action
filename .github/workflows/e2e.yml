@@ -348,6 +348,12 @@ jobs:
           docker-password: ${{ secrets.GITHUB_TOKEN }}
           docker-base-image: gcr.io/distroless/base-debian12:latest
 
+      - name: Log in to ghcr.io for pull
+        # The action pushes via a private DOCKER_CONFIG dir to keep the
+        # password off argv, so the host daemon has no ghcr creds afterward.
+        # Authenticate the default config explicitly before docker pull.
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
       - name: Pull + run the pushed image
         shell: bash
         env:
