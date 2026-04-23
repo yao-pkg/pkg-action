@@ -162,19 +162,29 @@ async function main(): Promise<void> {
     inputs.build.config !== undefined &&
     pathBasename(inputs.build.config).toLowerCase() === 'package.json';
   const pkgBuildInputs = cfgIsPackageJson ? { ...inputs.build, config: undefined } : inputs.build;
-  // runPkg logs the full command line itself (via "Invoking: …"), so we
-  // don't re-log the argv here — that was causing every build to emit two
-  // nearly-identical lines.
+  // Fold the pkg invocation into its own group — "Walking dependencies",
+  // "Downloading nodejs executable", "Generating SEA assets", plus the
+  // GH-Actions `[command]` echo and any warnings, can easily be 30+ lines
+  // on a multi-target run. The summary line below the group gives wall
+  // time at a glance without expanding.
+  // runPkg logs the full command itself via "Invoking: …" — no need to
+  // pre-log the argv here.
+  const pkgTargetsLabel = resolvedTargets.map(formatTarget).join(', ');
+  logger.startGroup(`[pkg-action] pkg build (targets=${pkgTargetsLabel})`);
   const runStart = Date.now();
-  await runPkg(
-    {
-      build: pkgBuildInputs,
-      targets: resolvedTargets,
-      outputDir: pkgOutputDir,
-      cwd: projectDir,
-    },
-    { exec: execBridge, logger, pkgCommand },
-  );
+  try {
+    await runPkg(
+      {
+        build: pkgBuildInputs,
+        targets: resolvedTargets,
+        outputDir: pkgOutputDir,
+        cwd: projectDir,
+      },
+      { exec: execBridge, logger, pkgCommand },
+    );
+  } finally {
+    logger.endGroup();
+  }
   const pkgDurationMs = Date.now() - runStart;
   logger.info(`[pkg-action] pkg finished in ${formatSeconds(pkgDurationMs)}`);
 

@@ -19311,16 +19311,22 @@ async function main() {
   saveState("invocationDir", invocationDir);
   let pkgOutputDir = join7(invocationDir, "pkg-out");
   await mkdir3(pkgOutputDir, { recursive: !0 });
-  let pkgCommand = inputs.build.pkgPath ?? "pkg", pkgBuildInputs = inputs.build.config !== void 0 && pathBasename(inputs.build.config).toLowerCase() === "package.json" ? { ...inputs.build, config: void 0 } : inputs.build, runStart = Date.now();
-  await runPkg(
-    {
-      build: pkgBuildInputs,
-      targets: resolvedTargets,
-      outputDir: pkgOutputDir,
-      cwd: projectDir
-    },
-    { exec: execBridge, logger, pkgCommand }
-  );
+  let pkgCommand = inputs.build.pkgPath ?? "pkg", pkgBuildInputs = inputs.build.config !== void 0 && pathBasename(inputs.build.config).toLowerCase() === "package.json" ? { ...inputs.build, config: void 0 } : inputs.build, pkgTargetsLabel = resolvedTargets.map(formatTarget).join(", ");
+  logger.startGroup(`[pkg-action] pkg build (targets=${pkgTargetsLabel})`);
+  let runStart = Date.now();
+  try {
+    await runPkg(
+      {
+        build: pkgBuildInputs,
+        targets: resolvedTargets,
+        outputDir: pkgOutputDir,
+        cwd: projectDir
+      },
+      { exec: execBridge, logger, pkgCommand }
+    );
+  } finally {
+    logger.endGroup();
+  }
   let pkgDurationMs = Date.now() - runStart;
   logger.info(`[pkg-action] pkg finished in ${formatSeconds(pkgDurationMs)}`);
   let pkgOutputs = await mapPkgOutputs(resolvedTargets, project.name, pkgOutputDir), windowsMeta = await parseWindowsMetadataInputs();
