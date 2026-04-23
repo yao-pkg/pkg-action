@@ -74,9 +74,8 @@ input-surface-slim:
     seaConfig, deployAssets). The rest (--compress, --fallback-to-source,
     --public, --public-packages, --options, --no-bytecode, --no-dict,
     --debug, --signature) are CLI-only. Until pkg lands config support for
-    those, users of this action lose access to them. Draft of the upstream
-    issue lives at docs/upstream-pkg-config-issue.md — file against
-    yao-pkg/pkg and link back here once opened.
+    those, users of this action lose access to them.
+    Tracking upstream: https://github.com/yao-pkg/pkg/issues/262.
   known-gaps:
     - 'Zstd bundled-binary compression — unreachable without the --compress CLI flag. The claude-code-smoke e2e job exercises SEA + tar.gz only until upstream lands pkg-config `compress` support.'
 
