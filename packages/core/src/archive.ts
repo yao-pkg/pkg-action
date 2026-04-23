@@ -120,6 +120,14 @@ async function shellTar(
   // when tar's flag handling diverges on edge cases.
   await utimes(inputPath, REPRO_MTIME, REPRO_MTIME);
 
+  // Owner/group zeroing flags diverge:
+  //   GNU tar (linux)      → --owner=0 --group=0
+  //   bsdtar (macos, win)  → --uid=0 --gid=0
+  // `--numeric-owner` + `--mtime` are common to both. Branching on host
+  // platform avoids a `tar --version` probe per archive.
+  const ownerFlags =
+    process.platform === 'linux' ? ['--owner=0', '--group=0'] : ['--uid=0', '--gid=0'];
+
   try {
     const result = await deps.exec(
       'tar',
@@ -128,15 +136,9 @@ async function shellTar(
         compressFlag,
         '-f',
         outputPath,
-        // Pin header metadata for byte-stable output. Flags understood by
-        // both GNU tar (ubuntu) and bsdtar/libarchive (macos + windows):
-        //   --mtime <date>       pin entry mtime in the archive header
-        //   --uid=0 --gid=0      zero numeric owner (runner uid is nondeterministic)
-        //   --numeric-owner      write numeric ids, skip passwd/group lookup
         '--mtime',
         REPRO_MTIME_TAR,
-        '--uid=0',
-        '--gid=0',
+        ...ownerFlags,
         '--numeric-owner',
         '-C',
         workDir,

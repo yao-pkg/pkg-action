@@ -112,7 +112,7 @@ test('archive: tar.gz shells out with correct args', async () => {
   });
 });
 
-test('archive: tar passes reproducibility flags (--mtime, --uid, --gid, --numeric-owner)', async () => {
+test('archive: tar passes reproducibility flags (--mtime + owner/group zero + --numeric-owner)', async () => {
   await withTempPair(async (inputPath, outputPath) => {
     const calls: Array<{ cmd: string; args: readonly string[] }> = [];
     const exec: ExecFn = async (cmd, args) => {
@@ -125,9 +125,16 @@ test('archive: tar passes reproducibility flags (--mtime, --uid, --gid, --numeri
     ok(args.includes('--mtime'));
     const mtimeIdx = args.indexOf('--mtime');
     strictEqual(args[mtimeIdx + 1], '2020-01-01 00:00:00 UTC');
-    ok(args.includes('--uid=0'));
-    ok(args.includes('--gid=0'));
     ok(args.includes('--numeric-owner'));
+    // Owner-zero flags diverge between GNU and bsdtar; the pair must land
+    // together and match the host platform.
+    if (process.platform === 'linux') {
+      ok(args.includes('--owner=0'), 'GNU tar expects --owner=0');
+      ok(args.includes('--group=0'), 'GNU tar expects --group=0');
+    } else {
+      ok(args.includes('--uid=0'), 'bsdtar expects --uid=0');
+      ok(args.includes('--gid=0'), 'bsdtar expects --gid=0');
+    }
   });
 });
 

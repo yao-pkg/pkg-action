@@ -15307,6 +15307,7 @@ async function shellTar(inputPath, outputPath, compression, entry, deps) {
     await symlink2(inputPath, linkPath), workDir = stageDir, fileName = entry;
   }
   await utimes(inputPath, REPRO_MTIME, REPRO_MTIME);
+  let ownerFlags = process.platform === "linux" ? ["--owner=0", "--group=0"] : ["--uid=0", "--gid=0"];
   try {
     let result = await deps.exec(
       "tar",
@@ -15315,15 +15316,9 @@ async function shellTar(inputPath, outputPath, compression, entry, deps) {
         compressFlag,
         "-f",
         outputPath,
-        // Pin header metadata for byte-stable output. Flags understood by
-        // both GNU tar (ubuntu) and bsdtar/libarchive (macos + windows):
-        //   --mtime <date>       pin entry mtime in the archive header
-        //   --uid=0 --gid=0      zero numeric owner (runner uid is nondeterministic)
-        //   --numeric-owner      write numeric ids, skip passwd/group lookup
         "--mtime",
         REPRO_MTIME_TAR,
-        "--uid=0",
-        "--gid=0",
+        ...ownerFlags,
         "--numeric-owner",
         "-C",
         workDir,
