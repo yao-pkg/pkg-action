@@ -45,6 +45,15 @@ const GENERATED_BANNER = [
 
 function yamlString(value: string): string {
   // Always single-quote, escape embedded single quotes by doubling them.
+  // Reject control characters — YAML single-quoted scalars cannot express them
+  // and silently emitting an invalid quote-blob would break the action loader.
+  // Future descriptions needing newlines must switch to a block scalar.
+  // eslint-disable-next-line no-control-regex -- guardrail specifically targets control chars.
+  if (/[\x00-\x1F\x7F]/.test(value)) {
+    throw new Error(
+      `yamlString: control character in ${JSON.stringify(value)} — use a block scalar instead.`,
+    );
+  }
   return `'${value.replace(/'/g, "''")}'`;
 }
 

@@ -13522,7 +13522,7 @@ function crossCompileRisk(host, target) {
   return sameOs && sameArch ? null : host.os === "linux" && target.os === "macos" ? "Linux host \u2192 macOS target produces non-functional binaries (see yao-pkg/pkg#183). Use a macOS runner." : target.os === "linux" && target.arch === "arm64" && host.arch !== "arm64" ? "Linux-arm64 cross-compile from a non-arm64 host hits the pkg bytecode fabricator bug (#87/#181) on Node 22. Use a linux/arm64 runner or pass --fallback-to-source." : target.os === "win" && target.arch === "x64" && host.os !== "win" ? "win-x64 cross-compile from a non-Windows host hits the pkg bytecode fabricator bug (#87/#181) on Node 22. Use a windows runner or pass --fallback-to-source." : target.os === "macos" && target.arch === "arm64" && host.os !== "macos" ? "macos-arm64 binaries must be signed to run; cross-compiling without a codesign toolchain will produce an unusable binary." : null;
 }
 
-// packages/core/src/index.ts
+// packages/core/src/version.ts
 var VERSION = "0.0.0";
 
 // packages/matrix/src/main.ts

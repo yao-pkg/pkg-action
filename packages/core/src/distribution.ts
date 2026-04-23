@@ -185,13 +185,18 @@ export interface DistributionPublisher {
 
 // ─── Default Octokit wiring ───────────────────────────────────────────────
 
+export interface DistributionPublisherDeps {
+  readonly token: string;
+}
+
 /** Factory for the production publisher. Dynamic import of @actions/github keeps
- *  tests free of the dep. */
+ *  tests free of the dep. Shape mirrors createDefaultDockerPublisher — the sole
+ *  runtime dep is the GitHub token. */
 export async function createDefaultDistributionPublisher(
-  githubToken: string,
+  deps: DistributionPublisherDeps,
 ): Promise<DistributionPublisher> {
   const mod = await import('@actions/github');
-  const octokit = mod.getOctokit(githubToken);
+  const octokit = mod.getOctokit(deps.token);
   return {
     async publish(req: PublishRequest): Promise<PublishResult> {
       // 1. Resolve default branch (used as base when PR base is unset).

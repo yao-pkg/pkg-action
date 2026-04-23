@@ -48,8 +48,11 @@ jobs:
       - name: Typecheck
         run: yarn typecheck
 
-      - name: Unit tests
-        run: yarn test:unit
+      - name: Unit tests (with coverage)
+        run: yarn test
+
+      - name: Coverage gate
+        run: node --experimental-strip-types scripts/check-coverage.ts coverage.lcov --min 85
 
       - name: Build (bundle dist/)
         run: yarn build

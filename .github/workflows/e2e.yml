@@ -11,6 +11,20 @@ on:
   push:
     branches: [main]
   pull_request:
+    paths:
+      # `packages/**` covers packages/build/action.yml + every source, test, and
+      # dist/ under packages/. The action.yml entries below are the top-level
+      # composite and the two sub-actions whose directories are not under packages/.
+      - 'packages/**'
+      - 'scripts/**'
+      - 'action.yml'
+      - 'matrix/action.yml'
+      - 'windows-metadata/action.yml'
+      - 'test-fixtures/**'
+      - '.github/workflows/e2e.yml'
+      - '.github/scripts/**'
+      - 'package.json'
+      - 'yarn.lock'
   workflow_dispatch:
 
 permissions:

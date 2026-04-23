@@ -30,6 +30,7 @@ import {
   buildReleaseBody,
   collectDependencyTree,
   computeAllChecksums,
+  createDefaultArtifactUploader,
   createDefaultDistributionPublisher,
   createDefaultDockerPublisher,
   createDefaultReleaseAttacher,
@@ -358,7 +359,7 @@ async function main(): Promise<void> {
 
   // 9. Artifact upload (one per target — names must be unique).
   if (inputs.publishing.uploadArtifact && finalizedArtifacts.length > 0) {
-    const uploader = await (await import('@pkg-action/core')).createDefaultArtifactUploader();
+    const uploader = await createDefaultArtifactUploader();
     const uploadRequests = pkgOutputs.map((out, i) => {
       const tokens = tokensForTarget(out.target, project, process.env);
       const name = render(inputs.publishing.artifactName, tokens);
@@ -567,7 +568,9 @@ async function publishHomebrew(inputs: HomebrewInputs, deps: PublishDeps): Promi
     ...(inputs.formulaBinary !== undefined ? { binary: inputs.formulaBinary } : {}),
   });
   const branch = inputs.tapBranch ?? `pkg-action/${deps.project.name}-${deps.project.version}`;
-  const publisher = await createDefaultDistributionPublisher(inputs.tapToken ?? deps.defaultToken);
+  const publisher = await createDefaultDistributionPublisher({
+    token: inputs.tapToken ?? deps.defaultToken,
+  });
   const result = await publisher.publish({
     owner: target.owner,
     repo: target.repo,
@@ -656,9 +659,9 @@ async function publishScoop(inputs: ScoopInputs, deps: PublishDeps): Promise<voi
     ...(inputs.manifestBinary !== undefined ? { binary: inputs.manifestBinary } : {}),
   });
   const branch = inputs.bucketBranch ?? `pkg-action/${deps.project.name}-${deps.project.version}`;
-  const publisher = await createDefaultDistributionPublisher(
-    inputs.bucketToken ?? deps.defaultToken,
-  );
+  const publisher = await createDefaultDistributionPublisher({
+    token: inputs.bucketToken ?? deps.defaultToken,
+  });
   const result = await publisher.publish({
     owner: target.owner,
     repo: target.repo,

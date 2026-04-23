@@ -20,5 +20,4 @@ export * from './release-body.ts';
 export * from './sbom.ts';
 export * from './distribution.ts';
 export * from './docker.ts';
-
-export const VERSION = '0.0.0';
+export { VERSION } from './version.ts';

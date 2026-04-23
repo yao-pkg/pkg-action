@@ -1,195 +1,134 @@
 # pkg-action implementation status tracker.
 #
-# Transient file kept in-repo while v1.0.0 is under construction. Will be
-# removed (or converted into a changelog + badge) once we ship. Updated on
-# every code-landing commit — treat a stale entry here as a bug.
+# In-repo while v1.0.0 is under construction. Deleted (or replaced by a
+# CHANGELOG + badge) once we ship. Updated on every code-landing commit —
+# a stale entry here is a bug.
 #
 # Scope reference: yao-pkg/pkg#248 and the plan comment on that issue.
+# Architecture reference: docs/architecture.md.
 
 meta:
   repo: yao-pkg/pkg-action
   branch: main
   last-updated: '2026-04-23'
   action-status: ALPHA — ready for early adopters to try in their own workflows
-  ci-status: green
-  e2e-status: green on ubuntu-latest / macos-latest / windows-latest — all 15 jobs pass on 2026-04-23 (run 24820663378). Covers tiny-app-cjs round-trip (tar.gz + zip + sha256), matrix plan→fanout (3 OSes), multi-target-linux, windows-metadata, provenance (attest-build-provenance@v4 + gh attestation verify), sbom-cyclonedx, sbom-spdx, and docker (ghcr.io push + pull + run). Signing + Homebrew + Scoop e2e still deferred until real credentials (macOS/Windows certs, tap PAT, bucket PAT) are available via org secrets.
+  ci-status: green (296 unit tests, 94.87% line coverage, gate 85%)
+  e2e-status: |
+    green on ubuntu/macos/windows — 15 jobs pass (run 24820663378, 2026-04-23).
+    Covers: tiny-app-cjs round-trip (tar.gz + zip + sha256), matrix plan→fanout,
+    multi-target-linux, windows-metadata, provenance (attest + verify),
+    sbom (cyclonedx + spdx), docker (ghcr.io push + pull + run).
+    Deferred until live credentials: signing, homebrew tap, scoop bucket.
 
-milestones:
-  M-1:
-    title: Pre-flight spikes
-    status: partial
-    done:
-      - 'runs.using:node24 green on ubuntu-latest / macos-latest / windows-latest'
-      - '--experimental-strip-types + esbuild bundling proven on Node 22.22.1 and 24.x'
-    pending:
-      - self-hosted runner verification for node24
-      - GHES node24 verification (out of reach without a GHES instance)
-      - 't.mock.module vs DI-double decision (resolved — DI-style test doubles, used everywhere)'
+# ─── Shipped ─────────────────────────────────────────────────────────────
+# One-line summaries. Sub-chunk detail has moved to commit history + tests.
 
-  M0:
-    title: Scaffold
-    status: done
+shipped:
+  M-1 spikes: runs.using:node24 verified on hosted runners; strip-types + esbuild pipeline proven.
+  M0 scaffold: monorepo, yarn workspaces, .node-version, tsconfig, eslint/prettier.
+  M1 core build path: inputs/targets/templates/checksum/pkg-runner/archive/uploader/orchestrator; codegen'd action.yml; tiny-app-{cjs,esm} fixtures.
+  M2 matrix sub-action: parseTargetList → expandMatrix, native-runner pinning, cross-compile warnings; matrix-plan→fanout e2e job.
+  M3 windows metadata: resedit integration; icon/version-info/manifest patching; e2e asserts round-trip via pe-library.
+  M4 signing & notarization: macOS codesign + notarytool, Windows signtool, Azure Trusted Signing — all behind ExecFn DI; secret-never-in-argv invariant.
+  M5 release attach + docs: ReleaseAttacher; buildReleaseBody; step-summary Signed column + Release trailer; dependabot grouped updates.
+  M6 stretch: provenance (attest-build-provenance@v4), SBOM (CycloneDX 1.5 + SPDX 2.3), Docker (multi-arch manifest, ghcr.io e2e green), Homebrew tap PR, Scoop manifest PR.
 
-  M1:
-    title: Core build path
-    status: done
-    sub-chunks:
-      '1.1 foundation (errors / logger / fs-utils)': done
-      '1.2 domain (targets / templates)': done
-      '1.3 checksum': done
-      '1.4 inputs validator + metadata': done
-      '1.5 pkg-runner + pkg-output-map': done
-      '1.6 archive + summary': done
-      '1.7 uploader + project-info': done
-      '1.8 orchestrator (packages/build/src/main.ts)': done
-      '1.9 scripts/gen-action-yml.ts codegen': done
-      '1.10 real root composite action.yml': done (generated from inputs.ts)
-      '1.11 e2e.yml + test-fixtures/tiny-app-{cjs,esm}': done (awaiting first CI run)
-    tests:
-      unit: '145 tests green locally on Node 22.22.1'
-      integration: 'e2e.yml added — awaits first CI run to prove the full composite pipeline'
-      coverage-gate: 'not yet enforced in CI (planned for M5)'
+# ─── Architectural hardening (shipped 2026-04-23) ─────────────────────────
 
-  M2:
-    title: Matrix sub-action + multi-target
-    status: done
-    depends-on: M1
-    sub-chunks:
-      '2.1 matrix main.ts (parseTargetList → expandMatrix, runner-overrides, cross-compile warnings)': done
-      '2.2 matrix unit tests (DI-style doubles, 19 tests)': done
-      '2.3 matrix bundle (packages/matrix/dist/index.mjs with createRequire banner)': done
-      '2.4 matrix-plan → matrix-fanout e2e job (strategy.matrix consumption demo)': done (awaits first CI run)
-      '2.5 multi-target single-runner build path (pkg invoked with >1 target in-process)': done (single-runner two-target e2e added; buildPkgArgs/mapPkgOutputs already cover the case with 145 unit tests)
-      '2.6 docs — docs/matrix.md + README snippet': done
-    tests:
-      unit: '164 tests green locally on Node 22.22.1 (19 new in packages/matrix/test/unit)'
+recent-hardening:
+  - 'Dynamic `await import("@pkg-action/core")` in orchestrator replaced with static named import (S4).'
+  - 'E2E workflow pull_request trigger now path-filtered so docs-only PRs do not burn CI minutes (S12).'
+  - 'VERSION export driven by root package.json via esbuild `define`; runtime fallback reads the file in dev (S1).'
+  - '`yamlString` codegen helper now throws on embedded control chars — prevents silent action.yml corruption (S2).'
+  - 'CI coverage gate at 85% via scripts/check-coverage.ts parsing lcov (S6).'
+  - '`createDefaultDistributionPublisher` now takes `{ token }` deps object — shape symmetrical with createDefaultDockerPublisher (S11).'
 
-  # M3 test roll-up: 211 unit tests green on Node 22.22.1 as of 2026-04-20.
-  M3:
-    title: Windows metadata (resedit)
-    status: done (orchestrator + sub-action shipped; e2e awaits first CI run)
-    depends-on: M1
-    sub-chunks:
-      '3.1 @pkg-action/core windows-metadata module (pure helpers — input parsing, version-padding, icon-spec parser, metadata JSON merge)': done (31 unit tests)
-      '3.2 resedit integration (applyWindowsMetadata — read .exe, patch icon/version-info/manifest, write .exe)': done (10 tests round-trip through NtExecutable.createEmpty → generate → NtExecutable.from in-memory, with DI fs shim)
-      '3.3 windows-metadata sub-action main.ts + bundle': done (packages/windows-metadata/dist/index.mjs — 873 kB, createRequire banner present, smoke-tested with missing-input)
-      '3.4 unit tests': done (5 sub-action tests with apply() doubles — 211 total green)
-      '3.5 orchestrator wire-up (composite build/main.ts invokes applyWindowsMetadata on win-* targets when any windows-* input set)': done (in-place patch between rename and archive; auto-defaults originalFilename to basename)
-      '3.6 e2e smoke (patch tiny-app-cjs windows binary, re-parse resources to verify)': done (.github/workflows/e2e.yml — windows-metadata job + .github/scripts/assert-windows-metadata.ts asserting ProductName/CompanyName/FileVersion/FileDescription + VS_FIXEDFILEINFO round-trip; awaits first CI run)
+# ─── Pending ─────────────────────────────────────────────────────────────
 
-  M4:
-    title: Signing & notarization
-    status: done (all three drivers shipped behind ExecFn DI; e2e blocked on real certs — dev loop proven by 17 unit tests)
-    depends-on: M1
-    sub-chunks:
-      '4.1 signing inputs + types (parseSigningInputs — macos/signtool/trusted-signing, mutex validation, secret registration)': done
-      '4.2 macOS — ephemeral keychain + codesign + (optional) notarytool; stapler skipped for bare binaries (Gatekeeper still queries Apple at launch)': done
-      '4.3 Windows — signtool driver (base64 .pfx written to tempDir, /tr timestamp, /d description)': done
-      '4.4 Windows — Azure Trusted Signing driver (azuresigntool CLI, AZURE_* via env — never argv)': done
-      '4.5 orchestrator wire-up (signOneTarget dispatcher between windows-metadata and archive; keychain path handed to post.ts via saveState)': done
-      '4.6 unit tests — 17 cases covering parser mutex rules, exact argv shape per driver, secret-never-in-argv invariant, SignError surfacing': done (228 total green)
+pending:
+  architecture:
+    orchestrator-refactor:
+      issue: packages/build/src/main.ts is ~780 lines, mixing wiring with transforms.
+      plan: |
+        Extract into @pkg-action/core:
+          - finalizeBinary(out, ctx, deps) — rename → windows-metadata → sign → archive → checksum.
+          - createActionsExecBridge() — current inline execBridge (88-112) becomes testable.
+          - publishers.ts — publishHomebrew / publishScoop / publishDocker helpers.
+        Target: main.ts collapses to ~280 lines of wiring + error boundary.
+      size: 4-6 hours, dedicated PR.
 
-  M5:
-    title: Release attach + step-summary polish + docs + dependabot-bundle.yml
-    status: done
-    depends-on: M1,M4
-    sub-chunks:
-      '5.1 publishing inputs parser extension (attach-to-release, release-tag/name/body/draft/prerelease, generate-release-table) with mutex checks': done
-      '5.2 orchestrator wire-up — ReleaseAttacher invoked after artifact upload when attach-to-release=true; release body assembled by buildReleaseBody; draft/prerelease/name applied via updateRelease; release-url exposed as composite output': done
-      '5.3 step-summary polish — Signed column (appears only when signing ran) + Release trailer row with release URL; SummaryRow/SummaryOptions extended accordingly': done
-      '5.4 .github/dependabot.yml — weekly grouped updates for @actions/*, resedit+pe-library, yazl, dev tooling, and github-actions; 04:00 UTC Monday cadence; 5-PR cap per ecosystem': done
-      '5.5 unit tests — 7 release-body cases + 5 parser cases + 2 summary cases (242 total green)': done
-      '5.6 docs — docs/publishing.md (both delivery channels, release body templating, permissions, signing interplay) + README release-attach snippet': done
+    subpath-exports:
+      issue: '@pkg-action/core barrel re-exports everything; unit tests pay unused transitive cost.'
+      plan: 'Add `"./signing"`, `"./distribution"`, `"./docker"`, `"./sbom"` subpath exports in packages/core/package.json.'
+      size: 1 hour. Cosmetic unless test startup measured slow.
 
-  M6:
-    title: 'Stretch: SBOM / provenance / Docker / Homebrew / Scoop'
-    status: done (Docker e2e now green against ghcr.io; Homebrew/Scoop e2e still deferred until tap + bucket credentials are available)
-    depends-on: M5
-    sub-chunks:
-      '6.1 provenance — actions/attest-build-provenance@v4 wired into composite action.yml, gated on inputs.provenance=="true"; subject-path spans every entry in artifacts[]; docs/provenance.md + e2e smoke': done (e2e verify flag corrected 2026-04-22 — was --source-repo which gh does not accept; now --repo)
-      '6.2 SBOM — cyclonedx or spdx generator + sbom:* input wire-up': done (packages/core/src/sbom.ts — 16 unit tests; zero new runtime deps; emits CycloneDX 1.5 or SPDX 2.3 JSON; uploaded as its own workflow artifact and attached to release; e2e jobs sbom-cyclonedx + sbom-spdx added)
-      '6.3 Docker publishing — OCI image push alongside the raw binary': done (packages/core/src/docker.ts — per-linux-target buildx build+push with arch suffix, manifest list combining multi-arch; registry auth via private DOCKER_CONFIG dir so password never rides argv; 15 unit tests including argv-secret-leak assertion; orchestrator wire-up independent of attach-to-release; docs/docker.md added. e2e green on 2026-04-23: default base image switched from distroless/base to distroless/cc because pkg's Node binary links libstdc++; docker-publish job now pushes to ghcr.io + re-logs-in to host daemon + pulls + runs + greps the version line)
-      '6.4 Homebrew tap — auto-open a PR against a homebrew-tap repo': done (packages/core/src/distribution.ts — renderHomebrewFormula + DistributionPublisher; Octokit-backed createDefaultDistributionPublisher creates branch + commits Formula/<name>.rb + opens PR; orchestrator wire-up gated on attach-to-release=true; 8 unit tests covering PascalCase derivation, on_arm/on_intel branches, license omission, on_linux block, escape-quoting, mac-or-linux invariant, binary override)
-      '6.5 Scoop manifest — auto-generate + commit to a scoop bucket': done (packages/core/src/distribution.ts — renderScoopManifest shares DistributionPublisher with Homebrew; writes bucket/<name>.json; 6 unit tests covering 64bit/arm64 arch keys, extract_dir drop when compress=none, bin override, trailing-newline invariant, win-asset requirement)
+  e2e-coverage:
+    - Add `test-fixtures/tiny-app-ts/` — TypeScript source + tsconfig to exercise pkg TS path.
+    - Add `test-fixtures/tiny-app-assets/` — pkg.assets glob + runtime read from SEA snapshot.
+    - Add `test-fixtures/tiny-app-bin-override/` — package.json#bin drives output name.
+    - Wire self-signed certificate e2e for signing — ad-hoc codesign on macOS, New-SelfSignedCertificate on Windows. Exercises argv shape without real Developer ID.
 
-  # M6 test roll-up: 296 unit tests green on Node 22.22.1 as of 2026-04-22.
-  #   - 16 sbom.test.ts
-  #   - 14 distribution.test.ts (Homebrew + Scoop renderers + URL builder)
-  #   - 15 docker.test.ts (pure helpers + 6 publisher-shape tests)
-  #   -  9 inputs.test.ts additions (sbom enum, homebrew/scoop/docker parse + mutex rules)
-  # Docs:
-  #   - docs/sbom.md
-  #   - docs/distribution.md (Homebrew + Scoop)
-  #   - docs/docker.md
-  #   - docs/publishing.md cross-links updated
+  live-credential-e2e:
+    - Homebrew tap — disposable tap repo under the org + short-lived PAT.
+    - Scoop bucket — disposable bucket repo under the org + short-lived PAT.
+    - Real signing — macOS Developer ID cert, Apple notarization creds, Windows code-signing cert.
+    Blocked on: organization decision about test-infra repos and secret provisioning.
+
+  release-readiness:
+    - Bump root `package.json#version` to 1.0.0 at tag time — auto-propagates via esbuild define into every bundled sub-action.
+    - Write CHANGELOG.md covering M0 → M6 from git history.
+    - Self-hosted runner smoke for node24 (carried over from M-1).
+    - GHES verification (out of reach without a GHES instance).
+
+# ─── Runtime dependencies ────────────────────────────────────────────────
+# Every runtime dep must be justified — cap 6 (plan §16).
 
 runtime-deps:
-  # Every runtime dep must be justified (see plan §16 budget — cap 6).
   '@actions/core':
     version: ^3.0.0
-    purpose: runner protocol (inputs, outputs, secrets, annotations, state)
+    purpose: runner protocol (inputs, outputs, secrets, annotations, state).
   '@actions/exec':
     version: ^3.0.0
-    purpose: process spawning with GH log streaming
+    purpose: process spawning with GH log streaming.
   '@actions/artifact':
     version: ^6.2.1
-    purpose: workflow artifact upload (internal endpoint; cannot reimplement)
+    purpose: workflow artifact upload (internal endpoint, cannot reimplement).
   '@actions/github':
     version: ^9.1.0
-    purpose: Octokit for release attach
+    purpose: Octokit for release attach + Homebrew/Scoop PR creation.
   resedit:
     version: ^3.0.2
-    purpose: Windows PE resource editing (M3) — pulls pe-library@^2.0.1 transitively
+    purpose: Windows PE resource editing (pulls pe-library@^2.0.1 transitively).
   yazl:
     version: ^3.3.1
-    purpose: cross-platform deterministic zip writer
+    purpose: cross-platform deterministic zip writer.
 
 dev-deps:
   typescript:
     version: 5.9.3
-    notes: pinned, not "latest" — must stay compatible with Node 22.22.1 bundled amaro (strip-types parser).
-  esbuild:
-    version: ^0.28.0
+    notes: pinned — must stay compatible with Node 22.22.1 bundled amaro strip-types parser.
+  esbuild: { version: ^0.28.0 }
   eslint:
     version: ^9.39.4
-    notes: holding at v9.x until flat-config is verified on v10.
-  '@typescript-eslint/eslint-plugin':
-    version: ^8.58.2
-  '@typescript-eslint/parser':
-    version: ^8.58.2
-  'eslint-config-prettier':
-    version: ^10.1.8
-  'eslint-plugin-prettier':
-    version: ^5.5.5
-  prettier:
-    version: ^3.8.3
-  globals:
-    version: ^17.5.0
+    notes: holding at v9.x until flat-config verified on v10.
+  '@typescript-eslint/eslint-plugin': { version: ^8.58.2 }
+  '@typescript-eslint/parser': { version: ^8.58.2 }
+  eslint-config-prettier: { version: ^10.1.8 }
+  eslint-plugin-prettier: { version: ^5.5.5 }
+  prettier: { version: ^3.8.3 }
+  globals: { version: ^17.5.0 }
   '@types/node':
     version: ^22.19.17
-    notes: pinned to @22 to match Node runtime — NOT @25 (would surface APIs we cannot use).
-  '@types/yazl':
-    version: ^3.3.1
+    notes: pinned to @22 to match runtime — NOT @25 (would surface APIs we cannot use).
+  '@types/yazl': { version: ^3.3.1 }
 
 gh-actions:
   actions/checkout: v6
   actions/setup-node: v6
-  actions/cache: v5                          # (used inside composite action.yml)
-  actions/attest-build-provenance: v4         # (used inside composite action.yml when provenance=true)
+  actions/cache: v5
+  actions/attest-build-provenance: v4
   github/codeql-action: v4
-  # Pulled in later milestones:
-  # actions/upload-artifact: v7
 
 known-issues:
-  - '`@actions/artifact` v6 uses a new client shape — `createDefaultArtifactUploader` uses dynamic import + lazy access, so the tests never load it.'
-  - 'yarn install pulls transitive `bare-os`/`bare-fs` which emit invalid-engine warnings — cosmetic, tracked.'
-  - 'esbuild ESM bundles need a createRequire banner to let bundled CJS deps (@actions/http-client + tunnel) require(node:<builtin>) at runtime — FIXED in 757a329.'
-  - 'Orchestrator must resolve a project-dir separately from GITHUB_WORKSPACE when config points at a package.json — FIXED: derives projectDir = dirname(config) in that case and invokes pkg with cwd: projectDir.'
-
-next:
-  - Homebrew + Scoop e2e — requires a disposable tap + bucket repo under the org + a short-lived PAT. Block on org decision about test-infra repos.
-  - Signing e2e — needs real macOS Developer ID cert + Apple notarization creds, plus a code-signing cert for Windows signtool. Block on org secret provisioning.
-  - Integration-test shard (archive tar/7z round-trip against system tools) — deferred from M1.3.
-  - Add the ESM fixture (tiny-app-esm with mode: sea) to the e2e matrix once @yao-pkg/pkg's SEA path is smoke-tested via the action.
-  - node24 smoke on self-hosted runner (listed under M-1 pending).
-  - v1.0.0 release — outstanding blockers above are test-surface gaps, not action-correctness gaps. Once the team decides whether to hold for them, delete STATUS.yaml and cut the first stable tag.
+  - '@actions/artifact v6 client loaded via dynamic import + lazy access so tests never pull it.'
+  - 'yarn install pulls transitive bare-os/bare-fs emitting invalid-engine warnings — cosmetic.'

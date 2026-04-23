@@ -17521,7 +17521,7 @@ async function writeManifest(res, meta, deps) {
   });
 }
 
-// packages/core/src/index.ts
+// packages/core/src/version.ts
 var VERSION = "0.0.0";
 
 // packages/windows-metadata/src/main.ts
