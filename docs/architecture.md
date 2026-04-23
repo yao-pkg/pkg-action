@@ -157,15 +157,15 @@ record per input with `name / description / default? / required? / category /
 deprecated? / secret?`.
 
 **Input-surface scope** (2026-04-23): the action intentionally does not
-mirror pkg's CLI. Pkg-specific knobs (`mode`, `compress-node`,
-`fallback-to-source`, `public`, `public-packages`, `options`, `no-bytecode`,
-`no-dict`, `debug`, `extra-args`, `node-version`) are expressed via the user's
-pkg config file, which `buildPkgArgs` forwards through `--config`. The action
-owns only concerns that pkg config cannot express: CI-matrix `targets`, the
+mirror pkg's CLI. Pkg-specific knobs are expressed via the user's pkg config
+file, which `buildPkgArgs` forwards through `--config`. The action owns only
+concerns that pkg config cannot express: CI-matrix `targets`, the
 `pkg-version` / `pkg-path` install choice, archive format, filename template,
 checksum algorithms, Windows-metadata resedit patch, signing, cache, and step
 summary. Rationale: decouple the action from pkg's CLI evolution — each new
 pkg flag otherwise forced a back-compat-preserving input bump here.
+Authoritative list of dropped inputs + migration note lives in
+[`STATUS.yaml`](../STATUS.yaml) under `input-surface-slim`.
 
 Emitted:
 

@@ -64,6 +64,7 @@ test('parseInputs with no env uses defaults', () => {
   strictEqual(inputs.build.config, undefined);
   strictEqual(inputs.build.entry, undefined);
   strictEqual(inputs.build.pkgVersion, '~6.16.0');
+  strictEqual(inputs.build.pkgPath, undefined);
 
   strictEqual(inputs.postBuild.compress, 'none');
   strictEqual(inputs.postBuild.strip, false);
@@ -72,6 +73,14 @@ test('parseInputs with no env uses defaults', () => {
 
   strictEqual(inputs.performance.cache, true);
   strictEqual(inputs.performance.stepSummary, true);
+});
+
+test('parseInputs threads pkg-version + pkg-path through', () => {
+  const inputs = parseInputs({
+    env: env(['pkg-version', '~6.99.0'], ['pkg-path', '/opt/pkg/bin/pkg']),
+  });
+  strictEqual(inputs.build.pkgVersion, '~6.99.0');
+  strictEqual(inputs.build.pkgPath, '/opt/pkg/bin/pkg');
 });
 
 test('parseInputs parses a realistic build config', () => {
