@@ -15310,7 +15310,7 @@ async function shellTar(inputPath, outputPath, compression, entry, deps) {
     await symlink2(inputPath, linkPath), workDir = stageDir, fileName = entry;
   }
   await utimes(inputPath, REPRO_MTIME, REPRO_MTIME);
-  let ownerFlags = process.platform === "linux" ? ["--owner=0", "--group=0"] : ["--uid=0", "--gid=0"];
+  let isLinux = process.platform === "linux", ownerFlags = isLinux ? ["--owner=0", "--group=0"] : ["--uid=0", "--gid=0"], mtimeFlags = isLinux ? ["--mtime", REPRO_MTIME_TAR] : [];
   try {
     let result = await deps.exec(
       "tar",
@@ -15319,8 +15319,7 @@ async function shellTar(inputPath, outputPath, compression, entry, deps) {
         compressFlag,
         "-f",
         outputPath,
-        "--mtime",
-        REPRO_MTIME_TAR,
+        ...mtimeFlags,
         ...ownerFlags,
         "--numeric-owner",
         "-C",
