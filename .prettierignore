@@ -13,3 +13,6 @@ docs/inputs.md
 
 # Status tracker — intentional hand-formatted YAML.
 STATUS.yaml
+
+# Claude Code local config — not managed by repo tooling.
+.claude/

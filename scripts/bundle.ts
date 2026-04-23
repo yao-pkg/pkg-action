@@ -10,11 +10,18 @@
 // at runtime. A stale dist/ is caught by `git diff --exit-code dist/` in CI.
 
 import { build } from 'esbuild';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const REPO_ROOT = resolve(fileURLToPath(import.meta.url), '../..');
+
+async function readRootVersion(): Promise<string> {
+  const pkg = JSON.parse(await readFile(resolve(REPO_ROOT, 'package.json'), 'utf8')) as {
+    version?: string;
+  };
+  return pkg.version ?? '0.0.0-dev';
+}
 
 interface Target {
   entry: string;
@@ -40,7 +47,7 @@ const TARGETS: readonly Target[] = [
   },
 ];
 
-async function bundleOne({ entry, outfile }: Target): Promise<void> {
+async function bundleOne({ entry, outfile }: Target, version: string): Promise<void> {
   const abs = resolve(REPO_ROOT, outfile);
   await mkdir(dirname(abs), { recursive: true });
   await build({
@@ -53,6 +60,9 @@ async function bundleOne({ entry, outfile }: Target): Promise<void> {
     minifySyntax: true,
     legalComments: 'inline',
     logLevel: 'info',
+    define: {
+      __PKG_ACTION_VERSION__: JSON.stringify(version),
+    },
     // @actions/http-client + tunnel are CJS and do `require('net')` etc. When
     // bundled into an ESM output, esbuild's default shim replaces those with
     // a throwing `__require`. Provide a real createRequire so node builtins
@@ -69,8 +79,10 @@ async function bundleOne({ entry, outfile }: Target): Promise<void> {
 
 async function main(): Promise<void> {
   process.stdout.write('pkg-action bundle — starting\n');
+  const version = await readRootVersion();
+  process.stdout.write(`  version  ${version}\n`);
   for (const target of TARGETS) {
-    await bundleOne(target);
+    await bundleOne(target, version);
   }
   process.stdout.write('pkg-action bundle — done\n');
 }

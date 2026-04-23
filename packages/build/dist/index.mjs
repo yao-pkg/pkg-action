@@ -4818,7 +4818,7 @@ ${len.toString(16)}\r
 var require_client_h2 = __commonJS({
   "node_modules/undici/lib/dispatcher/client-h2.js"(exports2, module) {
     "use strict";
-    var assert = __require("node:assert"), { pipeline: pipeline4 } = __require("node:stream"), util3 = require_util(), {
+    var assert = __require("node:assert"), { pipeline: pipeline3 } = __require("node:stream"), util3 = require_util(), {
       RequestContentLengthMismatchError,
       RequestAbortedError,
       SocketError,
@@ -5081,7 +5081,7 @@ var require_client_h2 = __commonJS({
     }
     function writeStream(abort, socket, expectsPayload, h2stream, body2, client2, request2, contentLength2) {
       assert(contentLength2 !== 0 || client2[kRunning] === 0, "stream body cannot be pipelined");
-      let pipe = pipeline4(
+      let pipe = pipeline3(
         body2,
         h2stream,
         (err) => {
@@ -6425,8 +6425,8 @@ var require_retry_agent = __commonJS({
 var require_readable = __commonJS({
   "node_modules/undici/lib/api/readable.js"(exports2, module) {
     "use strict";
-    var assert = __require("node:assert"), { Readable: Readable6 } = __require("node:stream"), { RequestAbortedError, NotSupportedError, InvalidArgumentError, AbortError: AbortError3 } = require_errors(), util3 = require_util(), { ReadableStreamFrom } = require_util(), kConsume = /* @__PURE__ */ Symbol("kConsume"), kReading = /* @__PURE__ */ Symbol("kReading"), kBody = /* @__PURE__ */ Symbol("kBody"), kAbort = /* @__PURE__ */ Symbol("kAbort"), kContentType = /* @__PURE__ */ Symbol("kContentType"), kContentLength = /* @__PURE__ */ Symbol("kContentLength"), noop3 = () => {
-    }, BodyReadable = class extends Readable6 {
+    var assert = __require("node:assert"), { Readable: Readable5 } = __require("node:stream"), { RequestAbortedError, NotSupportedError, InvalidArgumentError, AbortError: AbortError3 } = require_errors(), util3 = require_util(), { ReadableStreamFrom } = require_util(), kConsume = /* @__PURE__ */ Symbol("kConsume"), kReading = /* @__PURE__ */ Symbol("kReading"), kBody = /* @__PURE__ */ Symbol("kBody"), kAbort = /* @__PURE__ */ Symbol("kAbort"), kContentType = /* @__PURE__ */ Symbol("kContentType"), kContentLength = /* @__PURE__ */ Symbol("kContentLength"), noop3 = () => {
+    }, BodyReadable = class extends Readable5 {
       constructor({
         resume,
         abort,
@@ -6645,7 +6645,7 @@ var require_util3 = __commonJS({
 var require_api_request = __commonJS({
   "node_modules/undici/lib/api/api-request.js"(exports2, module) {
     "use strict";
-    var assert = __require("node:assert"), { Readable: Readable6 } = require_readable(), { InvalidArgumentError, RequestAbortedError } = require_errors(), util3 = require_util(), { getResolveErrorBodyCallback } = require_util3(), { AsyncResource } = __require("node:async_hooks"), RequestHandler = class extends AsyncResource {
+    var assert = __require("node:assert"), { Readable: Readable5 } = require_readable(), { InvalidArgumentError, RequestAbortedError } = require_errors(), util3 = require_util(), { getResolveErrorBodyCallback } = require_util3(), { AsyncResource } = __require("node:async_hooks"), RequestHandler = class extends AsyncResource {
       constructor(opts, callback) {
         if (!opts || typeof opts != "object")
           throw new InvalidArgumentError("invalid opts");
@@ -6684,7 +6684,7 @@ var require_api_request = __commonJS({
           this.onInfo && this.onInfo({ statusCode, headers });
           return;
         }
-        let parsedHeaders = responseHeaders === "raw" ? util3.parseHeaders(rawHeaders) : headers, contentType2 = parsedHeaders["content-type"], contentLength2 = parsedHeaders["content-length"], res = new Readable6({
+        let parsedHeaders = responseHeaders === "raw" ? util3.parseHeaders(rawHeaders) : headers, contentType2 = parsedHeaders["content-type"], contentLength2 = parsedHeaders["content-length"], res = new Readable5({
           resume,
           abort,
           contentType: contentType2,
@@ -6871,14 +6871,14 @@ var require_api_pipeline = __commonJS({
   "node_modules/undici/lib/api/api-pipeline.js"(exports2, module) {
     "use strict";
     var {
-      Readable: Readable6,
+      Readable: Readable5,
       Duplex,
       PassThrough: PassThrough3
     } = __require("node:stream"), {
       InvalidArgumentError,
       InvalidReturnValueError,
       RequestAbortedError
-    } = require_errors(), util3 = require_util(), { AsyncResource } = __require("node:async_hooks"), { addSignal, removeSignal } = require_abort_signal(), assert = __require("node:assert"), kResume = /* @__PURE__ */ Symbol("resume"), PipelineRequest = class extends Readable6 {
+    } = require_errors(), util3 = require_util(), { AsyncResource } = __require("node:async_hooks"), { addSignal, removeSignal } = require_abort_signal(), assert = __require("node:assert"), kResume = /* @__PURE__ */ Symbol("resume"), PipelineRequest = class extends Readable5 {
       constructor() {
         super({ autoDestroy: !0 }), this[kResume] = null;
       }
@@ -6889,7 +6889,7 @@ var require_api_pipeline = __commonJS({
       _destroy(err, callback) {
         this._read(), callback(err);
       }
-    }, PipelineResponse = class extends Readable6 {
+    }, PipelineResponse = class extends Readable5 {
       constructor(resume) {
         super({ autoDestroy: !0 }), this[kResume] = resume;
       }
@@ -6993,7 +6993,7 @@ var require_api_pipeline = __commonJS({
         this.handler = null, util3.destroy(ret, err);
       }
     };
-    function pipeline4(opts, handler2) {
+    function pipeline3(opts, handler2) {
       try {
         let pipelineHandler = new PipelineHandler(opts, handler2);
         return this.dispatch({ ...opts, body: pipelineHandler.req }, pipelineHandler), pipelineHandler.ret;
@@ -7001,7 +7001,7 @@ var require_api_pipeline = __commonJS({
         return new PassThrough3().destroy(err);
       }
     }
-    module.exports = pipeline4;
+    module.exports = pipeline3;
   }
 });
 
@@ -8196,12 +8196,12 @@ var require_headers = __commonJS({
        */
       append(name, value, isLowerCase) {
         this[kHeadersSortedMap] = null;
-        let lowercaseName = isLowerCase ? name : name.toLowerCase(), exists5 = this[kHeadersMap].get(lowercaseName);
-        if (exists5) {
+        let lowercaseName = isLowerCase ? name : name.toLowerCase(), exists4 = this[kHeadersMap].get(lowercaseName);
+        if (exists4) {
           let delimiter3 = lowercaseName === "cookie" ? "; " : ", ";
           this[kHeadersMap].set(lowercaseName, {
-            name: exists5.name,
-            value: `${exists5.value}${delimiter3}${value}`
+            name: exists4.name,
+            value: `${exists4.value}${delimiter3}${value}`
           });
         } else
           this[kHeadersMap].set(lowercaseName, { name, value });
@@ -9344,7 +9344,7 @@ var require_fetch = __commonJS({
       safeMethodsSet,
       requestBodyHeader,
       subresourceSet
-    } = require_constants3(), EE = __require("node:events"), { Readable: Readable6, pipeline: pipeline4, finished } = __require("node:stream"), { addAbortListener, isErrored, isReadable, bufferToLowerCasedHeaderName } = require_util(), { dataURLProcessor, serializeAMimeType, minimizeSupportedMimeType } = require_data_url(), { getGlobalDispatcher } = require_global2(), { webidl } = require_webidl(), { STATUS_CODES } = __require("node:http"), GET_OR_HEAD = ["GET", "HEAD"], defaultUserAgent = typeof __UNDICI_IS_NODE__ < "u" || typeof esbuildDetection < "u" ? "node" : "undici", resolveObjectURL, Fetch = class extends EE {
+    } = require_constants3(), EE = __require("node:events"), { Readable: Readable5, pipeline: pipeline3, finished } = __require("node:stream"), { addAbortListener, isErrored, isReadable, bufferToLowerCasedHeaderName } = require_util(), { dataURLProcessor, serializeAMimeType, minimizeSupportedMimeType } = require_data_url(), { getGlobalDispatcher } = require_global2(), { webidl } = require_webidl(), { STATUS_CODES } = __require("node:http"), GET_OR_HEAD = ["GET", "HEAD"], defaultUserAgent = typeof __UNDICI_IS_NODE__ < "u" || typeof esbuildDetection < "u" ? "node" : "undici", resolveObjectURL, Fetch = class extends EE {
       constructor(dispatcher) {
         super(), this.dispatcher = dispatcher, this.connection = null, this.dump = !1, this.state = "ongoing";
       }
@@ -9792,7 +9792,7 @@ var require_fetch = __commonJS({
               let location = "", headersList = new HeadersList();
               for (let i = 0; i < rawHeaders.length; i += 2)
                 headersList.append(bufferToLowerCasedHeaderName(rawHeaders[i]), rawHeaders[i + 1].toString("latin1"), !0);
-              location = headersList.get("location", !0), this.body = new Readable6({ read: resume });
+              location = headersList.get("location", !0), this.body = new Readable5({ read: resume });
               let decoders = [], willFollow = location && request2.redirect === "follow" && redirectStatusSet.has(status);
               if (request2.method !== "HEAD" && request2.method !== "CONNECT" && !nullBodyStatus.includes(status) && !willFollow) {
                 let contentEncoding = headersList.get("content-encoding", !0), codings = contentEncoding ? contentEncoding.toLowerCase().split(",") : [], maxContentEncodings = 5;
@@ -9830,7 +9830,7 @@ var require_fetch = __commonJS({
                 status,
                 statusText,
                 headersList,
-                body: decoders.length ? pipeline4(this.body, ...decoders, (err) => {
+                body: decoders.length ? pipeline3(this.body, ...decoders, (err) => {
                   err && this.onError(err);
                 }).on("error", onError) : this.body.on("error", onError)
               }), !0;
@@ -12773,7 +12773,7 @@ ${value}`;
 var require_eventsource = __commonJS({
   "node_modules/undici/lib/web/eventsource/eventsource.js"(exports2, module) {
     "use strict";
-    var { pipeline: pipeline4 } = __require("node:stream"), { fetching } = require_fetch(), { makeRequest } = require_request2(), { webidl } = require_webidl(), { EventSourceStream } = require_eventsource_stream(), { parseMIMEType } = require_data_url(), { createFastMessageEvent } = require_events(), { isNetworkError } = require_response(), { delay: delay4 } = require_util8(), { kEnumerableProperty } = require_util(), { environmentSettingsObject } = require_util2(), experimentalWarned = !1, defaultReconnectionTime = 3e3, CONNECTING = 0, OPEN = 1, CLOSED = 2, ANONYMOUS = "anonymous", USE_CREDENTIALS = "use-credentials", EventSource = class _EventSource extends EventTarget {
+    var { pipeline: pipeline3 } = __require("node:stream"), { fetching } = require_fetch(), { makeRequest } = require_request2(), { webidl } = require_webidl(), { EventSourceStream } = require_eventsource_stream(), { parseMIMEType } = require_data_url(), { createFastMessageEvent } = require_events(), { isNetworkError } = require_response(), { delay: delay4 } = require_util8(), { kEnumerableProperty } = require_util(), { environmentSettingsObject } = require_util2(), experimentalWarned = !1, defaultReconnectionTime = 3e3, CONNECTING = 0, OPEN = 1, CLOSED = 2, ANONYMOUS = "anonymous", USE_CREDENTIALS = "use-credentials", EventSource = class _EventSource extends EventTarget {
       #events = {
         open: null,
         error: null,
@@ -12880,7 +12880,7 @@ var require_eventsource = __commonJS({
               ));
             }
           });
-          pipeline4(
+          pipeline3(
             response.body.stream,
             eventSourceStream,
             (error2) => {
@@ -14382,1380 +14382,6 @@ var ExitCode, init_core = __esm({
   }
 });
 
-// packages/core/src/errors.ts
-function formatErrorChain(err, maxDepth = 5) {
-  let parts = [], current = err, depth = 0;
-  for (; current != null && depth < maxDepth; ) {
-    if (current instanceof Error)
-      parts.push(`${current.name}: ${current.message}`), current = current.cause;
-    else {
-      parts.push(String(current));
-      break;
-    }
-    depth += 1;
-  }
-  return parts.join(" \u2192 caused by \u2192 ");
-}
-var PkgActionError, ValidationError, PkgRunError, ToolError, ArchiveError, ChecksumError, ResEditError, SignError, UploadError, init_errors = __esm({
-  "packages/core/src/errors.ts"() {
-    "use strict";
-    PkgActionError = class extends Error {
-      file;
-      line;
-      col;
-      constructor(message, opts = {}) {
-        super(message, opts.cause !== void 0 ? { cause: opts.cause } : void 0), this.name = new.target.name, opts.file !== void 0 && (this.file = opts.file), opts.line !== void 0 && (this.line = opts.line), opts.col !== void 0 && (this.col = opts.col);
-      }
-    }, ValidationError = class extends PkgActionError {
-    }, PkgRunError = class extends PkgActionError {
-    }, ToolError = class extends PkgActionError {
-    }, ArchiveError = class extends PkgActionError {
-    }, ChecksumError = class extends PkgActionError {
-    }, ResEditError = class extends PkgActionError {
-    }, SignError = class extends PkgActionError {
-    }, UploadError = class extends PkgActionError {
-    };
-  }
-});
-
-// packages/core/src/logger.ts
-function createTestLogger() {
-  let calls = [], record = (level, message, props) => {
-    props === void 0 ? calls.push({ level, message }) : calls.push({ level, message, props });
-  };
-  return { logger: {
-    debug: (m) => record("debug", m),
-    info: (m) => record("info", m),
-    warning: (m, p) => record("warning", m, p),
-    error: (m, p) => record("error", m, p),
-    notice: (m, p) => record("notice", m, p),
-    startGroup: (n) => record("group-start", n),
-    endGroup: () => record("group-end", ""),
-    setSecret: (v) => record("secret", v),
-    isDebug: () => !1
-  }, calls };
-}
-var actionsLogger, init_logger = __esm({
-  "packages/core/src/logger.ts"() {
-    "use strict";
-    init_core();
-    actionsLogger = {
-      debug: (m) => debug(m),
-      info: (m) => info(m),
-      warning: (m, p) => warning(m, p),
-      error: (m, p) => error(m, p),
-      notice: (m, p) => notice(m, p),
-      startGroup: (n) => startGroup(n),
-      endGroup: () => endGroup(),
-      setSecret: (v) => setSecret(v),
-      isDebug: () => isDebug()
-    };
-  }
-});
-
-// packages/core/src/fs-utils.ts
-import { randomUUID as randomUUID2 } from "node:crypto";
-import { createWriteStream } from "node:fs";
-import { chmod as chmod2, mkdir as mkdir2, open as open2, rename as rename2, rm as rm2, stat as stat2, writeFile as writeFile2 } from "node:fs/promises";
-import { dirname as dirname3, join as join3 } from "node:path";
-import { pipeline } from "node:stream/promises";
-import { Readable } from "node:stream";
-async function createInvocationTemp(parent) {
-  let id = randomUUID2(), dir = join3(parent, `pkg-action-${id}`);
-  return await mkdir2(dir, { recursive: !0, mode: 448 }), await chmod2(dir, 448), dir;
-}
-async function atomicWriteFile(path7, data) {
-  await mkdir2(dirname3(path7), { recursive: !0 });
-  let tmp = `${path7}.tmp-${randomUUID2()}`;
-  await writeFile2(tmp, data), await rename2(tmp, path7);
-}
-async function zeroFillAndRemove(path7) {
-  let size;
-  try {
-    size = (await stat2(path7)).size;
-  } catch {
-    return;
-  }
-  if (size > 0) {
-    let handle = await open2(path7, "r+");
-    try {
-      let zeros = Buffer.alloc(Math.min(65536, size), 0), stream4 = createWriteStream("", { fd: handle.fd, start: 0, autoClose: !1 }), written = 0, source = Readable.from(
-        (async function* () {
-          for (; written < size; ) {
-            let take = Math.min(zeros.length, size - written);
-            yield take === zeros.length ? zeros : zeros.subarray(0, take), written += take;
-          }
-        })()
-      );
-      await pipeline(source, stream4), await handle.sync();
-    } finally {
-      await handle.close();
-    }
-  }
-  await rm2(path7, { force: !0 });
-}
-async function exists2(path7) {
-  try {
-    return await stat2(path7), !0;
-  } catch {
-    return !1;
-  }
-}
-var init_fs_utils = __esm({
-  "packages/core/src/fs-utils.ts"() {
-    "use strict";
-  }
-});
-
-// packages/core/src/targets.ts
-function parseTarget(triple) {
-  let trimmed = triple.trim(), m = TRIPLE_RE.exec(trimmed);
-  if (!m)
-    throw new ValidationError(
-      `Invalid target triple "${triple}". Expected node<N>-<os>-<arch> or latest-<os>-<arch>.`
-    );
-  let [, majorStr, latestLit, osRaw, archRaw] = m, node = latestLit !== void 0 ? "latest" : Number(majorStr);
-  if (typeof node == "number" && (Number.isNaN(node) || node < 18))
-    throw new ValidationError(
-      `Target "${triple}" specifies Node ${String(node)} \u2014 only Node 18 and newer are supported by pkg.`
-    );
-  if (!osRaw || !archRaw)
-    throw new ValidationError(`Invalid target triple "${triple}".`);
-  if (!VALID_OS.includes(osRaw))
-    throw new ValidationError(
-      `Invalid target OS "${osRaw}" in "${triple}". Expected one of: ${VALID_OS.join(", ")}.`
-    );
-  if (!VALID_ARCH.includes(archRaw))
-    throw new ValidationError(
-      `Invalid target arch "${archRaw}" in "${triple}". Expected one of: ${VALID_ARCH.join(", ")}.`
-    );
-  return {
-    node,
-    os: osRaw,
-    arch: archRaw
-  };
-}
-function formatTarget(t) {
-  return `${t.node === "latest" ? "latest" : `node${t.node}`}-${t.os}-${t.arch}`;
-}
-function parseTargetList(raw) {
-  let pieces = raw.split(/[\n,]/).map((s) => s.trim()).filter((s) => s.length > 0), seen = /* @__PURE__ */ new Set(), result = [];
-  for (let p of pieces) {
-    let t = parseTarget(p), key = formatTarget(t);
-    seen.has(key) || (seen.add(key), result.push(t));
-  }
-  return result;
-}
-function runnerFor(target, overrides = {}) {
-  let key = `${target.os}-${target.arch}`, triple = formatTarget(target), override = overrides[triple] ?? overrides[key];
-  if (override !== void 0) return override;
-  let label = DEFAULT_RUNNER_LABELS[key];
-  if (label === void 0)
-    throw new ValidationError(
-      `No default runner label known for target ${triple}. Pass a runner-overrides entry.`
-    );
-  return label;
-}
-function expandMatrix(targets, overrides = {}) {
-  return targets.map((t) => ({
-    target: formatTarget(t),
-    runner: runnerFor(t, overrides)
-  }));
-}
-function hostTarget(platform2 = process.platform, arch2 = process.arch, nodeVersion = process.versions.node) {
-  let os8;
-  switch (platform2) {
-    case "linux":
-      os8 = "linux";
-      break;
-    case "darwin":
-      os8 = "macos";
-      break;
-    case "win32":
-      os8 = "win";
-      break;
-    default:
-      throw new ValidationError(
-        `Cannot auto-detect host target \u2014 unsupported platform "${platform2}".`
-      );
-  }
-  let mappedArch;
-  switch (arch2) {
-    case "x64":
-      mappedArch = "x64";
-      break;
-    case "arm64":
-      mappedArch = "arm64";
-      break;
-    case "arm":
-      mappedArch = "armv7";
-      break;
-    case "ppc64":
-      mappedArch = "ppc64";
-      break;
-    case "s390x":
-      mappedArch = "s390x";
-      break;
-    default:
-      throw new ValidationError(`Cannot auto-detect host target \u2014 unsupported arch "${arch2}".`);
-  }
-  let nodeMajor = Number(nodeVersion.split(".")[0]);
-  if (!Number.isFinite(nodeMajor))
-    throw new ValidationError(`Cannot parse Node version "${nodeVersion}".`);
-  return { node: nodeMajor, os: os8, arch: mappedArch };
-}
-function crossCompileRisk(host, target) {
-  let sameOs = host.os === target.os, sameArch = host.arch === target.arch;
-  return sameOs && sameArch ? null : host.os === "linux" && target.os === "macos" ? "Linux host \u2192 macOS target produces non-functional binaries (see yao-pkg/pkg#183). Use a macOS runner." : target.os === "linux" && target.arch === "arm64" && host.arch !== "arm64" ? "Linux-arm64 cross-compile from a non-arm64 host hits the pkg bytecode fabricator bug (#87/#181) on Node 22. Use a linux/arm64 runner or pass --fallback-to-source." : target.os === "win" && target.arch === "x64" && host.os !== "win" ? "win-x64 cross-compile from a non-Windows host hits the pkg bytecode fabricator bug (#87/#181) on Node 22. Use a windows runner or pass --fallback-to-source." : target.os === "macos" && target.arch === "arm64" && host.os !== "macos" ? "macos-arm64 binaries must be signed to run; cross-compiling without a codesign toolchain will produce an unusable binary." : null;
-}
-var VALID_OS, VALID_ARCH, TRIPLE_RE, DEFAULT_RUNNER_LABELS, init_targets = __esm({
-  "packages/core/src/targets.ts"() {
-    "use strict";
-    init_errors();
-    VALID_OS = ["linux", "macos", "win", "alpine", "linuxstatic"], VALID_ARCH = ["x64", "arm64", "armv7", "armv6", "ppc64", "s390x"], TRIPLE_RE = /^(?:node(\d+)|(latest))-([a-z]+)-([a-z0-9]+)$/;
-    DEFAULT_RUNNER_LABELS = Object.freeze({
-      "linux-x64": "ubuntu-latest",
-      "linux-arm64": "ubuntu-24.04-arm",
-      "linuxstatic-x64": "ubuntu-latest",
-      "linuxstatic-arm64": "ubuntu-24.04-arm",
-      "alpine-x64": "ubuntu-latest",
-      "alpine-arm64": "ubuntu-24.04-arm",
-      "macos-x64": "macos-13",
-      "macos-arm64": "macos-latest",
-      "win-x64": "windows-latest",
-      "win-arm64": "windows-11-arm"
-    });
-  }
-});
-
-// packages/core/src/templates.ts
-function render(template, tokens) {
-  return template.replace(TOKEN_RE, (full, name) => {
-    if (!TEMPLATE_TOKEN_NAMES.includes(name)) {
-      let suggestion = closestToken(name), hint = suggestion !== null ? ` Did you mean "{${suggestion}}"?` : "";
-      throw new ValidationError(`Unknown template token "${full}".${hint}`);
-    }
-    let value = tokens[name];
-    if (value === void 0)
-      throw new ValidationError(`Template token "${full}" is undefined.`);
-    return value;
-  });
-}
-function closestToken(input) {
-  let best = null, bestDist = 1 / 0;
-  for (let candidate of TEMPLATE_TOKEN_NAMES) {
-    let d = levenshtein(input.toLowerCase(), candidate);
-    d < bestDist && (bestDist = d, best = candidate);
-  }
-  return bestDist <= 3 ? best : null;
-}
-function levenshtein(a, b) {
-  if (a === b) return 0;
-  if (a.length === 0) return b.length;
-  if (b.length === 0) return a.length;
-  let prev = new Array(b.length + 1), curr = new Array(b.length + 1);
-  for (let j = 0; j <= b.length; j += 1) prev[j] = j;
-  for (let i = 1; i <= a.length; i += 1) {
-    curr[0] = i;
-    for (let j = 1; j <= b.length; j += 1) {
-      let cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      curr[j] = Math.min((curr[j - 1] ?? 0) + 1, (prev[j] ?? 0) + 1, (prev[j - 1] ?? 0) + cost);
-    }
-    [prev, curr] = [curr, prev];
-  }
-  return prev[b.length] ?? 0;
-}
-function buildTokens(args) {
-  let d = args.date ?? /* @__PURE__ */ new Date(), yyyymmdd = [
-    d.getUTCFullYear().toString().padStart(4, "0"),
-    (d.getUTCMonth() + 1).toString().padStart(2, "0"),
-    d.getUTCDate().toString().padStart(2, "0")
-  ].join("");
-  return {
-    name: args.name,
-    version: args.version,
-    target: args.target,
-    node: args.node,
-    os: args.os,
-    arch: args.arch,
-    sha: args.sha ?? "",
-    ref: args.ref ?? "",
-    date: yyyymmdd,
-    tag: args.tag ?? ""
-  };
-}
-var TEMPLATE_TOKEN_NAMES, TOKEN_RE, init_templates = __esm({
-  "packages/core/src/templates.ts"() {
-    "use strict";
-    init_errors();
-    TEMPLATE_TOKEN_NAMES = [
-      "name",
-      "version",
-      "target",
-      "node",
-      "os",
-      "arch",
-      "sha",
-      "ref",
-      "date",
-      "tag"
-    ], TOKEN_RE = /\{([a-zA-Z]+)\}/g;
-  }
-});
-
-// packages/core/src/checksum.ts
-import { createHash } from "node:crypto";
-import { createReadStream } from "node:fs";
-import { basename as basename3 } from "node:path";
-import { pipeline as pipeline2 } from "node:stream/promises";
-function isChecksumAlgorithm(v) {
-  return CHECKSUM_ALGORITHMS.includes(v);
-}
-async function computeChecksum(filePath, algo) {
-  let hash = createHash(algo);
-  try {
-    await pipeline2(createReadStream(filePath, { highWaterMark: 64 * 1024 }), hash);
-  } catch (err) {
-    throw new ChecksumError(`Failed to hash ${filePath} with ${algo}`, { cause: err });
-  }
-  return hash.digest("hex");
-}
-async function writeShasumsFile(outPath, entries) {
-  if (entries.length === 0)
-    throw new ChecksumError(`Cannot write empty SHASUMS file to ${outPath}`);
-  let body2 = [...entries].sort((a, b) => a.path.localeCompare(b.path)).map((e) => `${e.digest}  ${basename3(e.path)}`).join(`
-`) + `
-`;
-  await atomicWriteFile(outPath, body2);
-}
-async function writeSidecar(binaryPath, digest, algo) {
-  let sidecar = `${binaryPath}.${algo}`, body2 = `${digest}  ${basename3(binaryPath)}
-`;
-  return await atomicWriteFile(sidecar, body2), sidecar;
-}
-async function computeAllChecksums(filePath, algos) {
-  let entries = await Promise.all(
-    algos.map(async (a) => [a, await computeChecksum(filePath, a)])
-  ), result = {};
-  for (let [a, d] of entries) result[a] = d;
-  return result;
-}
-var CHECKSUM_ALGORITHMS, init_checksum = __esm({
-  "packages/core/src/checksum.ts"() {
-    "use strict";
-    init_fs_utils();
-    init_errors();
-    CHECKSUM_ALGORITHMS = ["sha256", "sha512", "md5"];
-  }
-});
-
-// packages/core/src/sbom.ts
-import { readFile } from "node:fs/promises";
-import { randomUUID as randomUUID3 } from "node:crypto";
-import { join as join4 } from "node:path";
-function isSbomFormat(v) {
-  return SBOM_FORMATS.includes(v);
-}
-async function readPackageJson(path7, fs8) {
-  let raw;
-  try {
-    raw = await fs8.readFile(path7, "utf8");
-  } catch {
-    return;
-  }
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return;
-  }
-}
-async function collectDependencyTree(projectDir, fs8 = defaultFs) {
-  let rootPkg = await readPackageJson(join4(projectDir, "package.json"), fs8);
-  if (rootPkg === void 0)
-    throw new ValidationError(`SBOM: cannot read package.json at ${projectDir}`);
-  let seen = /* @__PURE__ */ new Map();
-  async function visit(name, fromDir) {
-    let resolved = await resolveNodeModule(name, fromDir, fs8);
-    if (resolved === void 0) return;
-    let key = `${resolved.pkg.name ?? name}@${resolved.pkg.version ?? "0.0.0"}`;
-    if (seen.has(key)) return;
-    let node = {
-      name: resolved.pkg.name ?? name,
-      version: resolved.pkg.version ?? "0.0.0",
-      purl: toPurl(resolved.pkg.name ?? name, resolved.pkg.version ?? "0.0.0"),
-      license: normalizeLicense(resolved.pkg.license),
-      description: resolved.pkg.description
-    };
-    seen.set(key, node);
-    let children = {
-      ...resolved.pkg.dependencies ?? {},
-      ...resolved.pkg.optionalDependencies ?? {}
-    };
-    for (let childName of Object.keys(children))
-      await visit(childName, resolved.dir);
-  }
-  let directDeps = Object.keys(rootPkg.dependencies ?? {});
-  for (let dep of directDeps)
-    await visit(dep, projectDir);
-  return [...seen.values()].sort(
-    (a, b) => a.name === b.name ? a.version.localeCompare(b.version) : a.name.localeCompare(b.name)
-  );
-}
-async function resolveNodeModule(name, fromDir, fs8) {
-  let current = fromDir;
-  for (; ; ) {
-    let candidate = join4(current, "node_modules", name), pkg = await readPackageJson(join4(candidate, "package.json"), fs8);
-    if (pkg !== void 0) return { dir: candidate, pkg };
-    let parent = join4(current, "..");
-    if (parent === current) return;
-    current = parent;
-  }
-}
-function normalizeLicense(raw) {
-  if (raw !== void 0) {
-    if (typeof raw == "string") return raw;
-    if (typeof raw == "object" && typeof raw.type == "string") return raw.type;
-  }
-}
-function toPurl(name, version3) {
-  if (name.startsWith("@")) {
-    let [scope, bare] = name.split("/", 2);
-    return `pkg:npm/${encodeURIComponent(scope ?? "")}%2F${encodeURIComponent(bare ?? "")}@${encodeURIComponent(version3)}`;
-  }
-  return `pkg:npm/${encodeURIComponent(name)}@${encodeURIComponent(version3)}`;
-}
-function renderCycloneDx(data) {
-  let doc = {
-    $schema: "http://cyclonedx.org/schema/bom-1.5.schema.json",
-    bomFormat: "CycloneDX",
-    specVersion: "1.5",
-    serialNumber: `urn:uuid:${data.serialNumber}`,
-    version: 1,
-    metadata: {
-      timestamp: data.timestamp,
-      tools: [
-        {
-          vendor: "yao-pkg",
-          name: "pkg-action",
-          version: data.actionVersion
-        }
-      ],
-      component: {
-        type: "application",
-        "bom-ref": `${data.project.name}@${data.project.version}`,
-        name: data.project.name,
-        version: data.project.version,
-        purl: toPurl(data.project.name, data.project.version)
-      }
-    },
-    components: data.deps.map((d) => {
-      let comp26 = {
-        type: "library",
-        "bom-ref": d.purl,
-        name: d.name,
-        version: d.version,
-        purl: d.purl
-      };
-      return d.license !== void 0 && (comp26.licenses = [{ license: { id: d.license } }]), d.description !== void 0 && (comp26.description = d.description), comp26;
-    }),
-    ...data.artifacts.length > 0 ? {
-      formulation: [
-        {
-          components: data.artifacts.map((a) => ({
-            type: "file",
-            name: a.filename,
-            hashes: a.hashes.map((h) => ({ alg: h.algo, content: h.value }))
-          }))
-        }
-      ]
-    } : {}
-  };
-  return JSON.stringify(doc, null, 2);
-}
-function renderSpdx(data) {
-  let rootRef = `SPDXRef-Package-${sanitizeSpdxId(data.project.name)}`, packages = [
-    {
-      SPDXID: rootRef,
-      name: data.project.name,
-      versionInfo: data.project.version,
-      downloadLocation: "NOASSERTION",
-      filesAnalyzed: !1,
-      externalRefs: [
-        {
-          referenceCategory: "PACKAGE-MANAGER",
-          referenceType: "purl",
-          referenceLocator: toPurl(data.project.name, data.project.version)
-        }
-      ]
-    }
-  ], relationships = [
-    {
-      spdxElementId: "SPDXRef-DOCUMENT",
-      relationshipType: "DESCRIBES",
-      relatedSpdxElement: rootRef
-    }
-  ];
-  for (let dep of data.deps) {
-    let depRef = `SPDXRef-Package-npm-${sanitizeSpdxId(dep.name)}-${sanitizeSpdxId(dep.version)}`, pkg = {
-      SPDXID: depRef,
-      name: dep.name,
-      versionInfo: dep.version,
-      downloadLocation: "NOASSERTION",
-      filesAnalyzed: !1,
-      externalRefs: [
-        {
-          referenceCategory: "PACKAGE-MANAGER",
-          referenceType: "purl",
-          referenceLocator: dep.purl
-        }
-      ]
-    };
-    dep.license !== void 0 && (pkg.licenseConcluded = dep.license), dep.description !== void 0 && (pkg.description = dep.description), packages.push(pkg), relationships.push({
-      spdxElementId: rootRef,
-      relationshipType: "DEPENDS_ON",
-      relatedSpdxElement: depRef
-    });
-  }
-  for (let artifact of data.artifacts) {
-    let fileRef = `SPDXRef-File-${sanitizeSpdxId(artifact.filename)}`, checksums = artifact.hashes.map((h) => ({
-      algorithm: h.algo.replace("-", ""),
-      checksumValue: h.value
-    }));
-    packages.push({
-      SPDXID: fileRef,
-      name: artifact.filename,
-      versionInfo: data.project.version,
-      downloadLocation: "NOASSERTION",
-      filesAnalyzed: !1,
-      checksums
-    }), relationships.push({
-      spdxElementId: rootRef,
-      relationshipType: "GENERATES",
-      relatedSpdxElement: fileRef
-    });
-  }
-  let doc = {
-    spdxVersion: "SPDX-2.3",
-    dataLicense: "CC0-1.0",
-    SPDXID: "SPDXRef-DOCUMENT",
-    name: `${data.project.name}-${data.project.version}`,
-    documentNamespace: `https://yao-pkg.github.io/pkg-action/spdxdocs/${encodeURIComponent(data.project.name)}-${encodeURIComponent(data.project.version)}-${data.serialNumber}`,
-    creationInfo: {
-      created: data.timestamp,
-      creators: [`Tool: yao-pkg/pkg-action@${data.actionVersion}`]
-    },
-    packages,
-    relationships
-  };
-  return JSON.stringify(doc, null, 2);
-}
-function sanitizeSpdxId(raw) {
-  return raw.replace(/[^A-Za-z0-9.-]/g, "-");
-}
-async function writeSbom(req) {
-  let suffix = req.format === "cyclonedx" ? "cdx.json" : "spdx.json", base = `${req.data.project.name}-${req.data.project.version}.${suffix}`, outPath = join4(req.outDir, base), body2 = req.format === "cyclonedx" ? renderCycloneDx(req.data) : renderSpdx(req.data);
-  return await atomicWriteFile(outPath, body2), outPath;
-}
-function newSbomSerialNumber() {
-  return randomUUID3();
-}
-function nowTimestamp() {
-  return (/* @__PURE__ */ new Date()).toISOString();
-}
-var SBOM_FORMATS, defaultFs, init_sbom = __esm({
-  "packages/core/src/sbom.ts"() {
-    "use strict";
-    init_fs_utils();
-    init_errors();
-    SBOM_FORMATS = ["none", "cyclonedx", "spdx"];
-    defaultFs = {
-      readFile: (p, enc) => readFile(p, enc)
-    };
-  }
-});
-
-// packages/core/src/inputs.ts
-function specFor(name) {
-  return SPEC_BY_NAME.get(name);
-}
-function readInputRaw(env, name) {
-  let key = `INPUT_${name.replace(/ /g, "_").toUpperCase()}`, raw = env[key];
-  if (raw === void 0) return;
-  let trimmed = raw.trim();
-  return trimmed === "" ? void 0 : trimmed;
-}
-function readInput(env, name) {
-  let raw = readInputRaw(env, name);
-  return raw !== void 0 ? raw : specFor(name)?.default;
-}
-function parseBoolean(value, name) {
-  if (value === void 0) return !1;
-  let normalized = value.toLowerCase();
-  if (normalized === "true" || normalized === "1" || normalized === "yes") return !0;
-  if (normalized === "false" || normalized === "0" || normalized === "no") return !1;
-  throw new ValidationError(`Input "${name}" expected a boolean (true/false) but got "${value}".`);
-}
-function parseEnum(value, name, allowed) {
-  if (value === void 0)
-    throw new ValidationError(`Input "${name}" is required but not set.`);
-  if (!allowed.includes(value))
-    throw new ValidationError(
-      `Input "${name}" must be one of ${allowed.join(" | ")}, got "${value}".`
-    );
-  return value;
-}
-function parseList(value) {
-  return value === void 0 ? [] : value.split(/[\n,]/).map((s) => s.trim()).filter((s) => s.length > 0);
-}
-function parseChecksumList(value, name) {
-  let items = parseList(value);
-  if (items.length === 0 || items.length === 1 && items[0] === "none") return [];
-  let result = [], seen = /* @__PURE__ */ new Set();
-  for (let item of items) {
-    if (item === "none")
-      throw new ValidationError(`Input "${name}" cannot mix "none" with other algorithms.`);
-    if (!CHECKSUM_ALGORITHMS.includes(item))
-      throw new ValidationError(
-        `Input "${name}" contains unknown algorithm "${item}". Expected: ${CHECKSUM_ALGORITHMS.join(", ")}.`
-      );
-    seen.has(item) || (seen.add(item), result.push(item));
-  }
-  return result;
-}
-function parseInputs(opts = {}) {
-  let env = opts.env ?? process.env;
-  for (let spec of INPUT_SPECS)
-    if (spec.secret === !0) {
-      let raw = readInputRaw(env, spec.name);
-      raw !== void 0 && opts.registerSecret?.(raw);
-    }
-  let targetsRaw = readInput(env, "targets"), targets = targetsRaw === void 0 ? "host" : parseTargetList(targetsRaw);
-  if (Array.isArray(targets) && targets.length === 0)
-    throw new ValidationError('Input "targets" was set but resolved to an empty list.');
-  let build = {
-    config: readInput(env, "config"),
-    entry: readInput(env, "entry"),
-    targets,
-    mode: parseEnum(readInput(env, "mode"), "mode", ["standard", "sea"]),
-    nodeVersion: readInput(env, "node-version") ?? "22",
-    compressNode: parseEnum(readInput(env, "compress-node"), "compress-node", [
-      "Brotli",
-      "GZip",
-      "None"
-    ]),
-    fallbackToSource: parseBoolean(readInput(env, "fallback-to-source"), "fallback-to-source"),
-    public: parseBoolean(readInput(env, "public"), "public"),
-    publicPackages: parseList(readInput(env, "public-packages")),
-    options: parseList(readInput(env, "options")),
-    noBytecode: parseBoolean(readInput(env, "no-bytecode"), "no-bytecode"),
-    noDict: parseList(readInput(env, "no-dict")),
-    debug: parseBoolean(readInput(env, "debug"), "debug"),
-    extraArgs: readInput(env, "extra-args"),
-    pkgVersion: readInput(env, "pkg-version") ?? "~6.16.0",
-    pkgPath: readInput(env, "pkg-path")
-  }, postBuild = {
-    strip: parseBoolean(readInput(env, "strip"), "strip"),
-    compress: parseEnum(readInput(env, "compress"), "compress", [
-      "tar.gz",
-      "tar.xz",
-      "zip",
-      "7z",
-      "none"
-    ]),
-    filename: readInput(env, "filename") ?? "{name}-{version}-{os}-{arch}",
-    checksum: parseChecksumList(readInput(env, "checksum"), "checksum")
-  }, attachToRelease = parseBoolean(readInput(env, "attach-to-release"), "attach-to-release"), releaseTag = readInput(env, "release-tag");
-  if (attachToRelease) {
-    let ref = env.GITHUB_REF, refTag = ref !== void 0 && ref.startsWith("refs/tags/") ? ref.slice(10) : void 0;
-    if (releaseTag === void 0 && (refTag === void 0 || refTag === ""))
-      throw new ValidationError(
-        "attach-to-release=true requires either a tag-triggered run (GITHUB_REF=refs/tags/...) or an explicit release-tag input."
-      );
-  }
-  let homebrewTapRepo = readInput(env, "homebrew-tap-repo"), homebrew = homebrewTapRepo !== void 0 ? {
-    tapRepo: homebrewTapRepo,
-    tapToken: readInput(env, "homebrew-tap-token"),
-    formulaName: readInput(env, "homebrew-formula-name"),
-    formulaDescription: readInput(env, "homebrew-formula-description"),
-    formulaHomepage: readInput(env, "homebrew-formula-homepage"),
-    formulaLicense: readInput(env, "homebrew-formula-license"),
-    formulaBinary: readInput(env, "homebrew-formula-binary"),
-    tapBranch: readInput(env, "homebrew-tap-branch")
-  } : void 0, scoopBucketRepo = readInput(env, "scoop-bucket-repo"), scoop = scoopBucketRepo !== void 0 ? {
-    bucketRepo: scoopBucketRepo,
-    bucketToken: readInput(env, "scoop-bucket-token"),
-    manifestName: readInput(env, "scoop-manifest-name"),
-    manifestDescription: readInput(env, "scoop-manifest-description"),
-    manifestHomepage: readInput(env, "scoop-manifest-homepage"),
-    manifestLicense: readInput(env, "scoop-manifest-license"),
-    manifestBinary: readInput(env, "scoop-manifest-binary"),
-    bucketBranch: readInput(env, "scoop-bucket-branch")
-  } : void 0, dockerImage = readInput(env, "docker-image"), docker = dockerImage !== void 0 ? {
-    image: dockerImage,
-    registry: readInput(env, "docker-registry"),
-    username: readInput(env, "docker-username"),
-    password: readInput(env, "docker-password"),
-    baseImage: readInput(env, "docker-base-image") ?? "gcr.io/distroless/cc-debian12:latest",
-    dockerfile: readInput(env, "docker-dockerfile")
-  } : void 0;
-  if ((homebrew !== void 0 || scoop !== void 0) && !attachToRelease)
-    throw new ValidationError(
-      "homebrew-tap-repo / scoop-bucket-repo require attach-to-release=true (the generated manifest points at release download URLs)."
-    );
-  if (docker !== void 0 && docker.username === void 0 != (docker.password === void 0))
-    throw new ValidationError(
-      "docker-username and docker-password must be set together (or both left unset for an unauthenticated registry)."
-    );
-  let publishing = {
-    uploadArtifact: parseBoolean(readInput(env, "upload-artifact"), "upload-artifact"),
-    artifactName: readInput(env, "artifact-name") ?? "{name}-{version}-{target}",
-    attachToRelease,
-    releaseTag,
-    releaseName: readInput(env, "release-name"),
-    releaseBody: readInput(env, "release-body"),
-    releaseDraft: parseBoolean(readInput(env, "release-draft"), "release-draft"),
-    releasePrerelease: parseBoolean(readInput(env, "release-prerelease"), "release-prerelease"),
-    generateReleaseTable: parseBoolean(
-      readInput(env, "generate-release-table"),
-      "generate-release-table"
-    ),
-    homebrew,
-    scoop,
-    docker
-  }, performance2 = {
-    cache: parseBoolean(readInput(env, "cache"), "cache"),
-    cacheKey: readInput(env, "cache-key"),
-    stepSummary: parseBoolean(readInput(env, "step-summary"), "step-summary"),
-    sbom: parseEnum(readInput(env, "sbom"), "sbom", SBOM_FORMATS),
-    provenance: parseBoolean(readInput(env, "provenance"), "provenance")
-  };
-  if (opts.onUnknownInput !== void 0)
-    for (let key of Object.keys(env)) {
-      if (!key.startsWith("INPUT_")) continue;
-      let kebab = key.slice(6).toLowerCase();
-      SPEC_BY_NAME.has(kebab) || opts.onUnknownInput(kebab);
-    }
-  return { build, postBuild, publishing, performance: performance2 };
-}
-function closestInputName(input) {
-  let best = null, bestDist = 1 / 0;
-  for (let spec of INPUT_SPECS) {
-    let d = levenshtein2(input.toLowerCase(), spec.name);
-    d < bestDist && (bestDist = d, best = spec.name);
-  }
-  return bestDist <= 3 ? best : null;
-}
-function levenshtein2(a, b) {
-  if (a === b) return 0;
-  if (a.length === 0) return b.length;
-  if (b.length === 0) return a.length;
-  let prev = new Array(b.length + 1), curr = new Array(b.length + 1);
-  for (let j = 0; j <= b.length; j += 1) prev[j] = j;
-  for (let i = 1; i <= a.length; i += 1) {
-    curr[0] = i;
-    for (let j = 1; j <= b.length; j += 1) {
-      let cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      curr[j] = Math.min((curr[j - 1] ?? 0) + 1, (prev[j] ?? 0) + 1, (prev[j - 1] ?? 0) + cost);
-    }
-    [prev, curr] = [curr, prev];
-  }
-  return prev[b.length] ?? 0;
-}
-var INPUT_SPECS, SPEC_BY_NAME, init_inputs = __esm({
-  "packages/core/src/inputs.ts"() {
-    "use strict";
-    init_errors();
-    init_targets();
-    init_checksum();
-    init_sbom();
-    INPUT_SPECS = [
-      // Build configuration (§5.1)
-      {
-        name: "config",
-        category: "build",
-        description: "Path to a pkg config (.pkgrc, pkg.config.{js,ts,json}, or package.json). Auto-detected when omitted."
-      },
-      {
-        name: "entry",
-        category: "build",
-        description: "Entry script when not specified in the config."
-      },
-      {
-        name: "targets",
-        category: "build",
-        description: "Comma- or newline-separated pkg target triples, e.g. node22-linux-x64,node22-macos-arm64. Defaults to the host target."
-      },
-      {
-        name: "mode",
-        category: "build",
-        description: "standard | sea \u2014 selects pkg Standard or SEA mode.",
-        default: "standard"
-      },
-      {
-        name: "node-version",
-        category: "build",
-        description: "pkg's bundled Node.js major (e.g. 22, 24). Does not affect the action's own Node runtime.",
-        default: "22"
-      },
-      {
-        name: "compress-node",
-        category: "build",
-        description: "pkg's bundled-binary compression: Brotli | GZip | None.",
-        default: "None"
-      },
-      {
-        name: "fallback-to-source",
-        category: "build",
-        description: "Pass pkg --fallback-to-source for bytecode-fabricator failures.",
-        default: "false"
-      },
-      {
-        name: "public",
-        category: "build",
-        description: "Pass pkg --public (ships sources as plaintext).",
-        default: "false"
-      },
-      {
-        name: "public-packages",
-        category: "build",
-        description: "Comma-separated package names to mark public (pkg --public-packages)."
-      },
-      {
-        name: "options",
-        category: "build",
-        description: "Comma-separated V8 options baked into the binary (pkg --options)."
-      },
-      {
-        name: "no-bytecode",
-        category: "build",
-        description: "Pass pkg --no-bytecode.",
-        default: "false"
-      },
-      {
-        name: "no-dict",
-        category: "build",
-        description: "Comma-separated list of packages for pkg --no-dict (or * for all)."
-      },
-      { name: "debug", category: "build", description: "Pass pkg --debug.", default: "false" },
-      {
-        name: "extra-args",
-        category: "build",
-        description: "Raw extra flags appended to the pkg CLI invocation."
-      },
-      {
-        name: "pkg-version",
-        category: "build",
-        description: "npm version specifier for @yao-pkg/pkg (e.g. ~6.16.0). Bypassed when pkg-path is set.",
-        default: "~6.16.0"
-      },
-      {
-        name: "pkg-path",
-        category: "build",
-        description: "Absolute path to a pre-installed pkg binary. Skips the implicit npm i -g."
-      },
-      // Post-build (§5.2)
-      {
-        name: "strip",
-        category: "post-build",
-        description: "Strip debug symbols on Linux/macOS outputs.",
-        default: "false"
-      },
-      {
-        name: "compress",
-        category: "post-build",
-        description: "Archive format: tar.gz | tar.xz | zip | 7z | none.",
-        default: "none"
-      },
-      {
-        name: "filename",
-        category: "post-build",
-        description: "Output filename template. Tokens: {name} {version} {target} {node} {os} {arch} {sha} {ref} {date} {tag}.",
-        default: "{name}-{version}-{os}-{arch}"
-      },
-      {
-        name: "checksum",
-        category: "post-build",
-        description: "Checksum algorithms: comma list of none | sha256 | sha512 | md5.",
-        default: "sha256"
-      },
-      // Windows metadata (§5.3) — M3
-      {
-        name: "windows-metadata-file",
-        category: "windows-metadata",
-        description: "Path to a JSON file with any subset of the Windows metadata fields."
-      },
-      {
-        name: "windows-icon",
-        category: "windows-metadata",
-        description: "Newline- or comma-separated list of <id>=<path> icon entries, or just <path> for id 1."
-      },
-      {
-        name: "windows-product-name",
-        category: "windows-metadata",
-        description: "ProductName string."
-      },
-      {
-        name: "windows-product-version",
-        category: "windows-metadata",
-        description: "ProductVersion (auto-padded to four parts)."
-      },
-      {
-        name: "windows-file-version",
-        category: "windows-metadata",
-        description: "FileVersion (auto-padded to four parts)."
-      },
-      {
-        name: "windows-file-description",
-        category: "windows-metadata",
-        description: "FileDescription string."
-      },
-      {
-        name: "windows-company-name",
-        category: "windows-metadata",
-        description: "CompanyName string."
-      },
-      {
-        name: "windows-legal-copyright",
-        category: "windows-metadata",
-        description: "LegalCopyright string (\xA9 auto-inserted if omitted)."
-      },
-      {
-        name: "windows-original-filename",
-        category: "windows-metadata",
-        description: "OriginalFilename string. Defaults to the output basename."
-      },
-      {
-        name: "windows-internal-name",
-        category: "windows-metadata",
-        description: "InternalName string."
-      },
-      { name: "windows-comments", category: "windows-metadata", description: "Comments string." },
-      {
-        name: "windows-manifest",
-        category: "windows-metadata",
-        description: "Path to a raw app.manifest file to embed as RT_MANIFEST."
-      },
-      {
-        name: "windows-lang",
-        category: "windows-metadata",
-        description: "Language identifier for VersionInfo.",
-        default: "1033"
-      },
-      {
-        name: "windows-codepage",
-        category: "windows-metadata",
-        description: "Codepage for VersionInfo strings.",
-        default: "1200"
-      },
-      // Signing & notarization (§5.4) — M4
-      {
-        name: "macos-sign-identity",
-        category: "signing",
-        description: "codesign identity (Common Name or SHA-1)."
-      },
-      {
-        name: "macos-sign-certificate",
-        category: "signing",
-        description: "Base64-encoded .p12 certificate.",
-        secret: !0
-      },
-      {
-        name: "macos-keychain-password",
-        category: "signing",
-        description: "Password for the ephemeral keychain holding the signing identity.",
-        secret: !0
-      },
-      {
-        name: "macos-entitlements",
-        category: "signing",
-        description: "Path to an entitlements plist."
-      },
-      {
-        name: "macos-notarize",
-        category: "signing",
-        description: "Run xcrun notarytool + staple after signing.",
-        default: "false"
-      },
-      {
-        name: "macos-apple-id",
-        category: "signing",
-        description: "Apple ID for notarytool.",
-        secret: !0
-      },
-      {
-        name: "macos-team-id",
-        category: "signing",
-        description: "Apple Team ID for notarytool.",
-        secret: !0
-      },
-      {
-        name: "macos-app-password",
-        category: "signing",
-        description: "App-specific password for notarytool.",
-        secret: !0
-      },
-      {
-        name: "windows-sign-mode",
-        category: "signing",
-        description: "none | signtool | trusted-signing.",
-        default: "none"
-      },
-      {
-        name: "windows-sign-cert",
-        category: "signing",
-        description: "Base64-encoded .pfx for signtool mode.",
-        secret: !0
-      },
-      {
-        name: "windows-sign-password",
-        category: "signing",
-        description: "Password for the .pfx.",
-        secret: !0
-      },
-      {
-        name: "windows-sign-rfc3161-url",
-        category: "signing",
-        description: "RFC3161 timestamp URL for signtool.",
-        default: "http://timestamp.digicert.com"
-      },
-      {
-        name: "windows-sign-description",
-        category: "signing",
-        description: "Description passed to signtool /d."
-      },
-      {
-        name: "azure-tenant-id",
-        category: "signing",
-        description: "Azure Trusted Signing: tenant ID.",
-        secret: !0
-      },
-      {
-        name: "azure-client-id",
-        category: "signing",
-        description: "Azure Trusted Signing: client ID.",
-        secret: !0
-      },
-      {
-        name: "azure-client-secret",
-        category: "signing",
-        description: "Azure Trusted Signing: client secret.",
-        secret: !0
-      },
-      {
-        name: "azure-endpoint",
-        category: "signing",
-        description: "Azure Trusted Signing: endpoint URL."
-      },
-      {
-        name: "azure-cert-profile",
-        category: "signing",
-        description: "Azure Trusted Signing: certificate profile name."
-      },
-      // Publishing (§5.5)
-      {
-        name: "upload-artifact",
-        category: "publishing",
-        description: "Upload each produced file as a workflow artifact.",
-        default: "true"
-      },
-      {
-        name: "artifact-name",
-        category: "publishing",
-        description: "Artifact name template. Must be unique per target (@actions/artifact v2 rejects collisions).",
-        default: "{name}-{version}-{target}"
-      },
-      {
-        name: "attach-to-release",
-        category: "publishing",
-        description: "Attach artifacts to the release matching the triggering tag.",
-        default: "false"
-      },
-      {
-        name: "release-tag",
-        category: "publishing",
-        description: "Override the release tag. Required for non-tag triggers when attach-to-release is true."
-      },
-      {
-        name: "release-name",
-        category: "publishing",
-        description: "Release title (optional override)."
-      },
-      {
-        name: "release-body",
-        category: "publishing",
-        description: "Release body (optional override)."
-      },
-      {
-        name: "release-draft",
-        category: "publishing",
-        description: "Mark the release as draft.",
-        default: "false"
-      },
-      {
-        name: "release-prerelease",
-        category: "publishing",
-        description: "Mark the release as prerelease.",
-        default: "false"
-      },
-      {
-        name: "generate-release-table",
-        category: "publishing",
-        description: "Append a markdown table of binaries + sizes + checksums to the release body.",
-        default: "true"
-      },
-      // Homebrew tap (§6.4)
-      {
-        name: "homebrew-tap-repo",
-        category: "publishing",
-        description: "owner/repo of a homebrew-tap. When set, opens a PR with an updated formula."
-      },
-      {
-        name: "homebrew-tap-token",
-        category: "publishing",
-        description: "PAT with contents:write on the tap repo. Falls back to GITHUB_TOKEN.",
-        secret: !0
-      },
-      {
-        name: "homebrew-formula-name",
-        category: "publishing",
-        description: "Formula filename without .rb. Defaults to the project name."
-      },
-      {
-        name: "homebrew-formula-description",
-        category: "publishing",
-        description: 'Formula description (desc). Defaults to package.json "description".'
-      },
-      {
-        name: "homebrew-formula-homepage",
-        category: "publishing",
-        description: "Formula homepage. Defaults to the repository URL."
-      },
-      {
-        name: "homebrew-formula-license",
-        category: "publishing",
-        description: 'Formula license string. Defaults to package.json "license".'
-      },
-      {
-        name: "homebrew-formula-binary",
-        category: "publishing",
-        description: "Binary name installed into $prefix/bin. Defaults to the formula name."
-      },
-      {
-        name: "homebrew-tap-branch",
-        category: "publishing",
-        description: "Branch to push the updated formula on. Defaults to pkg-action/<project>-<version>."
-      },
-      // Docker publishing (§6.3)
-      {
-        name: "docker-image",
-        category: "publishing",
-        description: "OCI image reference with optional {version}/{tag}/{sha} tokens, e.g. ghcr.io/org/app:{version}. When set, the linux-* binaries are pushed as an OCI image."
-      },
-      {
-        name: "docker-registry",
-        category: "publishing",
-        description: "Registry host for auth. Derived from docker-image when unset."
-      },
-      {
-        name: "docker-username",
-        category: "publishing",
-        description: "Registry username. Paired with docker-password.",
-        secret: !0
-      },
-      {
-        name: "docker-password",
-        category: "publishing",
-        description: "Registry password or token.",
-        secret: !0
-      },
-      {
-        name: "docker-base-image",
-        category: "publishing",
-        description: "Base image the generated Dockerfile FROMs. Defaults to distroless/cc \u2014 the cc variant bundles libc/libstdc++/libgcc that the pkg-packaged Node binary links against.",
-        default: "gcr.io/distroless/cc-debian12:latest"
-      },
-      {
-        name: "docker-dockerfile",
-        category: "publishing",
-        description: "Path to a user-supplied Dockerfile. Skips the generated minimal layout."
-      },
-      // Scoop bucket (§6.5)
-      {
-        name: "scoop-bucket-repo",
-        category: "publishing",
-        description: "owner/repo of a scoop bucket. When set, opens a PR with an updated manifest."
-      },
-      {
-        name: "scoop-bucket-token",
-        category: "publishing",
-        description: "PAT with contents:write on the bucket repo. Falls back to GITHUB_TOKEN.",
-        secret: !0
-      },
-      {
-        name: "scoop-manifest-name",
-        category: "publishing",
-        description: "Manifest filename without .json. Defaults to the project name."
-      },
-      {
-        name: "scoop-manifest-description",
-        category: "publishing",
-        description: 'Manifest description. Defaults to package.json "description".'
-      },
-      {
-        name: "scoop-manifest-homepage",
-        category: "publishing",
-        description: "Manifest homepage. Defaults to the repository URL."
-      },
-      {
-        name: "scoop-manifest-license",
-        category: "publishing",
-        description: 'Manifest license. Defaults to package.json "license".'
-      },
-      {
-        name: "scoop-manifest-binary",
-        category: "publishing",
-        description: "Binary name inside the archive. Defaults to <manifest-name>.exe."
-      },
-      {
-        name: "scoop-bucket-branch",
-        category: "publishing",
-        description: "Branch to push the updated manifest on. Defaults to pkg-action/<project>-<version>."
-      },
-      // Performance / observability (§5.6)
-      {
-        name: "cache",
-        category: "performance",
-        description: "Cache the pkg-fetch Node downloads between runs.",
-        default: "true"
-      },
-      {
-        name: "cache-key",
-        category: "performance",
-        description: "Override the auto-derived cache key."
-      },
-      {
-        name: "step-summary",
-        category: "performance",
-        description: "Write a markdown summary of build time / size / checksum to the job summary.",
-        default: "true"
-      },
-      {
-        name: "sbom",
-        category: "performance",
-        description: "Generate a Software Bill of Materials: none | cyclonedx | spdx. Written alongside the artifacts and attached to the release when attach-to-release=true.",
-        default: "none"
-      },
-      {
-        name: "provenance",
-        category: "performance",
-        description: "Emit SLSA provenance attestation via actions/attest-build-provenance.",
-        default: "false"
-      }
-    ], SPEC_BY_NAME = new Map(
-      INPUT_SPECS.map((s) => [s.name, s])
-    );
-  }
-});
-
-// packages/core/src/pkg-runner.ts
-function buildPkgArgs(inv) {
-  let args = [];
-  if (inv.targets.length > 0 && args.push("--targets", inv.targets.map(formatTarget).join(",")), inv.build.config !== void 0 && args.push("--config", inv.build.config), inv.build.mode === "sea" && args.push("--sea"), inv.build.compressNode !== "None" && args.push("--compress", inv.build.compressNode), inv.build.fallbackToSource && args.push("--fallback-to-source"), inv.build.public && args.push("--public"), inv.build.publicPackages.length > 0 && args.push("--public-packages", inv.build.publicPackages.join(",")), inv.build.options.length > 0 && args.push("--options", inv.build.options.join(",")), inv.build.noBytecode && args.push("--no-bytecode"), inv.build.noDict.length > 0 && args.push("--no-dict", inv.build.noDict.join(",")), inv.build.debug && args.push("--debug"), args.push("--out-path", inv.outputDir), inv.build.extraArgs !== void 0 && inv.build.extraArgs.trim() !== "")
-    for (let tok of inv.build.extraArgs.split(/\s+/).filter((s) => s.length > 0))
-      args.push(tok);
-  let entry = inv.build.entry ?? ".";
-  return args.push(entry), args;
-}
-async function runPkg(inv, deps) {
-  let args = buildPkgArgs(inv);
-  deps.logger.info(`[pkg-action] Invoking: ${deps.pkgCommand} ${args.join(" ")}`);
-  let result;
-  try {
-    result = await deps.exec(deps.pkgCommand, args, {
-      ignoreReturnCode: !0,
-      ...inv.cwd !== void 0 ? { cwd: inv.cwd } : {},
-      ...inv.env !== void 0 ? { env: inv.env } : {}
-    });
-  } catch (err) {
-    throw new PkgRunError(`Failed to spawn pkg: ${String(err)}`, { cause: err });
-  }
-  if (result.exitCode !== 0)
-    throw new PkgRunError(`pkg exited with code ${String(result.exitCode)}. See stderr above.`);
-  return result;
-}
-var init_pkg_runner = __esm({
-  "packages/core/src/pkg-runner.ts"() {
-    "use strict";
-    init_targets();
-    init_errors();
-  }
-});
-
-// packages/core/src/pkg-output-map.ts
-import { access as access2, readdir as readdir2 } from "node:fs/promises";
-import { join as join5 } from "node:path";
-function predictOutputNames(targets, baseName) {
-  if (targets.length === 0) return [];
-  if (targets.length === 1) {
-    let only = targets[0];
-    return only ? [withWindowsSuffix(baseName, only)] : [];
-  }
-  let nodes = new Set(targets.map((t) => String(t.node))), oses = new Set(targets.map((t) => t.os)), archs = new Set(targets.map((t) => t.arch)), diverges = {
-    node: nodes.size > 1,
-    os: oses.size > 1,
-    arch: archs.size > 1
-  };
-  return targets.map((t) => {
-    let parts = [baseName];
-    return diverges.node && parts.push(String(t.node)), diverges.os && parts.push(t.os), diverges.arch && parts.push(t.arch), withWindowsSuffix(parts.join("-"), t);
-  });
-}
-function withWindowsSuffix(name, target) {
-  return target.os === "win" && !name.toLowerCase().endsWith(".exe") ? `${name}.exe` : name;
-}
-async function mapPkgOutputs(targets, baseName, outputDir) {
-  let predicted = predictOutputNames(targets, baseName), entries = [], unresolved = [];
-  for (let i = 0; i < targets.length; i += 1) {
-    let target = targets[i], name = predicted[i];
-    if (target === void 0 || name === void 0) continue;
-    let candidate = join5(outputDir, name);
-    await exists3(candidate) ? entries.push({ target, path: candidate }) : unresolved.push({ target, predicted: name });
-  }
-  if (unresolved.length > 0) {
-    let listing = await readdir2(outputDir);
-    for (let { target, predicted: predictedName } of unresolved) {
-      let match = findFallbackMatch(listing, target, predictedName);
-      if (match === void 0)
-        throw new PkgRunError(
-          `pkg did not produce an output for ${formatTarget(target)}. Expected "${predictedName}" in ${outputDir}; directory contains: ${listing.join(", ") || "(empty)"}.`
-        );
-      entries.push({ target, path: join5(outputDir, match) });
-    }
-  }
-  return entries;
-}
-function findFallbackMatch(listing, target, predicted) {
-  if (listing.includes(predicted)) return predicted;
-  let lower = predicted.toLowerCase(), ci = listing.find((f) => f.toLowerCase() === lower);
-  if (ci !== void 0) return ci;
-  let needle = `${target.os}-${target.arch}`;
-  return listing.find((f) => f.toLowerCase().includes(needle.toLowerCase()));
-}
-async function exists3(path7) {
-  try {
-    return await access2(path7), !0;
-  } catch {
-    return !1;
-  }
-}
-var init_pkg_output_map = __esm({
-  "packages/core/src/pkg-output-map.ts"() {
-    "use strict";
-    init_targets();
-    init_errors();
-  }
-});
-
 // node_modules/buffer-crc32/dist/index.cjs
 var require_dist = __commonJS({
   "node_modules/buffer-crc32/dist/index.cjs"(exports2, module) {
@@ -16401,138 +15027,6 @@ var require_yazl = __commonJS({
         return !1;
       }
     }
-  }
-});
-
-// packages/core/src/archive.ts
-import { createWriteStream as createWriteStream2 } from "node:fs";
-import { stat as stat3 } from "node:fs/promises";
-import { basename as basename4 } from "node:path";
-import { pipeline as pipeline3 } from "node:stream/promises";
-async function archive(req, deps) {
-  let entry = req.entryName ?? basename4(req.inputPath), mode = req.mode ?? 493;
-  try {
-    await stat3(req.inputPath);
-  } catch (err) {
-    throw new ArchiveError(`Archive input does not exist: ${req.inputPath}`, { cause: err });
-  }
-  switch (req.format) {
-    case "tar.gz":
-      return await shellTar(req.inputPath, req.outputPath, "gz", entry, deps), req.outputPath;
-    case "tar.xz":
-      return await shellTar(req.inputPath, req.outputPath, "xz", entry, deps), req.outputPath;
-    case "zip":
-      return await writeZip(req.inputPath, req.outputPath, entry, mode), req.outputPath;
-    case "7z":
-      return await shell7z(req.inputPath, req.outputPath, entry, deps), req.outputPath;
-  }
-}
-async function shellTar(inputPath, outputPath, compression, entry, deps) {
-  let { dirname: dirname5 } = await import("node:path"), { mkdtemp, symlink: symlink2, rm: rm3 } = await import("node:fs/promises"), { tmpdir } = await import("node:os"), compressFlag = compression === "gz" ? "-z" : "-J", stageDir, workDir = dirname5(inputPath), fileName = basename4(inputPath);
-  if (entry !== basename4(inputPath)) {
-    stageDir = await mkdtemp(`${tmpdir()}/pkgaction-tar-`);
-    let linkPath = `${stageDir}/${entry}`;
-    await symlink2(inputPath, linkPath), workDir = stageDir, fileName = entry;
-  }
-  try {
-    let result = await deps.exec(
-      "tar",
-      ["-c", compressFlag, "-f", outputPath, "-C", workDir, fileName],
-      { ignoreReturnCode: !0 }
-    );
-    if (result.exitCode !== 0)
-      throw new ArchiveError(
-        `tar exited ${String(result.exitCode)} writing ${outputPath}. stderr: ${result.stderr.trim()}`
-      );
-  } finally {
-    stageDir !== void 0 && await rm3(stageDir, { recursive: !0, force: !0 });
-  }
-}
-async function writeZip(inputPath, outputPath, entry, mode) {
-  let zipfile = new import_yazl.default.ZipFile(), mtime = new Date(Date.UTC(2020, 0, 1, 0, 0, 0));
-  zipfile.addFile(inputPath, entry, { mode, mtime, compress: !0 }), zipfile.end();
-  try {
-    await pipeline3(zipfile.outputStream, createWriteStream2(outputPath));
-  } catch (err) {
-    throw new ArchiveError(`Failed to write zip ${outputPath}`, { cause: err });
-  }
-}
-async function shell7z(inputPath, outputPath, entry, deps) {
-  let { dirname: dirname5 } = await import("node:path"), { mkdtemp, symlink: symlink2, rm: rm3 } = await import("node:fs/promises"), { tmpdir } = await import("node:os"), stageDir, workDir = dirname5(inputPath), fileName = basename4(inputPath);
-  if (entry !== basename4(inputPath)) {
-    stageDir = await mkdtemp(`${tmpdir()}/pkgaction-7z-`);
-    let linkPath = `${stageDir}/${entry}`;
-    await symlink2(inputPath, linkPath), workDir = stageDir, fileName = entry;
-  }
-  try {
-    let result = await deps.exec("7z", ["a", "-bb0", outputPath, fileName], {
-      cwd: workDir,
-      ignoreReturnCode: !0
-    });
-    if (result.exitCode !== 0)
-      throw new ArchiveError(
-        `7z exited ${String(result.exitCode)} writing ${outputPath}. stderr: ${result.stderr.trim()}`
-      );
-  } finally {
-    stageDir !== void 0 && await rm3(stageDir, { recursive: !0, force: !0 });
-  }
-}
-var import_yazl, init_archive = __esm({
-  "packages/core/src/archive.ts"() {
-    "use strict";
-    import_yazl = __toESM(require_yazl(), 1);
-    init_errors();
-  }
-});
-
-// packages/core/src/summary.ts
-import { appendFile as appendFile2 } from "node:fs/promises";
-import { basename as basename5 } from "node:path";
-function renderSummary(rows, opts = {}) {
-  let parts = [];
-  parts.push(`## ${opts.title ?? "pkg-action build summary"}`), parts.push("");
-  let meta = [];
-  if (opts.actionVersion !== void 0 && meta.push(`**action:** \`${opts.actionVersion}\``), opts.pkgVersion !== void 0 && meta.push(`**pkg:** \`${opts.pkgVersion}\``), meta.length > 0 && (parts.push(meta.join(" \xB7 ")), parts.push("")), rows.length === 0)
-    return parts.push("_No binaries produced._"), parts.push(""), parts.join(`
-`);
-  let hasDuration = rows.some((r) => r.durationMs !== void 0), hasDigest = rows.some((r) => r.primaryDigest !== void 0), hasSigned = rows.some((r) => r.signed === !0), header = ["Target", "Filename", "Size"];
-  hasDigest && header.push("SHA"), hasSigned && header.push("Signed"), hasDuration && header.push("Time");
-  let sep3 = header.map(() => "---");
-  parts.push(`| ${header.join(" | ")} |`), parts.push(`| ${sep3.join(" | ")} |`);
-  for (let row of rows) {
-    let cells = [
-      `\`${row.target}\``,
-      `\`${basename5(row.filename)}\``,
-      formatBytes(row.sizeBytes)
-    ];
-    hasDigest && (row.primaryDigest !== void 0 ? cells.push(`\`${row.primaryDigest.algo}:${row.primaryDigest.value.slice(0, 12)}\u2026\``) : cells.push("\u2014")), hasSigned && cells.push(row.signed === !0 ? "\u2713" : "\u2014"), hasDuration && cells.push(row.durationMs !== void 0 ? formatDuration(row.durationMs) : "\u2014"), parts.push(`| ${cells.join(" | ")} |`);
-  }
-  return parts.push(""), opts.releaseUrl !== void 0 && opts.releaseUrl !== "" && (parts.push(`**Release:** ${opts.releaseUrl}`), parts.push("")), parts.join(`
-`);
-}
-async function writeSummary(rows, opts = {}, env = process.env) {
-  let path7 = env.GITHUB_STEP_SUMMARY;
-  if (path7 === void 0 || path7 === "") return !1;
-  let markdown = renderSummary(rows, opts);
-  return await appendFile2(path7, markdown), !0;
-}
-function formatBytes(bytes) {
-  if (bytes < 1024) return `${bytes} B`;
-  let units = ["KiB", "MiB", "GiB", "TiB"], v = bytes, i = -1;
-  for (; v >= 1024 && i < units.length - 1; )
-    v /= 1024, i += 1;
-  return `${v.toFixed(v >= 100 ? 0 : v >= 10 ? 1 : 2)} ${units[i]}`;
-}
-function formatDuration(ms) {
-  if (ms < 1e3) return `${ms} ms`;
-  let s = ms / 1e3;
-  if (s < 60) return `${s.toFixed(1)} s`;
-  let m = Math.floor(s / 60), rem = s - m * 60;
-  return `${m}m ${rem.toFixed(0)}s`;
-}
-var init_summary2 = __esm({
-  "packages/core/src/summary.ts"() {
-    "use strict";
   }
 });
 
@@ -21608,7 +20102,7 @@ var import_package_version, init_user_agent = __esm({
 });
 
 // node_modules/@actions/artifact/lib/internal/shared/errors.js
-var FilesNotFoundError, InvalidResponseError, ArtifactNotFoundError, GHESNotSupportedError, NetworkError, UsageError, init_errors2 = __esm({
+var FilesNotFoundError, InvalidResponseError, ArtifactNotFoundError, GHESNotSupportedError, NetworkError, UsageError, init_errors = __esm({
   "node_modules/@actions/artifact/lib/internal/shared/errors.js"() {
     FilesNotFoundError = class extends Error {
       constructor(files = []) {
@@ -21766,7 +20260,7 @@ var __awaiter8, ArtifactHttpClient, init_artifact_twirp_client2 = __esm({
     init_generated();
     init_config();
     init_user_agent();
-    init_errors2();
+    init_errors();
     init_util();
     __awaiter8 = function(thisArg, _arguments, P, generator) {
       function adopt(value) {
@@ -22104,7 +20598,7 @@ function createLoggerContext(options) {
 function createClientLogger(namespace) {
   return context.createClientLogger(namespace);
 }
-var TYPESPEC_RUNTIME_LOG_LEVELS, levelMap, context, TypeSpecRuntimeLogger, init_logger2 = __esm({
+var TYPESPEC_RUNTIME_LOG_LEVELS, levelMap, context, TypeSpecRuntimeLogger, init_logger = __esm({
   "node_modules/@typespec/ts-http-runtime/dist/esm/logger/logger.js"() {
     init_debug();
     TYPESPEC_RUNTIME_LOG_LEVELS = ["verbose", "info", "warning", "error"], levelMap = {
@@ -22579,7 +21073,7 @@ var init_bytesEncoding = __esm({
 // node_modules/@typespec/ts-http-runtime/dist/esm/log.js
 var logger, init_log2 = __esm({
   "node_modules/@typespec/ts-http-runtime/dist/esm/log.js"() {
-    init_logger2();
+    init_logger();
     logger = createClientLogger("ts-http-runtime");
   }
 });
@@ -23068,7 +21562,7 @@ var retryPolicyLogger, retryPolicyName, init_retryPolicy = __esm({
     init_helpers();
     init_restError();
     init_AbortError();
-    init_logger2();
+    init_logger();
     init_constants();
     retryPolicyLogger = createClientLogger("ts-http-runtime retryPolicy"), retryPolicyName = "retryPolicy";
   }
@@ -24218,7 +22712,7 @@ var init_typeGuards = __esm({
 });
 
 // node_modules/@typespec/ts-http-runtime/dist/esm/util/concat.js
-import { Readable as Readable2 } from "stream";
+import { Readable } from "stream";
 async function* streamAsyncIterator() {
   let reader = this.getReader();
   try {
@@ -24236,15 +22730,15 @@ function makeAsyncIterable(webStream) {
   webStream[Symbol.asyncIterator] || (webStream[Symbol.asyncIterator] = streamAsyncIterator.bind(webStream)), webStream.values || (webStream.values = streamAsyncIterator.bind(webStream));
 }
 function ensureNodeStream(stream4) {
-  return stream4 instanceof ReadableStream ? (makeAsyncIterable(stream4), Readable2.fromWeb(stream4)) : stream4;
+  return stream4 instanceof ReadableStream ? (makeAsyncIterable(stream4), Readable.fromWeb(stream4)) : stream4;
 }
 function toStream(source) {
-  return source instanceof Uint8Array ? Readable2.from(Buffer.from(source)) : isBlob(source) ? ensureNodeStream(source.stream()) : ensureNodeStream(source);
+  return source instanceof Uint8Array ? Readable.from(Buffer.from(source)) : isBlob(source) ? ensureNodeStream(source.stream()) : ensureNodeStream(source);
 }
 async function concat(sources) {
   return function() {
     let streams = sources.map((x) => typeof x == "function" ? x() : x).map(toStream);
-    return Readable2.from((async function* () {
+    return Readable.from((async function* () {
       for (let stream4 of streams)
         for await (let chunk of stream4)
           yield chunk;
@@ -24470,7 +22964,7 @@ var init_restError2 = __esm({
 var init_esm2 = __esm({
   "node_modules/@typespec/ts-http-runtime/dist/esm/index.js"() {
     init_AbortError();
-    init_logger2();
+    init_logger();
     init_httpHeaders();
     init_pipelineRequest();
     init_pipeline();
@@ -24496,7 +22990,7 @@ var init_pipeline2 = __esm({
 // node_modules/@typespec/ts-http-runtime/dist/esm/logger/internal.js
 var init_internal = __esm({
   "node_modules/@typespec/ts-http-runtime/dist/esm/logger/internal.js"() {
-    init_logger2();
+    init_logger();
   }
 });
 
@@ -25219,10 +23713,10 @@ var wrapAbortSignalLikePolicyName, init_wrapAbortSignalLikePolicy = __esm({
 
 // node_modules/@azure/core-rest-pipeline/dist/esm/createPipelineFromOptions.js
 function createPipelineFromOptions2(options) {
-  let pipeline4 = createEmptyPipeline2();
-  return isNodeLike2 && (options.agent && pipeline4.addPolicy(agentPolicy2(options.agent)), options.tlsOptions && pipeline4.addPolicy(tlsPolicy2(options.tlsOptions)), pipeline4.addPolicy(proxyPolicy2(options.proxyOptions)), pipeline4.addPolicy(decompressResponsePolicy2())), pipeline4.addPolicy(wrapAbortSignalLikePolicy()), pipeline4.addPolicy(formDataPolicy2(), { beforePolicies: [multipartPolicyName2] }), pipeline4.addPolicy(userAgentPolicy2(options.userAgentOptions)), pipeline4.addPolicy(setClientRequestIdPolicy(options.telemetryOptions?.clientRequestIdHeaderName)), pipeline4.addPolicy(multipartPolicy2(), { afterPhase: "Deserialize" }), pipeline4.addPolicy(defaultRetryPolicy2(options.retryOptions), { phase: "Retry" }), pipeline4.addPolicy(tracingPolicy({ ...options.userAgentOptions, ...options.loggingOptions }), {
+  let pipeline3 = createEmptyPipeline2();
+  return isNodeLike2 && (options.agent && pipeline3.addPolicy(agentPolicy2(options.agent)), options.tlsOptions && pipeline3.addPolicy(tlsPolicy2(options.tlsOptions)), pipeline3.addPolicy(proxyPolicy2(options.proxyOptions)), pipeline3.addPolicy(decompressResponsePolicy2())), pipeline3.addPolicy(wrapAbortSignalLikePolicy()), pipeline3.addPolicy(formDataPolicy2(), { beforePolicies: [multipartPolicyName2] }), pipeline3.addPolicy(userAgentPolicy2(options.userAgentOptions)), pipeline3.addPolicy(setClientRequestIdPolicy(options.telemetryOptions?.clientRequestIdHeaderName)), pipeline3.addPolicy(multipartPolicy2(), { afterPhase: "Deserialize" }), pipeline3.addPolicy(defaultRetryPolicy2(options.retryOptions), { phase: "Retry" }), pipeline3.addPolicy(tracingPolicy({ ...options.userAgentOptions, ...options.loggingOptions }), {
     afterPhase: "Retry"
-  }), isNodeLike2 && pipeline4.addPolicy(redirectPolicy2(options.redirectOptions), { afterPhase: "Retry" }), pipeline4.addPolicy(logPolicy2(options.loggingOptions), { afterPhase: "Sign" }), pipeline4;
+  }), isNodeLike2 && pipeline3.addPolicy(redirectPolicy2(options.redirectOptions), { afterPhase: "Retry" }), pipeline3.addPolicy(logPolicy2(options.loggingOptions), { afterPhase: "Sign" }), pipeline3;
 }
 var init_createPipelineFromOptions2 = __esm({
   "node_modules/@azure/core-rest-pipeline/dist/esm/createPipelineFromOptions.js"() {
@@ -25622,8 +24116,8 @@ function createDisableKeepAlivePolicy() {
     }
   };
 }
-function pipelineContainsDisableKeepAlivePolicy(pipeline4) {
-  return pipeline4.getOrderedPolicies().some((policy) => policy.name === disableKeepAlivePolicyName);
+function pipelineContainsDisableKeepAlivePolicy(pipeline3) {
+  return pipeline3.getOrderedPolicies().some((policy) => policy.name === disableKeepAlivePolicyName);
 }
 var disableKeepAlivePolicyName, init_disableKeepAlivePolicy = __esm({
   "node_modules/@azure/core-http-compat/dist/esm/policies/disableKeepAlivePolicy.js"() {
@@ -26495,13 +24989,13 @@ var serializationPolicyName, init_serializationPolicy = __esm({
 
 // node_modules/@azure/core-client/dist/esm/pipeline.js
 function createClientPipeline(options = {}) {
-  let pipeline4 = createPipelineFromOptions2(options ?? {});
-  return options.credentialOptions && pipeline4.addPolicy(bearerTokenAuthenticationPolicy({
+  let pipeline3 = createPipelineFromOptions2(options ?? {});
+  return options.credentialOptions && pipeline3.addPolicy(bearerTokenAuthenticationPolicy({
     credential: options.credentialOptions.credential,
     scopes: options.credentialOptions.credentialScopes
-  })), pipeline4.addPolicy(serializationPolicy(options.serializationOptions), { phase: "Serialize" }), pipeline4.addPolicy(deserializationPolicy(options.deserializationOptions), {
+  })), pipeline3.addPolicy(serializationPolicy(options.serializationOptions), { phase: "Serialize" }), pipeline3.addPolicy(deserializationPolicy(options.deserializationOptions), {
     phase: "Deserialize"
-  }), pipeline4;
+  }), pipeline3;
 }
 var init_pipeline3 = __esm({
   "node_modules/@azure/core-client/dist/esm/pipeline.js"() {
@@ -30891,10 +29385,10 @@ var logger4, init_log5 = __esm({
 });
 
 // node_modules/@azure/storage-common/dist/esm/BuffersStream.js
-import { Readable as Readable3 } from "node:stream";
+import { Readable as Readable2 } from "node:stream";
 var BuffersStream, init_BuffersStream = __esm({
   "node_modules/@azure/storage-common/dist/esm/BuffersStream.js"() {
-    BuffersStream = class extends Readable3 {
+    BuffersStream = class extends Readable2 {
       buffers;
       byteLength;
       /**
@@ -32707,18 +31201,18 @@ var SDK_VERSION3, SERVICE_VERSION, StorageOAuthScopes, URLConstants2, ETagNone, 
 });
 
 // node_modules/@azure/storage-blob/dist/esm/Pipeline.js
-function isPipelineLike(pipeline4) {
-  if (!pipeline4 || typeof pipeline4 != "object")
+function isPipelineLike(pipeline3) {
+  if (!pipeline3 || typeof pipeline3 != "object")
     return !1;
-  let castPipeline = pipeline4;
+  let castPipeline = pipeline3;
   return Array.isArray(castPipeline.factories) && typeof castPipeline.options == "object" && typeof castPipeline.toServiceClientOptions == "function";
 }
 function newPipeline(credential, pipelineOptions = {}) {
   credential || (credential = new AnonymousCredential());
-  let pipeline4 = new Pipeline([], pipelineOptions);
-  return pipeline4._credential = credential, pipeline4;
+  let pipeline3 = new Pipeline([], pipelineOptions);
+  return pipeline3._credential = credential, pipeline3;
 }
-function processDownlevelPipeline(pipeline4) {
+function processDownlevelPipeline(pipeline3) {
   let knownFactoryFunctions = [
     isAnonymousCredential,
     isStorageSharedKeyCredential,
@@ -32728,8 +31222,8 @@ function processDownlevelPipeline(pipeline4) {
     isStorageTelemetryPolicyFactory,
     isCoreHttpPolicyFactory
   ];
-  if (pipeline4.factories.length) {
-    let novelFactories = pipeline4.factories.filter((factory) => !knownFactoryFunctions.some((knownFactory) => knownFactory(factory)));
+  if (pipeline3.factories.length) {
+    let novelFactories = pipeline3.factories.filter((factory) => !knownFactoryFunctions.some((knownFactory) => knownFactory(factory)));
     if (novelFactories.length) {
       let hasInjector = novelFactories.some((factory) => isInjectorPolicyFactory(factory));
       return {
@@ -32739,10 +31233,10 @@ function processDownlevelPipeline(pipeline4) {
     }
   }
 }
-function getCoreClientOptions(pipeline4) {
-  let { httpClient: v1Client, ...restOptions } = pipeline4.options, httpClient2 = pipeline4._coreHttpClient;
-  httpClient2 || (httpClient2 = v1Client ? convertHttpClient(v1Client) : getCachedDefaultHttpClient2(), pipeline4._coreHttpClient = httpClient2);
-  let corePipeline = pipeline4._corePipeline;
+function getCoreClientOptions(pipeline3) {
+  let { httpClient: v1Client, ...restOptions } = pipeline3.options, httpClient2 = pipeline3._coreHttpClient;
+  httpClient2 || (httpClient2 = v1Client ? convertHttpClient(v1Client) : getCachedDefaultHttpClient2(), pipeline3._coreHttpClient = httpClient2);
+  let corePipeline = pipeline3._corePipeline;
   if (!corePipeline) {
     let packageDetails = `azsdk-js-azure-storage-blob/${SDK_VERSION3}`, userAgentPrefix = restOptions.userAgentOptions && restOptions.userAgentOptions.userAgentPrefix ? `${restOptions.userAgentOptions.userAgentPrefix} ${packageDetails}` : `${packageDetails}`;
     corePipeline = createClientPipeline({
@@ -32776,9 +31270,9 @@ function getCoreClientOptions(pipeline4) {
         }
       }
     }), corePipeline.removePolicy({ phase: "Retry" }), corePipeline.removePolicy({ name: decompressResponsePolicyName2 }), corePipeline.addPolicy(storageCorrectContentLengthPolicy()), corePipeline.addPolicy(storageRetryPolicy(restOptions.retryOptions), { phase: "Retry" }), corePipeline.addPolicy(storageRequestFailureDetailsParserPolicy()), corePipeline.addPolicy(storageBrowserPolicy());
-    let downlevelResults = processDownlevelPipeline(pipeline4);
+    let downlevelResults = processDownlevelPipeline(pipeline3);
     downlevelResults && corePipeline.addPolicy(downlevelResults.wrappedPolicies, downlevelResults.afterRetry ? { afterPhase: "Retry" } : void 0);
-    let credential = getCredentialFromPipeline(pipeline4);
+    let credential = getCredentialFromPipeline(pipeline3);
     isTokenCredential(credential) ? corePipeline.addPolicy(bearerTokenAuthenticationPolicy({
       credential,
       scopes: restOptions.audience ?? StorageOAuthScopes,
@@ -32786,7 +31280,7 @@ function getCoreClientOptions(pipeline4) {
     }), { phase: "Sign" }) : credential instanceof StorageSharedKeyCredential && corePipeline.addPolicy(storageSharedKeyCredentialPolicy({
       accountName: credential.accountName,
       accountKey: credential.accountKey
-    }), { phase: "Sign" }), pipeline4._corePipeline = corePipeline;
+    }), { phase: "Sign" }), pipeline3._corePipeline = corePipeline;
   }
   return {
     ...restOptions,
@@ -32795,11 +31289,11 @@ function getCoreClientOptions(pipeline4) {
     pipeline: corePipeline
   };
 }
-function getCredentialFromPipeline(pipeline4) {
-  if (pipeline4._credential)
-    return pipeline4._credential;
+function getCredentialFromPipeline(pipeline3) {
+  if (pipeline3._credential)
+    return pipeline3._credential;
   let credential = new AnonymousCredential();
-  for (let factory of pipeline4.factories)
+  for (let factory of pipeline3.factories)
     if (isTokenCredential(factory.credential))
       credential = factory.credential;
     else if (isStorageSharedKeyCredential(factory))
@@ -46226,8 +44720,8 @@ var StorageClient2, init_StorageClient = __esm({
        * @param url - url to resource
        * @param pipeline - request policy pipeline.
        */
-      constructor(url2, pipeline4) {
-        this.url = escapeURLPath(url2), this.accountName = getAccountNameFromUrl(url2), this.pipeline = pipeline4, this.storageClientContext = new StorageContextClient(this.url, getCoreClientOptions(pipeline4)), this.isHttps = iEqual(getURLScheme(this.url) || "", "https"), this.credential = getCredentialFromPipeline(pipeline4);
+      constructor(url2, pipeline3) {
+        this.url = escapeURLPath(url2), this.accountName = getAccountNameFromUrl(url2), this.pipeline = pipeline3, this.storageClientContext = new StorageContextClient(this.url, getCoreClientOptions(pipeline3)), this.isHttps = iEqual(getURLScheme(this.url) || "", "https"), this.credential = getCredentialFromPipeline(pipeline3);
         let storageClientContext = this.storageClientContext;
         storageClientContext.requestContentType = void 0;
       }
@@ -47270,11 +45764,11 @@ var BlobLeaseClient, init_BlobLeaseClient = __esm({
 });
 
 // node_modules/@azure/storage-blob/dist/esm/utils/RetriableReadableStream.js
-import { Readable as Readable4 } from "node:stream";
+import { Readable as Readable3 } from "node:stream";
 var RetriableReadableStream, init_RetriableReadableStream = __esm({
   "node_modules/@azure/storage-blob/dist/esm/utils/RetriableReadableStream.js"() {
     init_esm4();
-    RetriableReadableStream = class extends Readable4 {
+    RetriableReadableStream = class extends Readable3 {
       start;
       offset;
       end;
@@ -48204,11 +46698,11 @@ var init_internal_avro = __esm({
 });
 
 // node_modules/@azure/storage-blob/dist/esm/utils/BlobQuickQueryStream.js
-import { Readable as Readable5 } from "node:stream";
+import { Readable as Readable4 } from "node:stream";
 var BlobQuickQueryStream, init_BlobQuickQueryStream = __esm({
   "node_modules/@azure/storage-blob/dist/esm/utils/BlobQuickQueryStream.js"() {
     init_internal_avro();
-    BlobQuickQueryStream = class extends Readable5 {
+    BlobQuickQueryStream = class extends Readable4 {
       source;
       avroReader;
       avroIter;
@@ -48711,7 +47205,7 @@ var init_PageBlobRangeResponse = __esm({
 });
 
 // node_modules/@azure/core-lro/dist/esm/logger.js
-var logger6, init_logger3 = __esm({
+var logger6, init_logger2 = __esm({
   "node_modules/@azure/core-lro/dist/esm/logger.js"() {
     init_esm3();
     logger6 = createClientLogger2("core-lro");
@@ -48727,7 +47221,7 @@ var init_constants5 = __esm({
 // node_modules/@azure/core-lro/dist/esm/poller/operation.js
 var init_operation = __esm({
   "node_modules/@azure/core-lro/dist/esm/poller/operation.js"() {
-    init_logger3();
+    init_logger2();
     init_constants5();
   }
 });
@@ -48736,7 +47230,7 @@ var init_operation = __esm({
 var init_operation2 = __esm({
   "node_modules/@azure/core-lro/dist/esm/http/operation.js"() {
     init_operation();
-    init_logger3();
+    init_logger2();
   }
 });
 
@@ -48761,7 +47255,7 @@ var init_poller2 = __esm({
 var init_operation3 = __esm({
   "node_modules/@azure/core-lro/dist/esm/legacy/lroEngine/operation.js"() {
     init_operation2();
-    init_logger3();
+    init_logger2();
   }
 });
 
@@ -49334,28 +47828,28 @@ var BlobClient, AppendBlobClient, BlockBlobClient, PageBlobClient, init_Clients 
       }
       constructor(urlOrConnectionString, credentialOrPipelineOrContainerName, blobNameOrOptions, options) {
         options = options || {};
-        let pipeline4, url2;
+        let pipeline3, url2;
         if (isPipelineLike(credentialOrPipelineOrContainerName))
-          url2 = urlOrConnectionString, pipeline4 = credentialOrPipelineOrContainerName;
+          url2 = urlOrConnectionString, pipeline3 = credentialOrPipelineOrContainerName;
         else if (isNodeLike2 && credentialOrPipelineOrContainerName instanceof StorageSharedKeyCredential || credentialOrPipelineOrContainerName instanceof AnonymousCredential || isTokenCredential(credentialOrPipelineOrContainerName))
-          url2 = urlOrConnectionString, options = blobNameOrOptions, pipeline4 = newPipeline(credentialOrPipelineOrContainerName, options);
+          url2 = urlOrConnectionString, options = blobNameOrOptions, pipeline3 = newPipeline(credentialOrPipelineOrContainerName, options);
         else if (!credentialOrPipelineOrContainerName && typeof credentialOrPipelineOrContainerName != "string")
-          url2 = urlOrConnectionString, blobNameOrOptions && typeof blobNameOrOptions != "string" && (options = blobNameOrOptions), pipeline4 = newPipeline(new AnonymousCredential(), options);
+          url2 = urlOrConnectionString, blobNameOrOptions && typeof blobNameOrOptions != "string" && (options = blobNameOrOptions), pipeline3 = newPipeline(new AnonymousCredential(), options);
         else if (credentialOrPipelineOrContainerName && typeof credentialOrPipelineOrContainerName == "string" && blobNameOrOptions && typeof blobNameOrOptions == "string") {
           let containerName = credentialOrPipelineOrContainerName, blobName = blobNameOrOptions, extractedCreds = extractConnectionStringParts(urlOrConnectionString);
           if (extractedCreds.kind === "AccountConnString")
             if (isNodeLike2) {
               let sharedKeyCredential = new StorageSharedKeyCredential(extractedCreds.accountName, extractedCreds.accountKey);
-              url2 = appendToURLPath(appendToURLPath(extractedCreds.url, encodeURIComponent(containerName)), encodeURIComponent(blobName)), options.proxyOptions || (options.proxyOptions = getDefaultProxySettings2(extractedCreds.proxyUri)), pipeline4 = newPipeline(sharedKeyCredential, options);
+              url2 = appendToURLPath(appendToURLPath(extractedCreds.url, encodeURIComponent(containerName)), encodeURIComponent(blobName)), options.proxyOptions || (options.proxyOptions = getDefaultProxySettings2(extractedCreds.proxyUri)), pipeline3 = newPipeline(sharedKeyCredential, options);
             } else
               throw new Error("Account connection string is only supported in Node.js environment");
           else if (extractedCreds.kind === "SASConnString")
-            url2 = appendToURLPath(appendToURLPath(extractedCreds.url, encodeURIComponent(containerName)), encodeURIComponent(blobName)) + "?" + extractedCreds.accountSas, pipeline4 = newPipeline(new AnonymousCredential(), options);
+            url2 = appendToURLPath(appendToURLPath(extractedCreds.url, encodeURIComponent(containerName)), encodeURIComponent(blobName)) + "?" + extractedCreds.accountSas, pipeline3 = newPipeline(new AnonymousCredential(), options);
           else
             throw new Error("Connection string must be either an Account connection string or a SAS connection string");
         } else
           throw new Error("Expecting non-empty strings for containerName and blobName parameters");
-        super(url2, pipeline4), { blobName: this._name, containerName: this._containerName } = this.getBlobAndContainerNamesFromUrl(), this.blobContext = this.storageClientContext.blob, this._snapshot = getURLParameter(this.url, URLConstants2.Parameters.SNAPSHOT), this._versionId = getURLParameter(this.url, URLConstants2.Parameters.VERSIONID);
+        super(url2, pipeline3), { blobName: this._name, containerName: this._containerName } = this.getBlobAndContainerNamesFromUrl(), this.blobContext = this.storageClientContext.blob, this._snapshot = getURLParameter(this.url, URLConstants2.Parameters.SNAPSHOT), this._versionId = getURLParameter(this.url, URLConstants2.Parameters.VERSIONID);
       }
       /**
        * Creates a new BlobClient object identical to the source but with the specified snapshot timestamp.
@@ -50231,28 +48725,28 @@ var BlobClient, AppendBlobClient, BlockBlobClient, PageBlobClient, init_Clients 
        */
       appendBlobContext;
       constructor(urlOrConnectionString, credentialOrPipelineOrContainerName, blobNameOrOptions, options) {
-        let pipeline4, url2;
+        let pipeline3, url2;
         if (options = options || {}, isPipelineLike(credentialOrPipelineOrContainerName))
-          url2 = urlOrConnectionString, pipeline4 = credentialOrPipelineOrContainerName;
+          url2 = urlOrConnectionString, pipeline3 = credentialOrPipelineOrContainerName;
         else if (isNodeLike2 && credentialOrPipelineOrContainerName instanceof StorageSharedKeyCredential || credentialOrPipelineOrContainerName instanceof AnonymousCredential || isTokenCredential(credentialOrPipelineOrContainerName))
-          url2 = urlOrConnectionString, options = blobNameOrOptions, pipeline4 = newPipeline(credentialOrPipelineOrContainerName, options);
+          url2 = urlOrConnectionString, options = blobNameOrOptions, pipeline3 = newPipeline(credentialOrPipelineOrContainerName, options);
         else if (!credentialOrPipelineOrContainerName && typeof credentialOrPipelineOrContainerName != "string")
-          url2 = urlOrConnectionString, pipeline4 = newPipeline(new AnonymousCredential(), options);
+          url2 = urlOrConnectionString, pipeline3 = newPipeline(new AnonymousCredential(), options);
         else if (credentialOrPipelineOrContainerName && typeof credentialOrPipelineOrContainerName == "string" && blobNameOrOptions && typeof blobNameOrOptions == "string") {
           let containerName = credentialOrPipelineOrContainerName, blobName = blobNameOrOptions, extractedCreds = extractConnectionStringParts(urlOrConnectionString);
           if (extractedCreds.kind === "AccountConnString")
             if (isNodeLike2) {
               let sharedKeyCredential = new StorageSharedKeyCredential(extractedCreds.accountName, extractedCreds.accountKey);
-              url2 = appendToURLPath(appendToURLPath(extractedCreds.url, encodeURIComponent(containerName)), encodeURIComponent(blobName)), options.proxyOptions || (options.proxyOptions = getDefaultProxySettings2(extractedCreds.proxyUri)), pipeline4 = newPipeline(sharedKeyCredential, options);
+              url2 = appendToURLPath(appendToURLPath(extractedCreds.url, encodeURIComponent(containerName)), encodeURIComponent(blobName)), options.proxyOptions || (options.proxyOptions = getDefaultProxySettings2(extractedCreds.proxyUri)), pipeline3 = newPipeline(sharedKeyCredential, options);
             } else
               throw new Error("Account connection string is only supported in Node.js environment");
           else if (extractedCreds.kind === "SASConnString")
-            url2 = appendToURLPath(appendToURLPath(extractedCreds.url, encodeURIComponent(containerName)), encodeURIComponent(blobName)) + "?" + extractedCreds.accountSas, pipeline4 = newPipeline(new AnonymousCredential(), options);
+            url2 = appendToURLPath(appendToURLPath(extractedCreds.url, encodeURIComponent(containerName)), encodeURIComponent(blobName)) + "?" + extractedCreds.accountSas, pipeline3 = newPipeline(new AnonymousCredential(), options);
           else
             throw new Error("Connection string must be either an Account connection string or a SAS connection string");
         } else
           throw new Error("Expecting non-empty strings for containerName and blobName parameters");
-        super(url2, pipeline4), this.appendBlobContext = this.storageClientContext.appendBlob;
+        super(url2, pipeline3), this.appendBlobContext = this.storageClientContext.appendBlob;
       }
       /**
        * Creates a new AppendBlobClient object identical to the source but with the
@@ -50468,28 +48962,28 @@ var BlobClient, AppendBlobClient, BlockBlobClient, PageBlobClient, init_Clients 
        */
       blockBlobContext;
       constructor(urlOrConnectionString, credentialOrPipelineOrContainerName, blobNameOrOptions, options) {
-        let pipeline4, url2;
+        let pipeline3, url2;
         if (options = options || {}, isPipelineLike(credentialOrPipelineOrContainerName))
-          url2 = urlOrConnectionString, pipeline4 = credentialOrPipelineOrContainerName;
+          url2 = urlOrConnectionString, pipeline3 = credentialOrPipelineOrContainerName;
         else if (isNodeLike2 && credentialOrPipelineOrContainerName instanceof StorageSharedKeyCredential || credentialOrPipelineOrContainerName instanceof AnonymousCredential || isTokenCredential(credentialOrPipelineOrContainerName))
-          url2 = urlOrConnectionString, options = blobNameOrOptions, pipeline4 = newPipeline(credentialOrPipelineOrContainerName, options);
+          url2 = urlOrConnectionString, options = blobNameOrOptions, pipeline3 = newPipeline(credentialOrPipelineOrContainerName, options);
         else if (!credentialOrPipelineOrContainerName && typeof credentialOrPipelineOrContainerName != "string")
-          url2 = urlOrConnectionString, blobNameOrOptions && typeof blobNameOrOptions != "string" && (options = blobNameOrOptions), pipeline4 = newPipeline(new AnonymousCredential(), options);
+          url2 = urlOrConnectionString, blobNameOrOptions && typeof blobNameOrOptions != "string" && (options = blobNameOrOptions), pipeline3 = newPipeline(new AnonymousCredential(), options);
         else if (credentialOrPipelineOrContainerName && typeof credentialOrPipelineOrContainerName == "string" && blobNameOrOptions && typeof blobNameOrOptions == "string") {
           let containerName = credentialOrPipelineOrContainerName, blobName = blobNameOrOptions, extractedCreds = extractConnectionStringParts(urlOrConnectionString);
           if (extractedCreds.kind === "AccountConnString")
             if (isNodeLike2) {
               let sharedKeyCredential = new StorageSharedKeyCredential(extractedCreds.accountName, extractedCreds.accountKey);
-              url2 = appendToURLPath(appendToURLPath(extractedCreds.url, encodeURIComponent(containerName)), encodeURIComponent(blobName)), options.proxyOptions || (options.proxyOptions = getDefaultProxySettings2(extractedCreds.proxyUri)), pipeline4 = newPipeline(sharedKeyCredential, options);
+              url2 = appendToURLPath(appendToURLPath(extractedCreds.url, encodeURIComponent(containerName)), encodeURIComponent(blobName)), options.proxyOptions || (options.proxyOptions = getDefaultProxySettings2(extractedCreds.proxyUri)), pipeline3 = newPipeline(sharedKeyCredential, options);
             } else
               throw new Error("Account connection string is only supported in Node.js environment");
           else if (extractedCreds.kind === "SASConnString")
-            url2 = appendToURLPath(appendToURLPath(extractedCreds.url, encodeURIComponent(containerName)), encodeURIComponent(blobName)) + "?" + extractedCreds.accountSas, pipeline4 = newPipeline(new AnonymousCredential(), options);
+            url2 = appendToURLPath(appendToURLPath(extractedCreds.url, encodeURIComponent(containerName)), encodeURIComponent(blobName)) + "?" + extractedCreds.accountSas, pipeline3 = newPipeline(new AnonymousCredential(), options);
           else
             throw new Error("Connection string must be either an Account connection string or a SAS connection string");
         } else
           throw new Error("Expecting non-empty strings for containerName and blobName parameters");
-        super(url2, pipeline4), this.blockBlobContext = this.storageClientContext.blockBlob, this._blobContext = this.storageClientContext.blob;
+        super(url2, pipeline3), this.blockBlobContext = this.storageClientContext.blockBlob, this._blobContext = this.storageClientContext.blob;
       }
       /**
        * Creates a new BlockBlobClient object identical to the source but with the
@@ -50975,28 +49469,28 @@ var BlobClient, AppendBlobClient, BlockBlobClient, PageBlobClient, init_Clients 
        */
       pageBlobContext;
       constructor(urlOrConnectionString, credentialOrPipelineOrContainerName, blobNameOrOptions, options) {
-        let pipeline4, url2;
+        let pipeline3, url2;
         if (options = options || {}, isPipelineLike(credentialOrPipelineOrContainerName))
-          url2 = urlOrConnectionString, pipeline4 = credentialOrPipelineOrContainerName;
+          url2 = urlOrConnectionString, pipeline3 = credentialOrPipelineOrContainerName;
         else if (isNodeLike2 && credentialOrPipelineOrContainerName instanceof StorageSharedKeyCredential || credentialOrPipelineOrContainerName instanceof AnonymousCredential || isTokenCredential(credentialOrPipelineOrContainerName))
-          url2 = urlOrConnectionString, options = blobNameOrOptions, pipeline4 = newPipeline(credentialOrPipelineOrContainerName, options);
+          url2 = urlOrConnectionString, options = blobNameOrOptions, pipeline3 = newPipeline(credentialOrPipelineOrContainerName, options);
         else if (!credentialOrPipelineOrContainerName && typeof credentialOrPipelineOrContainerName != "string")
-          url2 = urlOrConnectionString, pipeline4 = newPipeline(new AnonymousCredential(), options);
+          url2 = urlOrConnectionString, pipeline3 = newPipeline(new AnonymousCredential(), options);
         else if (credentialOrPipelineOrContainerName && typeof credentialOrPipelineOrContainerName == "string" && blobNameOrOptions && typeof blobNameOrOptions == "string") {
           let containerName = credentialOrPipelineOrContainerName, blobName = blobNameOrOptions, extractedCreds = extractConnectionStringParts(urlOrConnectionString);
           if (extractedCreds.kind === "AccountConnString")
             if (isNodeLike2) {
               let sharedKeyCredential = new StorageSharedKeyCredential(extractedCreds.accountName, extractedCreds.accountKey);
-              url2 = appendToURLPath(appendToURLPath(extractedCreds.url, encodeURIComponent(containerName)), encodeURIComponent(blobName)), options.proxyOptions || (options.proxyOptions = getDefaultProxySettings2(extractedCreds.proxyUri)), pipeline4 = newPipeline(sharedKeyCredential, options);
+              url2 = appendToURLPath(appendToURLPath(extractedCreds.url, encodeURIComponent(containerName)), encodeURIComponent(blobName)), options.proxyOptions || (options.proxyOptions = getDefaultProxySettings2(extractedCreds.proxyUri)), pipeline3 = newPipeline(sharedKeyCredential, options);
             } else
               throw new Error("Account connection string is only supported in Node.js environment");
           else if (extractedCreds.kind === "SASConnString")
-            url2 = appendToURLPath(appendToURLPath(extractedCreds.url, encodeURIComponent(containerName)), encodeURIComponent(blobName)) + "?" + extractedCreds.accountSas, pipeline4 = newPipeline(new AnonymousCredential(), options);
+            url2 = appendToURLPath(appendToURLPath(extractedCreds.url, encodeURIComponent(containerName)), encodeURIComponent(blobName)) + "?" + extractedCreds.accountSas, pipeline3 = newPipeline(new AnonymousCredential(), options);
           else
             throw new Error("Connection string must be either an Account connection string or a SAS connection string");
         } else
           throw new Error("Expecting non-empty strings for containerName and blobName parameters");
-        super(url2, pipeline4), this.pageBlobContext = this.storageClientContext.pageBlob;
+        super(url2, pipeline3), this.pageBlobContext = this.storageClientContext.pageBlob;
       }
       /**
        * Creates a new PageBlobClient object identical to the source but with the
@@ -51856,7 +50350,7 @@ var __awaiter9, init_blob_upload = __esm({
     init_esm14();
     init_config();
     init_core();
-    init_errors2();
+    init_errors();
     __awaiter9 = function(thisArg, _arguments, P, generator) {
       function adopt(value) {
         return value instanceof P ? value : new P(function(resolve3) {
@@ -54164,7 +52658,7 @@ GFS4: `), console.error(m);
     module.exports = patch(clone(fs8));
     process.env.TEST_GRACEFUL_FS_GLOBAL_PATCH && !fs8.__patched && (module.exports = patch(fs8), fs8.__patched = !0);
     function patch(fs9) {
-      polyfills(fs9), fs9.gracefulify = patch, fs9.createReadStream = createReadStream4, fs9.createWriteStream = createWriteStream4;
+      polyfills(fs9), fs9.gracefulify = patch, fs9.createReadStream = createReadStream4, fs9.createWriteStream = createWriteStream3;
       var fs$readFile = fs9.readFile;
       fs9.readFile = readFile3;
       function readFile3(path7, options, cb) {
@@ -54307,7 +52801,7 @@ GFS4: `), console.error(m);
       function createReadStream4(path7, options) {
         return new fs9.ReadStream(path7, options);
       }
-      function createWriteStream4(path7, options) {
+      function createWriteStream3(path7, options) {
         return new fs9.WriteStream(path7, options);
       }
       var fs$open = fs9.open;
@@ -54869,14 +53363,14 @@ var require_stream_duplex = __commonJS({
     module.exports = Duplex;
     var util3 = Object.create(require_util9());
     util3.inherits = require_inherits();
-    var Readable6 = require_stream_readable(), Writable = require_stream_writable();
-    util3.inherits(Duplex, Readable6);
+    var Readable5 = require_stream_readable(), Writable = require_stream_writable();
+    util3.inherits(Duplex, Readable5);
     for (keys = objectKeys(Writable.prototype), v = 0; v < keys.length; v++)
       method = keys[v], Duplex.prototype[method] || (Duplex.prototype[method] = Writable.prototype[method]);
     var keys, method, v;
     function Duplex(options) {
       if (!(this instanceof Duplex)) return new Duplex(options);
-      Readable6.call(this, options), Writable.call(this, options), options && options.readable === !1 && (this.readable = !1), options && options.writable === !1 && (this.writable = !1), this.allowHalfOpen = !0, options && options.allowHalfOpen === !1 && (this.allowHalfOpen = !1), this.once("end", onend);
+      Readable5.call(this, options), Writable.call(this, options), options && options.readable === !1 && (this.readable = !1), options && options.writable === !1 && (this.writable = !1), this.allowHalfOpen = !0, options && options.allowHalfOpen === !1 && (this.allowHalfOpen = !1), this.once("end", onend);
     }
     Object.defineProperty(Duplex.prototype, "writableHighWaterMark", {
       // making it explicit this property is not enumerable
@@ -55074,9 +53568,9 @@ var require_stream_readable = __commonJS({
   "node_modules/lazystream/node_modules/readable-stream/lib/_stream_readable.js"(exports2, module) {
     "use strict";
     var pna = require_process_nextick_args();
-    module.exports = Readable6;
+    module.exports = Readable5;
     var isArray = require_isarray(), Duplex;
-    Readable6.ReadableState = ReadableState;
+    Readable5.ReadableState = ReadableState;
     var EE = __require("events").EventEmitter, EElistenerCount = function(emitter, type) {
       return emitter.listeners(type).length;
     }, Stream = require_stream(), Buffer3 = require_safe_buffer().Buffer, OurUint8Array = (typeof global < "u" ? global : typeof window < "u" ? window : typeof self < "u" ? self : {}).Uint8Array || function() {
@@ -55093,7 +53587,7 @@ var require_stream_readable = __commonJS({
     debugUtil && debugUtil.debuglog ? debug2 = debugUtil.debuglog("stream") : debug2 = function() {
     };
     var BufferList = require_BufferList(), destroyImpl = require_destroy(), StringDecoder2;
-    util3.inherits(Readable6, Stream);
+    util3.inherits(Readable5, Stream);
     var kProxyEvents = ["error", "close", "destroy", "pause", "resume"];
     function prependListener(emitter, event, fn) {
       if (typeof emitter.prependListener == "function") return emitter.prependListener(event, fn);
@@ -55106,11 +53600,11 @@ var require_stream_readable = __commonJS({
       var hwm = options.highWaterMark, readableHwm = options.readableHighWaterMark, defaultHwm = this.objectMode ? 16 : 16 * 1024;
       hwm || hwm === 0 ? this.highWaterMark = hwm : isDuplex && (readableHwm || readableHwm === 0) ? this.highWaterMark = readableHwm : this.highWaterMark = defaultHwm, this.highWaterMark = Math.floor(this.highWaterMark), this.buffer = new BufferList(), this.length = 0, this.pipes = null, this.pipesCount = 0, this.flowing = null, this.ended = !1, this.endEmitted = !1, this.reading = !1, this.sync = !0, this.needReadable = !1, this.emittedReadable = !1, this.readableListening = !1, this.resumeScheduled = !1, this.destroyed = !1, this.defaultEncoding = options.defaultEncoding || "utf8", this.awaitDrain = 0, this.readingMore = !1, this.decoder = null, this.encoding = null, options.encoding && (StringDecoder2 || (StringDecoder2 = require_string_decoder().StringDecoder), this.decoder = new StringDecoder2(options.encoding), this.encoding = options.encoding);
     }
-    function Readable6(options) {
-      if (Duplex = Duplex || require_stream_duplex(), !(this instanceof Readable6)) return new Readable6(options);
+    function Readable5(options) {
+      if (Duplex = Duplex || require_stream_duplex(), !(this instanceof Readable5)) return new Readable5(options);
       this._readableState = new ReadableState(options, this), this.readable = !0, options && (typeof options.read == "function" && (this._read = options.read), typeof options.destroy == "function" && (this._destroy = options.destroy)), Stream.call(this);
     }
-    Object.defineProperty(Readable6.prototype, "destroyed", {
+    Object.defineProperty(Readable5.prototype, "destroyed", {
       get: function() {
         return this._readableState === void 0 ? !1 : this._readableState.destroyed;
       },
@@ -55118,16 +53612,16 @@ var require_stream_readable = __commonJS({
         this._readableState && (this._readableState.destroyed = value);
       }
     });
-    Readable6.prototype.destroy = destroyImpl.destroy;
-    Readable6.prototype._undestroy = destroyImpl.undestroy;
-    Readable6.prototype._destroy = function(err, cb) {
+    Readable5.prototype.destroy = destroyImpl.destroy;
+    Readable5.prototype._undestroy = destroyImpl.undestroy;
+    Readable5.prototype._destroy = function(err, cb) {
       this.push(null), cb(err);
     };
-    Readable6.prototype.push = function(chunk, encoding) {
+    Readable5.prototype.push = function(chunk, encoding) {
       var state3 = this._readableState, skipChunkCheck;
       return state3.objectMode ? skipChunkCheck = !0 : typeof chunk == "string" && (encoding = encoding || state3.defaultEncoding, encoding !== state3.encoding && (chunk = Buffer3.from(chunk, encoding), encoding = ""), skipChunkCheck = !0), readableAddChunk(this, chunk, encoding, !1, skipChunkCheck);
     };
-    Readable6.prototype.unshift = function(chunk) {
+    Readable5.prototype.unshift = function(chunk) {
       return readableAddChunk(this, chunk, null, !0, !1);
     };
     function readableAddChunk(stream4, chunk, encoding, addToFront, skipChunkCheck) {
@@ -55150,10 +53644,10 @@ var require_stream_readable = __commonJS({
     function needMoreData(state3) {
       return !state3.ended && (state3.needReadable || state3.length < state3.highWaterMark || state3.length === 0);
     }
-    Readable6.prototype.isPaused = function() {
+    Readable5.prototype.isPaused = function() {
       return this._readableState.flowing === !1;
     };
-    Readable6.prototype.setEncoding = function(enc) {
+    Readable5.prototype.setEncoding = function(enc) {
       return StringDecoder2 || (StringDecoder2 = require_string_decoder().StringDecoder), this._readableState.decoder = new StringDecoder2(enc), this._readableState.encoding = enc, this;
     };
     var MAX_HWM = 8388608;
@@ -55163,7 +53657,7 @@ var require_stream_readable = __commonJS({
     function howMuchToRead(n, state3) {
       return n <= 0 || state3.length === 0 && state3.ended ? 0 : state3.objectMode ? 1 : n !== n ? state3.flowing && state3.length ? state3.buffer.head.data.length : state3.length : (n > state3.highWaterMark && (state3.highWaterMark = computeNewHighWaterMark(n)), n <= state3.length ? n : state3.ended ? state3.length : (state3.needReadable = !0, 0));
     }
-    Readable6.prototype.read = function(n) {
+    Readable5.prototype.read = function(n) {
       debug2("read", n), n = parseInt(n, 10);
       var state3 = this._readableState, nOrig = n;
       if (n !== 0 && (state3.emittedReadable = !1), n === 0 && state3.needReadable && (state3.length >= state3.highWaterMark || state3.ended))
@@ -55199,10 +53693,10 @@ var require_stream_readable = __commonJS({
         len = state3.length;
       state3.readingMore = !1;
     }
-    Readable6.prototype._read = function(n) {
+    Readable5.prototype._read = function(n) {
       this.emit("error", new Error("_read() is not implemented"));
     };
-    Readable6.prototype.pipe = function(dest, pipeOpts) {
+    Readable5.prototype.pipe = function(dest, pipeOpts) {
       var src = this, state3 = this._readableState;
       switch (state3.pipesCount) {
         case 0:
@@ -55260,7 +53754,7 @@ var require_stream_readable = __commonJS({
         debug2("pipeOnDrain", state3.awaitDrain), state3.awaitDrain && state3.awaitDrain--, state3.awaitDrain === 0 && EElistenerCount(src, "data") && (state3.flowing = !0, flow(src));
       };
     }
-    Readable6.prototype.unpipe = function(dest) {
+    Readable5.prototype.unpipe = function(dest) {
       var state3 = this._readableState, unpipeInfo = { hasUnpiped: !1 };
       if (state3.pipesCount === 0) return this;
       if (state3.pipesCount === 1)
@@ -55275,7 +53769,7 @@ var require_stream_readable = __commonJS({
       var index = indexOf(state3.pipes, dest);
       return index === -1 ? this : (state3.pipes.splice(index, 1), state3.pipesCount -= 1, state3.pipesCount === 1 && (state3.pipes = state3.pipes[0]), dest.emit("unpipe", this, unpipeInfo), this);
     };
-    Readable6.prototype.on = function(ev, fn) {
+    Readable5.prototype.on = function(ev, fn) {
       var res = Stream.prototype.on.call(this, ev, fn);
       if (ev === "data")
         this._readableState.flowing !== !1 && this.resume();
@@ -55285,11 +53779,11 @@ var require_stream_readable = __commonJS({
       }
       return res;
     };
-    Readable6.prototype.addListener = Readable6.prototype.on;
+    Readable5.prototype.addListener = Readable5.prototype.on;
     function nReadingNextTick(self2) {
       debug2("readable nexttick read 0"), self2.read(0);
     }
-    Readable6.prototype.resume = function() {
+    Readable5.prototype.resume = function() {
       var state3 = this._readableState;
       return state3.flowing || (debug2("resume"), state3.flowing = !0, resume(this, state3)), this;
     };
@@ -55299,7 +53793,7 @@ var require_stream_readable = __commonJS({
     function resume_(stream4, state3) {
       state3.reading || (debug2("resume read 0"), stream4.read(0)), state3.resumeScheduled = !1, state3.awaitDrain = 0, stream4.emit("resume"), flow(stream4), state3.flowing && !state3.reading && stream4.read(0);
     }
-    Readable6.prototype.pause = function() {
+    Readable5.prototype.pause = function() {
       return debug2("call pause flowing=%j", this._readableState.flowing), this._readableState.flowing !== !1 && (debug2("pause"), this._readableState.flowing = !1, this.emit("pause")), this;
     };
     function flow(stream4) {
@@ -55307,7 +53801,7 @@ var require_stream_readable = __commonJS({
       for (debug2("flow", state3.flowing); state3.flowing && stream4.read() !== null; )
         ;
     }
-    Readable6.prototype.wrap = function(stream4) {
+    Readable5.prototype.wrap = function(stream4) {
       var _this = this, state3 = this._readableState, paused = !1;
       stream4.on("end", function() {
         if (debug2("wrapped end"), state3.decoder && !state3.ended) {
@@ -55333,7 +53827,7 @@ var require_stream_readable = __commonJS({
         debug2("wrapped _read", n2), paused && (paused = !1, stream4.resume());
       }, this;
     };
-    Object.defineProperty(Readable6.prototype, "readableHighWaterMark", {
+    Object.defineProperty(Readable5.prototype, "readableHighWaterMark", {
       // making it explicit this property is not enumerable
       // because otherwise some prototype manipulation in
       // userland will fail
@@ -55342,7 +53836,7 @@ var require_stream_readable = __commonJS({
         return this._readableState.highWaterMark;
       }
     });
-    Readable6._fromList = fromList;
+    Readable5._fromList = fromList;
     function fromList(n, state3) {
       if (state3.length === 0) return null;
       var ret;
@@ -55497,19 +53991,19 @@ var require_lazystream = __commonJS({
   "node_modules/lazystream/lib/lazystream.js"(exports2, module) {
     var util3 = __require("util"), PassThrough3 = require_passthrough();
     module.exports = {
-      Readable: Readable6,
+      Readable: Readable5,
       Writable
     };
-    util3.inherits(Readable6, PassThrough3);
+    util3.inherits(Readable5, PassThrough3);
     util3.inherits(Writable, PassThrough3);
     function beforeFirstCall(instance, method, callback) {
       instance[method] = function() {
         return delete instance[method], callback.apply(this, arguments), this[method].apply(this, arguments);
       };
     }
-    function Readable6(fn, options) {
-      if (!(this instanceof Readable6))
-        return new Readable6(fn, options);
+    function Readable5(fn, options) {
+      if (!(this instanceof Readable5))
+        return new Readable5(fn, options);
       PassThrough3.call(this, options), beforeFirstCall(this, "_read", function() {
         var source = fn.call(this, options), emit = this.emit.bind(this, "error");
         source.on("error", emit), source.pipe(this);
@@ -58174,10 +56668,10 @@ var require_from = __commonJS({
   "node_modules/readable-stream/lib/internal/streams/from.js"(exports2, module) {
     "use strict";
     var process4 = require_process(), { PromisePrototypeThen, SymbolAsyncIterator, SymbolIterator } = require_primordials(), { Buffer: Buffer3 } = __require("buffer"), { ERR_INVALID_ARG_TYPE, ERR_STREAM_NULL_VALUES } = require_errors2().codes;
-    function from(Readable6, iterable, opts) {
+    function from(Readable5, iterable, opts) {
       let iterator2;
       if (typeof iterable == "string" || iterable instanceof Buffer3)
-        return new Readable6({
+        return new Readable5({
           objectMode: !0,
           ...opts,
           read() {
@@ -58191,7 +56685,7 @@ var require_from = __commonJS({
         isAsync = !1, iterator2 = iterable[SymbolIterator]();
       else
         throw new ERR_INVALID_ARG_TYPE("iterable", ["Iterable"], iterable);
-      let readable = new Readable6({
+      let readable = new Readable5({
         objectMode: !0,
         highWaterMark: 1,
         // TODO(ronag): What options should be allowed?
@@ -58263,8 +56757,8 @@ var require_readable3 = __commonJS({
       SymbolAsyncIterator,
       Symbol: Symbol2
     } = require_primordials();
-    module.exports = Readable6;
-    Readable6.ReadableState = ReadableState;
+    module.exports = Readable5;
+    Readable5.ReadableState = ReadableState;
     var { EventEmitter: EE } = __require("events"), { Stream, prependListener } = require_legacy(), { Buffer: Buffer3 } = __require("buffer"), { addAbortSignal } = require_add_abort_signal(), eos = require_end_of_stream(), debug2 = require_util10().debuglog("stream", (fn) => {
       debug2 = fn;
     }), BufferList = require_buffer_list(), destroyImpl = require_destroy2(), { getHighWaterMark, getDefaultHighWaterMark } = require_state3(), {
@@ -58278,8 +56772,8 @@ var require_readable3 = __commonJS({
       },
       AbortError: AbortError3
     } = require_errors2(), { validateObject } = require_validators(), kPaused = Symbol2("kPaused"), { StringDecoder: StringDecoder2 } = require_string_decoder2(), from = require_from();
-    ObjectSetPrototypeOf(Readable6.prototype, Stream.prototype);
-    ObjectSetPrototypeOf(Readable6, Stream);
+    ObjectSetPrototypeOf(Readable5.prototype, Stream.prototype);
+    ObjectSetPrototypeOf(Readable5, Stream);
     var nop = () => {
     }, { errorOrDestroy } = destroyImpl, kObjectMode = 1, kEnded = 2, kEndEmitted = 4, kReading = 8, kConstructed = 16, kSync = 32, kNeedReadable = 64, kEmittedReadable = 128, kReadableListening = 256, kResumeScheduled = 512, kErrorEmitted = 1024, kEmitClose = 2048, kAutoDestroy = 4096, kDestroyed = 8192, kClosed = 16384, kCloseEmitted = 32768, kMultiAwaitDrain = 65536, kReadingMore = 1 << 17, kDataEmitted = 1 << 18;
     function makeBitMapDescriptor(bit) {
@@ -58333,29 +56827,29 @@ var require_readable3 = __commonJS({
     function ReadableState(options, stream4, isDuplex) {
       typeof isDuplex != "boolean" && (isDuplex = stream4 instanceof require_duplex()), this.state = kEmitClose | kAutoDestroy | kConstructed | kSync, options && options.objectMode && (this.state |= kObjectMode), isDuplex && options && options.readableObjectMode && (this.state |= kObjectMode), this.highWaterMark = options ? getHighWaterMark(this, options, "readableHighWaterMark", isDuplex) : getDefaultHighWaterMark(!1), this.buffer = new BufferList(), this.length = 0, this.pipes = [], this.flowing = null, this[kPaused] = null, options && options.emitClose === !1 && (this.state &= ~kEmitClose), options && options.autoDestroy === !1 && (this.state &= ~kAutoDestroy), this.errored = null, this.defaultEncoding = options && options.defaultEncoding || "utf8", this.awaitDrainWriters = null, this.decoder = null, this.encoding = null, options && options.encoding && (this.decoder = new StringDecoder2(options.encoding), this.encoding = options.encoding);
     }
-    function Readable6(options) {
-      if (!(this instanceof Readable6)) return new Readable6(options);
+    function Readable5(options) {
+      if (!(this instanceof Readable5)) return new Readable5(options);
       let isDuplex = this instanceof require_duplex();
       this._readableState = new ReadableState(options, this, isDuplex), options && (typeof options.read == "function" && (this._read = options.read), typeof options.destroy == "function" && (this._destroy = options.destroy), typeof options.construct == "function" && (this._construct = options.construct), options.signal && !isDuplex && addAbortSignal(options.signal, this)), Stream.call(this, options), destroyImpl.construct(this, () => {
         this._readableState.needReadable && maybeReadMore(this, this._readableState);
       });
     }
-    Readable6.prototype.destroy = destroyImpl.destroy;
-    Readable6.prototype._undestroy = destroyImpl.undestroy;
-    Readable6.prototype._destroy = function(err, cb) {
+    Readable5.prototype.destroy = destroyImpl.destroy;
+    Readable5.prototype._undestroy = destroyImpl.undestroy;
+    Readable5.prototype._destroy = function(err, cb) {
       cb(err);
     };
-    Readable6.prototype[EE.captureRejectionSymbol] = function(err) {
+    Readable5.prototype[EE.captureRejectionSymbol] = function(err) {
       this.destroy(err);
     };
-    Readable6.prototype[SymbolAsyncDispose] = function() {
+    Readable5.prototype[SymbolAsyncDispose] = function() {
       let error2;
       return this.destroyed || (error2 = this.readableEnded ? null : new AbortError3(), this.destroy(error2)), new Promise2((resolve3, reject) => eos(this, (err) => err && err !== error2 ? reject(err) : resolve3(null)));
     };
-    Readable6.prototype.push = function(chunk, encoding) {
+    Readable5.prototype.push = function(chunk, encoding) {
       return readableAddChunk(this, chunk, encoding, !1);
     };
-    Readable6.prototype.unshift = function(chunk, encoding) {
+    Readable5.prototype.unshift = function(chunk, encoding) {
       return readableAddChunk(this, chunk, encoding, !0);
     };
     function readableAddChunk(stream4, chunk, encoding, addToFront) {
@@ -58385,11 +56879,11 @@ var require_readable3 = __commonJS({
     function addChunk(stream4, state3, chunk, addToFront) {
       state3.flowing && state3.length === 0 && !state3.sync && stream4.listenerCount("data") > 0 ? ((state3.state & kMultiAwaitDrain) !== 0 ? state3.awaitDrainWriters.clear() : state3.awaitDrainWriters = null, state3.dataEmitted = !0, stream4.emit("data", chunk)) : (state3.length += state3.objectMode ? 1 : chunk.length, addToFront ? state3.buffer.unshift(chunk) : state3.buffer.push(chunk), (state3.state & kNeedReadable) !== 0 && emitReadable(stream4)), maybeReadMore(stream4, state3);
     }
-    Readable6.prototype.isPaused = function() {
+    Readable5.prototype.isPaused = function() {
       let state3 = this._readableState;
       return state3[kPaused] === !0 || state3.flowing === !1;
     };
-    Readable6.prototype.setEncoding = function(enc) {
+    Readable5.prototype.setEncoding = function(enc) {
       let decoder = new StringDecoder2(enc);
       this._readableState.decoder = decoder, this._readableState.encoding = this._readableState.decoder.encoding;
       let buffer2 = this._readableState.buffer, content = "";
@@ -58406,7 +56900,7 @@ var require_readable3 = __commonJS({
     function howMuchToRead(n, state3) {
       return n <= 0 || state3.length === 0 && state3.ended ? 0 : (state3.state & kObjectMode) !== 0 ? 1 : NumberIsNaN(n) ? state3.flowing && state3.length ? state3.buffer.first().length : state3.length : n <= state3.length ? n : state3.ended ? state3.length : 0;
     }
-    Readable6.prototype.read = function(n) {
+    Readable5.prototype.read = function(n) {
       debug2("read", n), n === void 0 ? n = NaN : NumberIsInteger(n) || (n = NumberParseInt(n, 10));
       let state3 = this._readableState, nOrig = n;
       if (n > state3.highWaterMark && (state3.highWaterMark = computeNewHighWaterMark(n)), n !== 0 && (state3.state &= ~kEmittedReadable), n === 0 && state3.needReadable && ((state3.highWaterMark !== 0 ? state3.length >= state3.highWaterMark : state3.length > 0) || state3.ended))
@@ -58456,10 +56950,10 @@ var require_readable3 = __commonJS({
       }
       state3.readingMore = !1;
     }
-    Readable6.prototype._read = function(n) {
+    Readable5.prototype._read = function(n) {
       throw new ERR_METHOD_NOT_IMPLEMENTED("_read()");
     };
-    Readable6.prototype.pipe = function(dest, pipeOpts) {
+    Readable5.prototype.pipe = function(dest, pipeOpts) {
       let src = this, state3 = this._readableState;
       state3.pipes.length === 1 && (state3.multiAwaitDrain || (state3.multiAwaitDrain = !0, state3.awaitDrainWriters = new SafeSet(state3.awaitDrainWriters ? [state3.awaitDrainWriters] : []))), state3.pipes.push(dest), debug2("pipe count=%d opts=%j", state3.pipes.length, pipeOpts);
       let endFn = (!pipeOpts || pipeOpts.end !== !1) && dest !== process4.stdout && dest !== process4.stderr ? onend : unpipe;
@@ -58509,7 +57003,7 @@ var require_readable3 = __commonJS({
         state3.awaitDrainWriters === dest ? (debug2("pipeOnDrain", 1), state3.awaitDrainWriters = null) : state3.multiAwaitDrain && (debug2("pipeOnDrain", state3.awaitDrainWriters.size), state3.awaitDrainWriters.delete(dest)), (!state3.awaitDrainWriters || state3.awaitDrainWriters.size === 0) && src.listenerCount("data") && src.resume();
       };
     }
-    Readable6.prototype.unpipe = function(dest) {
+    Readable5.prototype.unpipe = function(dest) {
       let state3 = this._readableState, unpipeInfo = {
         hasUnpiped: !1
       };
@@ -58526,17 +57020,17 @@ var require_readable3 = __commonJS({
       let index = ArrayPrototypeIndexOf(state3.pipes, dest);
       return index === -1 ? this : (state3.pipes.splice(index, 1), state3.pipes.length === 0 && this.pause(), dest.emit("unpipe", this, unpipeInfo), this);
     };
-    Readable6.prototype.on = function(ev, fn) {
+    Readable5.prototype.on = function(ev, fn) {
       let res = Stream.prototype.on.call(this, ev, fn), state3 = this._readableState;
       return ev === "data" ? (state3.readableListening = this.listenerCount("readable") > 0, state3.flowing !== !1 && this.resume()) : ev === "readable" && !state3.endEmitted && !state3.readableListening && (state3.readableListening = state3.needReadable = !0, state3.flowing = !1, state3.emittedReadable = !1, debug2("on readable", state3.length, state3.reading), state3.length ? emitReadable(this) : state3.reading || process4.nextTick(nReadingNextTick, this)), res;
     };
-    Readable6.prototype.addListener = Readable6.prototype.on;
-    Readable6.prototype.removeListener = function(ev, fn) {
+    Readable5.prototype.addListener = Readable5.prototype.on;
+    Readable5.prototype.removeListener = function(ev, fn) {
       let res = Stream.prototype.removeListener.call(this, ev, fn);
       return ev === "readable" && process4.nextTick(updateReadableListening, this), res;
     };
-    Readable6.prototype.off = Readable6.prototype.removeListener;
-    Readable6.prototype.removeAllListeners = function(ev) {
+    Readable5.prototype.off = Readable5.prototype.removeListener;
+    Readable5.prototype.removeAllListeners = function(ev) {
       let res = Stream.prototype.removeAllListeners.apply(this, arguments);
       return (ev === "readable" || ev === void 0) && process4.nextTick(updateReadableListening, this), res;
     };
@@ -58547,7 +57041,7 @@ var require_readable3 = __commonJS({
     function nReadingNextTick(self2) {
       debug2("readable nexttick read 0"), self2.read(0);
     }
-    Readable6.prototype.resume = function() {
+    Readable5.prototype.resume = function() {
       let state3 = this._readableState;
       return state3.flowing || (debug2("resume"), state3.flowing = !state3.readableListening, resume(this, state3)), state3[kPaused] = !1, this;
     };
@@ -58557,14 +57051,14 @@ var require_readable3 = __commonJS({
     function resume_(stream4, state3) {
       debug2("resume", state3.reading), state3.reading || stream4.read(0), state3.resumeScheduled = !1, stream4.emit("resume"), flow(stream4), state3.flowing && !state3.reading && stream4.read(0);
     }
-    Readable6.prototype.pause = function() {
+    Readable5.prototype.pause = function() {
       return debug2("call pause flowing=%j", this._readableState.flowing), this._readableState.flowing !== !1 && (debug2("pause"), this._readableState.flowing = !1, this.emit("pause")), this._readableState[kPaused] = !0, this;
     };
     function flow(stream4) {
       let state3 = stream4._readableState;
       for (debug2("flow", state3.flowing); state3.flowing && stream4.read() !== null; ) ;
     }
-    Readable6.prototype.wrap = function(stream4) {
+    Readable5.prototype.wrap = function(stream4) {
       let paused = !1;
       stream4.on("data", (chunk) => {
         !this.push(chunk) && stream4.pause && (paused = !0, stream4.pause());
@@ -58586,14 +57080,14 @@ var require_readable3 = __commonJS({
       }
       return this;
     };
-    Readable6.prototype[SymbolAsyncIterator] = function() {
+    Readable5.prototype[SymbolAsyncIterator] = function() {
       return streamToAsyncIterator(this);
     };
-    Readable6.prototype.iterator = function(options) {
+    Readable5.prototype.iterator = function(options) {
       return options !== void 0 && validateObject(options, "options"), streamToAsyncIterator(this, options);
     };
     function streamToAsyncIterator(stream4, options) {
-      typeof stream4.read != "function" && (stream4 = Readable6.wrap(stream4, {
+      typeof stream4.read != "function" && (stream4 = Readable5.wrap(stream4, {
         objectMode: !0
       }));
       let iter = createAsyncIterator(stream4, options);
@@ -58633,7 +57127,7 @@ var require_readable3 = __commonJS({
         (error2 || options?.destroyOnReturn !== !1) && (error2 === void 0 || stream4._readableState.autoDestroy) ? destroyImpl.destroyer(stream4, null) : (stream4.off("readable", next), cleanup());
       }
     }
-    ObjectDefineProperties(Readable6.prototype, {
+    ObjectDefineProperties(Readable5.prototype, {
       readable: {
         __proto__: null,
         get() {
@@ -58753,7 +57247,7 @@ var require_readable3 = __commonJS({
         }
       }
     });
-    Readable6._fromList = fromList;
+    Readable5._fromList = fromList;
     function fromList(n, state3) {
       if (state3.length === 0) return null;
       let ret;
@@ -58778,22 +57272,22 @@ var require_readable3 = __commonJS({
     function endWritableNT(stream4) {
       stream4.writable && !stream4.writableEnded && !stream4.destroyed && stream4.end();
     }
-    Readable6.from = function(iterable, opts) {
-      return from(Readable6, iterable, opts);
+    Readable5.from = function(iterable, opts) {
+      return from(Readable5, iterable, opts);
     };
     var webStreamsAdapters;
     function lazyWebStreams() {
       return webStreamsAdapters === void 0 && (webStreamsAdapters = {}), webStreamsAdapters;
     }
-    Readable6.fromWeb = function(readableStream, options) {
+    Readable5.fromWeb = function(readableStream, options) {
       return lazyWebStreams().newStreamReadableFromReadableStream(readableStream, options);
     };
-    Readable6.toWeb = function(streamReadable, options) {
+    Readable5.toWeb = function(streamReadable, options) {
       return lazyWebStreams().newReadableStreamFromStreamReadable(streamReadable, options);
     };
-    Readable6.wrap = function(src, options) {
+    Readable5.wrap = function(src, options) {
       var _ref, _src$readableObjectMo;
-      return new Readable6({
+      return new Readable5({
         objectMode: (_ref = (_src$readableObjectMo = src.readableObjectMode) !== null && _src$readableObjectMo !== void 0 ? _src$readableObjectMo : src.objectMode) !== null && _ref !== void 0 ? _ref : !0,
         ...options,
         destroy(err, callback) {
@@ -59194,7 +57688,7 @@ var require_duplexify = __commonJS({
     } = require_utils2(), eos = require_end_of_stream(), {
       AbortError: AbortError3,
       codes: { ERR_INVALID_ARG_TYPE, ERR_INVALID_RETURN_VALUE }
-    } = require_errors2(), { destroyer } = require_destroy2(), Duplex = require_duplex(), Readable6 = require_readable3(), Writable = require_writable(), { createDeferredPromise } = require_util10(), from = require_from(), Blob2 = globalThis.Blob || bufferModule.Blob, isBlob2 = typeof Blob2 < "u" ? function(b) {
+    } = require_errors2(), { destroyer } = require_destroy2(), Duplex = require_duplex(), Readable5 = require_readable3(), Writable = require_writable(), { createDeferredPromise } = require_util10(), from = require_from(), Blob2 = globalThis.Blob || bufferModule.Blob, isBlob2 = typeof Blob2 < "u" ? function(b) {
       return b instanceof Blob2;
     } : function(b) {
       return !1;
@@ -59221,7 +57715,7 @@ var require_duplexify = __commonJS({
         });
       if (isReadableStream3(body2))
         return _duplexify({
-          readable: Readable6.fromWeb(body2)
+          readable: Readable5.fromWeb(body2)
         });
       if (isWritableStream(body2))
         return _duplexify({
@@ -59363,7 +57857,7 @@ var require_duplexify = __commonJS({
       };
     }
     function _duplexify(pair) {
-      let r = pair.readable && typeof pair.readable.read != "function" ? Readable6.wrap(pair.readable) : pair.readable, w = pair.writable, readable = !!isReadable(r), writable = !!isWritable(w), ondrain, onfinish, onreadable, onclose, d;
+      let r = pair.readable && typeof pair.readable.read != "function" ? Readable5.wrap(pair.readable) : pair.readable, w = pair.writable, readable = !!isReadable(r), writable = !!isWritable(w), ondrain, onfinish, onreadable, onclose, d;
       function onfinished(err) {
         let cb = onclose;
         onclose = null, cb ? cb(err) : err && d.destroy(err);
@@ -59427,9 +57921,9 @@ var require_duplex = __commonJS({
       ObjectSetPrototypeOf
     } = require_primordials();
     module.exports = Duplex;
-    var Readable6 = require_readable3(), Writable = require_writable();
-    ObjectSetPrototypeOf(Duplex.prototype, Readable6.prototype);
-    ObjectSetPrototypeOf(Duplex, Readable6);
+    var Readable5 = require_readable3(), Writable = require_writable();
+    ObjectSetPrototypeOf(Duplex.prototype, Readable5.prototype);
+    ObjectSetPrototypeOf(Duplex, Readable5);
     {
       let keys = ObjectKeys(Writable.prototype);
       for (let i = 0; i < keys.length; i++) {
@@ -59439,7 +57933,7 @@ var require_duplex = __commonJS({
     }
     function Duplex(options) {
       if (!(this instanceof Duplex)) return new Duplex(options);
-      Readable6.call(this, options), Writable.call(this, options), options ? (this.allowHalfOpen = options.allowHalfOpen !== !1, options.readable === !1 && (this._readableState.readable = !1, this._readableState.ended = !0, this._readableState.endEmitted = !0), options.writable === !1 && (this._writableState.writable = !1, this._writableState.ending = !0, this._writableState.ended = !0, this._writableState.finished = !0)) : this.allowHalfOpen = !0;
+      Readable5.call(this, options), Writable.call(this, options), options ? (this.allowHalfOpen = options.allowHalfOpen !== !1, options.readable === !1 && (this._readableState.readable = !1, this._readableState.ended = !0, this._readableState.endEmitted = !0), options.writable === !1 && (this._writableState.writable = !1, this._writableState.ending = !0, this._writableState.ended = !0, this._writableState.finished = !0)) : this.allowHalfOpen = !0;
     }
     ObjectDefineProperties(Duplex.prototype, {
       writable: {
@@ -59607,7 +58101,7 @@ var require_pipeline = __commonJS({
       isWebStream,
       isReadableStream: isReadableStream3,
       isReadableFinished
-    } = require_utils2(), AbortController2 = globalThis.AbortController || require_abort_controller().AbortController, PassThrough3, Readable6, addAbortListener;
+    } = require_utils2(), AbortController2 = globalThis.AbortController || require_abort_controller().AbortController, PassThrough3, Readable5, addAbortListener;
     function destroyer(stream4, reading, writing) {
       let finished = !1;
       stream4.on("close", () => {
@@ -59641,7 +58135,7 @@ var require_pipeline = __commonJS({
       throw new ERR_INVALID_ARG_TYPE("val", ["Readable", "Iterable", "AsyncIterable"], val);
     }
     async function* fromReadable(val) {
-      Readable6 || (Readable6 = require_readable3()), yield* Readable6.prototype[SymbolAsyncIterator].call(val);
+      Readable5 || (Readable5 = require_readable3()), yield* Readable5.prototype[SymbolAsyncIterator].call(val);
     }
     async function pumpToNode(iterable, writable, finish, { end }) {
       let error2, onresolve = null, resume = (err) => {
@@ -59689,7 +58183,7 @@ var require_pipeline = __commonJS({
         }
       }
     }
-    function pipeline4(...streams) {
+    function pipeline3(...streams) {
       return pipelineImpl(streams, once(popCallback(streams)));
     }
     function pipelineImpl(streams, callback, opts) {
@@ -59863,7 +58357,7 @@ var require_pipeline = __commonJS({
     }
     module.exports = {
       pipelineImpl,
-      pipeline: pipeline4
+      pipeline: pipeline3
     };
   }
 });
@@ -59872,7 +58366,7 @@ var require_pipeline = __commonJS({
 var require_compose = __commonJS({
   "node_modules/readable-stream/lib/internal/streams/compose.js"(exports2, module) {
     "use strict";
-    var { pipeline: pipeline4 } = require_pipeline(), Duplex = require_duplex(), { destroyer } = require_destroy2(), {
+    var { pipeline: pipeline3 } = require_pipeline(), Duplex = require_duplex(), { destroyer } = require_destroy2(), {
       isNodeStream,
       isReadable,
       isWritable,
@@ -59906,7 +58400,7 @@ var require_compose = __commonJS({
         let cb = onclose;
         onclose = null, cb ? cb(err) : err ? d.destroy(err) : !readable && !writable && d.destroy();
       }
-      let head = streams[0], tail = pipeline4(streams, onfinished), writable = !!(isWritable(head) || isWritableStream(head) || isTransformStream(head)), readable = !!(isReadable(tail) || isReadableStream3(tail) || isTransformStream(tail));
+      let head = streams[0], tail = pipeline3(streams, onfinished), writable = !!(isWritable(head) || isWritableStream(head) || isTransformStream(head)), readable = !!(isReadable(tail) || isReadableStream3(tail) || isTransformStream(tail));
       if (d = new Duplex({
         // TODO (ronag): highWaterMark?
         writableObjectMode: !!(head != null && head.writableObjectMode),
@@ -60260,7 +58754,7 @@ var require_promises = __commonJS({
     "use strict";
     var { ArrayPrototypePop, Promise: Promise2 } = require_primordials(), { isIterable, isNodeStream, isWebStream } = require_utils2(), { pipelineImpl: pl } = require_pipeline(), { finished } = require_end_of_stream();
     require_stream2();
-    function pipeline4(...streams) {
+    function pipeline3(...streams) {
       return new Promise2((resolve3, reject) => {
         let signal, end, lastArg = streams[streams.length - 1];
         if (lastArg && typeof lastArg == "object" && !isNodeStream(lastArg) && !isIterable(lastArg) && !isWebStream(lastArg)) {
@@ -60281,7 +58775,7 @@ var require_promises = __commonJS({
     }
     module.exports = {
       finished,
-      pipeline: pipeline4
+      pipeline: pipeline3
     };
   }
 });
@@ -60294,7 +58788,7 @@ var require_stream2 = __commonJS({
       promisify: { custom: customPromisify }
     } = require_util10(), { streamReturningOperators, promiseReturningOperators } = require_operators(), {
       codes: { ERR_ILLEGAL_CONSTRUCTOR }
-    } = require_errors2(), compose = require_compose(), { setDefaultHighWaterMark, getDefaultHighWaterMark } = require_state3(), { pipeline: pipeline4 } = require_pipeline(), { destroyer } = require_destroy2(), eos = require_end_of_stream(), promises4 = require_promises(), utils = require_utils2(), Stream = module.exports = require_legacy().Stream;
+    } = require_errors2(), compose = require_compose(), { setDefaultHighWaterMark, getDefaultHighWaterMark } = require_state3(), { pipeline: pipeline3 } = require_pipeline(), { destroyer } = require_destroy2(), eos = require_end_of_stream(), promises4 = require_promises(), utils = require_utils2(), Stream = module.exports = require_legacy().Stream;
     Stream.isDestroyed = utils.isDestroyed;
     Stream.isDisturbed = utils.isDisturbed;
     Stream.isErrored = utils.isErrored;
@@ -60345,7 +58839,7 @@ var require_stream2 = __commonJS({
     Stream.Duplex = require_duplex();
     Stream.Transform = require_transform();
     Stream.PassThrough = require_passthrough2();
-    Stream.pipeline = pipeline4;
+    Stream.pipeline = pipeline3;
     var { addAbortSignal } = require_add_abort_signal();
     Stream.addAbortSignal = addAbortSignal;
     Stream.finished = eos;
@@ -60361,7 +58855,7 @@ var require_stream2 = __commonJS({
         return promises4;
       }
     });
-    ObjectDefineProperty(pipeline4, customPromisify, {
+    ObjectDefineProperty(pipeline3, customPromisify, {
       __proto__: null,
       enumerable: !0,
       get() {
@@ -67685,7 +66179,7 @@ var require_streamx = __commonJS({
       destroy(err) {
         (this._duplexState & DESTROY_STATUS) === 0 && (err || (err = STREAM_DESTROYED), this._duplexState = (this._duplexState | DESTROYING) & NON_PRIMARY, this._readableState !== null && (this._readableState.highWaterMark = 0, this._readableState.error = err), this._writableState !== null && (this._writableState.highWaterMark = 0, this._writableState.error = err), this._duplexState |= PREDESTROYING, this._predestroy(), this._duplexState &= NOT_PREDESTROYING, this._readableState !== null && this._readableState.updateNextTick(), this._writableState !== null && this._writableState.updateNextTick());
       }
-    }, Readable6 = class _Readable extends Stream {
+    }, Readable5 = class _Readable extends Stream {
       constructor(opts) {
         super(opts), this._duplexState |= OPENING | WRITE_DONE | READ_READ_AHEAD, this._readableState = new ReadableState(this, opts), opts && (this._readableState.readAhead === !1 && (this._duplexState &= READ_NO_READ_AHEAD), opts.read && (this._read = opts.read), opts.eagerOpen && this._readableState.updateNextTick(), opts.encoding && this.setEncoding(opts.encoding));
       }
@@ -67830,7 +66324,7 @@ var require_streamx = __commonJS({
       end(data) {
         return this._writableState.updateNextTick(), this._writableState.end(data), this;
       }
-    }, Duplex = class extends Readable6 {
+    }, Duplex = class extends Readable5 {
       // and Writable
       constructor(opts) {
         super(opts), this._duplexState = OPENING | this._duplexState & READ_READ_AHEAD, this._writableState = new WritableState(this, opts), opts && (opts.writev && (this._writev = opts.writev), opts.write && (this._write = opts.write), opts.final && (this._final = opts.final));
@@ -67890,12 +66384,12 @@ var require_streamx = __commonJS({
       data != null && this.push(data), this.push(null), cb(null);
     }
     function pipelinePromise(...streams) {
-      return new Promise((resolve3, reject) => pipeline4(...streams, (err) => {
+      return new Promise((resolve3, reject) => pipeline3(...streams, (err) => {
         if (err) return reject(err);
         resolve3();
       }));
     }
-    function pipeline4(stream4, ...streams) {
+    function pipeline3(stream4, ...streams) {
       let all = Array.isArray(stream4) ? [...stream4, ...streams] : [stream4, ...streams], done = all.length && typeof all[all.length - 1] == "function" ? all.pop() : null;
       if (all.length < 2) throw new Error("Pipeline requires at least 2 streams");
       let src = all[0], dest = null, error2 = null;
@@ -67970,7 +66464,7 @@ var require_streamx = __commonJS({
       return s._writev !== Writable.prototype._writev && s._writev !== Duplex.prototype._writev;
     }
     module.exports = {
-      pipeline: pipeline4,
+      pipeline: pipeline3,
       pipelinePromise,
       isStream,
       isStreamx,
@@ -67982,7 +66476,7 @@ var require_streamx = __commonJS({
       getStreamError,
       Stream,
       Writable,
-      Readable: Readable6,
+      Readable: Readable5,
       Duplex,
       Transform: Transform3,
       // Export PassThrough for compatibility with Node.js core's stream module
@@ -68181,7 +66675,7 @@ var require_headers2 = __commonJS({
 // node_modules/tar-stream/extract.js
 var require_extract = __commonJS({
   "node_modules/tar-stream/extract.js"(exports2, module) {
-    var { Writable, Readable: Readable6, getStreamError } = require_streamx(), FIFO = require_fast_fifo(), b4a = require_b4a(), headers = require_headers2(), EMPTY = b4a.alloc(0), BufferList = class {
+    var { Writable, Readable: Readable5, getStreamError } = require_streamx(), FIFO = require_fast_fifo(), b4a = require_b4a(), headers = require_headers2(), EMPTY = b4a.alloc(0), BufferList = class {
       constructor() {
         this.buffered = 0, this.shifted = 0, this.queue = new FIFO(), this._offset = 0;
       }
@@ -68209,7 +66703,7 @@ var require_extract = __commonJS({
         }
         return this.buffered -= size, this.shifted += size, buf.subarray(this._offset, this._offset += size);
       }
-    }, Source = class extends Readable6 {
+    }, Source = class extends Readable5 {
       constructor(self2, header, offset) {
         super(), this.header = header, this.offset = offset, this._parent = self2;
       }
@@ -68412,7 +66906,7 @@ var require_constants7 = __commonJS({
 // node_modules/tar-stream/pack.js
 var require_pack = __commonJS({
   "node_modules/tar-stream/pack.js"(exports2, module) {
-    var { Readable: Readable6, Writable, getStreamError } = require_streamx(), b4a = require_b4a(), constants3 = require_constants7(), headers = require_headers2(), DMODE = 493, FMODE = 420, END_OF_TAR = b4a.alloc(1024), Sink = class extends Writable {
+    var { Readable: Readable5, Writable, getStreamError } = require_streamx(), b4a = require_b4a(), constants3 = require_constants7(), headers = require_headers2(), DMODE = 493, FMODE = 420, END_OF_TAR = b4a.alloc(1024), Sink = class extends Writable {
       constructor(pack, header, callback) {
         super({ mapWritable, eagerOpen: !0 }), this.written = 0, this.header = header, this._callback = callback, this._linkname = null, this._isLinkname = header.type === "symlink" && !header.linkname, this._isVoid = header.type !== "file" && header.type !== "contiguous-file", this._finished = !1, this._pack = pack, this._openCallback = null, this._pack._stream === null ? this._pack._stream = this : this._pack._pending.push(this);
       }
@@ -68458,7 +66952,7 @@ var require_pack = __commonJS({
       _destroy(cb) {
         this._pack._done(this), this._continuePack(this._finished ? null : this._getError()), cb();
       }
-    }, Pack = class extends Readable6 {
+    }, Pack = class extends Readable5 {
       constructor(opts) {
         super(opts), this._drain = noop3, this._finalized = !1, this._finalizing = !1, this._pending = [], this._stream = null;
       }
@@ -68969,7 +67463,7 @@ var __awaiter12, init_upload_artifact = __esm({
     init_zip();
     init_stream();
     init_generated();
-    init_errors2();
+    init_errors();
     init_types();
     __awaiter12 = function(thisArg, _arguments, P, generator) {
       function adopt(value) {
@@ -74216,7 +72710,7 @@ import * as fsSync from "fs";
 import * as crypto4 from "crypto";
 import * as stream3 from "stream";
 import * as path6 from "path";
-function exists4(path7) {
+function exists3(path7) {
   return __awaiter14(this, void 0, void 0, function* () {
     try {
       return yield fs7.access(path7), !0;
@@ -74327,7 +72821,7 @@ Are you trying to download from a different run? Try specifying a github-token w
 }
 function resolveOrCreateDirectory() {
   return __awaiter14(this, arguments, void 0, function* (downloadPath = getGitHubWorkspaceDir()) {
-    return (yield exists4(downloadPath)) ? debug(`Artifact destination folder already exists: ${downloadPath}`) : (debug(`Artifact destination folder does not exist, creating: ${downloadPath}`), yield fs7.mkdir(downloadPath, { recursive: !0 })), downloadPath;
+    return (yield exists3(downloadPath)) ? debug(`Artifact destination folder already exists: ${downloadPath}`) : (debug(`Artifact destination folder does not exist, creating: ${downloadPath}`), yield fs7.mkdir(downloadPath, { recursive: !0 })), downloadPath;
   });
 }
 var import_unzip_stream, __awaiter14, scrubQueryParameters, init_download_artifact = __esm({
@@ -74341,7 +72835,7 @@ var import_unzip_stream, __awaiter14, scrubQueryParameters, init_download_artifa
     init_artifact_twirp_client2();
     init_generated();
     init_util();
-    init_errors2();
+    init_errors();
     __awaiter14 = function(thisArg, _arguments, P, generator) {
       function adopt(value) {
         return value instanceof P ? value : new P(function(resolve3) {
@@ -75289,7 +73783,7 @@ var __awaiter15, init_get_artifact = __esm({
     init_user_agent();
     init_artifact_twirp_client2();
     init_generated();
-    init_errors2();
+    init_errors();
     __awaiter15 = function(thisArg, _arguments, P, generator) {
       function adopt(value) {
         return value instanceof P ? value : new P(function(resolve3) {
@@ -75376,7 +73870,7 @@ var __awaiter16, init_delete_artifact = __esm({
     init_util();
     init_generated();
     init_get_artifact();
-    init_errors2();
+    init_errors();
     __awaiter16 = function(thisArg, _arguments, P, generator) {
       function adopt(value) {
         return value instanceof P ? value : new P(function(resolve3) {
@@ -75536,7 +74030,7 @@ var __awaiter18, __rest, DefaultArtifactClient, init_client = __esm({
     init_delete_artifact();
     init_get_artifact();
     init_list_artifacts();
-    init_errors2();
+    init_errors();
     __awaiter18 = function(thisArg, _arguments, P, generator) {
       function adopt(value) {
         return value instanceof P ? value : new P(function(resolve3) {
@@ -75688,15 +74182,1373 @@ var client, artifact_default, init_artifact2 = __esm({
   "node_modules/@actions/artifact/lib/artifact.js"() {
     init_client();
     init_interfaces3();
-    init_errors2();
+    init_errors();
     init_client();
     client = new DefaultArtifactClient(), artifact_default = client;
   }
 });
 
+// packages/build/src/main.ts
+init_core();
+import { mkdir as mkdir4, rename as rename3, stat as stat5 } from "node:fs/promises";
+import { basename as pathBasename, dirname as dirname4, join as join10, resolve as pathResolve } from "node:path";
+
+// packages/core/src/errors.ts
+var PkgActionError = class extends Error {
+  file;
+  line;
+  col;
+  constructor(message, opts = {}) {
+    super(message, opts.cause !== void 0 ? { cause: opts.cause } : void 0), this.name = new.target.name, opts.file !== void 0 && (this.file = opts.file), opts.line !== void 0 && (this.line = opts.line), opts.col !== void 0 && (this.col = opts.col);
+  }
+}, ValidationError = class extends PkgActionError {
+}, PkgRunError = class extends PkgActionError {
+};
+var ArchiveError = class extends PkgActionError {
+}, ChecksumError = class extends PkgActionError {
+}, ResEditError = class extends PkgActionError {
+}, SignError = class extends PkgActionError {
+}, UploadError = class extends PkgActionError {
+};
+function formatErrorChain(err, maxDepth = 5) {
+  let parts = [], current = err, depth = 0;
+  for (; current != null && depth < maxDepth; ) {
+    if (current instanceof Error)
+      parts.push(`${current.name}: ${current.message}`), current = current.cause;
+    else {
+      parts.push(String(current));
+      break;
+    }
+    depth += 1;
+  }
+  return parts.join(" \u2192 caused by \u2192 ");
+}
+
+// packages/core/src/logger.ts
+init_core();
+var actionsLogger = {
+  debug: (m) => debug(m),
+  info: (m) => info(m),
+  warning: (m, p) => warning(m, p),
+  error: (m, p) => error(m, p),
+  notice: (m, p) => notice(m, p),
+  startGroup: (n) => startGroup(n),
+  endGroup: () => endGroup(),
+  setSecret: (v) => setSecret(v),
+  isDebug: () => isDebug()
+};
+
+// packages/core/src/fs-utils.ts
+import { randomUUID as randomUUID2 } from "node:crypto";
+import { chmod as chmod2, mkdir as mkdir2, open as open2, rename as rename2, rm as rm2, stat as stat2, writeFile as writeFile2 } from "node:fs/promises";
+import { dirname as dirname3, join as join3 } from "node:path";
+async function createInvocationTemp(parent) {
+  let id = randomUUID2(), dir = join3(parent, `pkg-action-${id}`);
+  return await mkdir2(dir, { recursive: !0, mode: 448 }), await chmod2(dir, 448), dir;
+}
+async function atomicWriteFile(path7, data) {
+  await mkdir2(dirname3(path7), { recursive: !0 });
+  let tmp = `${path7}.tmp-${randomUUID2()}`;
+  await writeFile2(tmp, data), await rename2(tmp, path7);
+}
+
+// packages/core/src/targets.ts
+var VALID_OS = ["linux", "macos", "win", "alpine", "linuxstatic"], VALID_ARCH = ["x64", "arm64", "armv7", "armv6", "ppc64", "s390x"], TRIPLE_RE = /^(?:node(\d+)|(latest))-([a-z]+)-([a-z0-9]+)$/;
+function parseTarget(triple) {
+  let trimmed = triple.trim(), m = TRIPLE_RE.exec(trimmed);
+  if (!m)
+    throw new ValidationError(
+      `Invalid target triple "${triple}". Expected node<N>-<os>-<arch> or latest-<os>-<arch>.`
+    );
+  let [, majorStr, latestLit, osRaw, archRaw] = m, node = latestLit !== void 0 ? "latest" : Number(majorStr);
+  if (typeof node == "number" && (Number.isNaN(node) || node < 18))
+    throw new ValidationError(
+      `Target "${triple}" specifies Node ${String(node)} \u2014 only Node 18 and newer are supported by pkg.`
+    );
+  if (!osRaw || !archRaw)
+    throw new ValidationError(`Invalid target triple "${triple}".`);
+  if (!VALID_OS.includes(osRaw))
+    throw new ValidationError(
+      `Invalid target OS "${osRaw}" in "${triple}". Expected one of: ${VALID_OS.join(", ")}.`
+    );
+  if (!VALID_ARCH.includes(archRaw))
+    throw new ValidationError(
+      `Invalid target arch "${archRaw}" in "${triple}". Expected one of: ${VALID_ARCH.join(", ")}.`
+    );
+  return {
+    node,
+    os: osRaw,
+    arch: archRaw
+  };
+}
+function formatTarget(t) {
+  return `${t.node === "latest" ? "latest" : `node${t.node}`}-${t.os}-${t.arch}`;
+}
+function parseTargetList(raw) {
+  let pieces = raw.split(/[\n,]/).map((s) => s.trim()).filter((s) => s.length > 0), seen = /* @__PURE__ */ new Set(), result = [];
+  for (let p of pieces) {
+    let t = parseTarget(p), key = formatTarget(t);
+    seen.has(key) || (seen.add(key), result.push(t));
+  }
+  return result;
+}
+var DEFAULT_RUNNER_LABELS = Object.freeze({
+  "linux-x64": "ubuntu-latest",
+  "linux-arm64": "ubuntu-24.04-arm",
+  "linuxstatic-x64": "ubuntu-latest",
+  "linuxstatic-arm64": "ubuntu-24.04-arm",
+  "alpine-x64": "ubuntu-latest",
+  "alpine-arm64": "ubuntu-24.04-arm",
+  "macos-x64": "macos-13",
+  "macos-arm64": "macos-latest",
+  "win-x64": "windows-latest",
+  "win-arm64": "windows-11-arm"
+});
+function hostTarget(platform2 = process.platform, arch2 = process.arch, nodeVersion = process.versions.node) {
+  let os8;
+  switch (platform2) {
+    case "linux":
+      os8 = "linux";
+      break;
+    case "darwin":
+      os8 = "macos";
+      break;
+    case "win32":
+      os8 = "win";
+      break;
+    default:
+      throw new ValidationError(
+        `Cannot auto-detect host target \u2014 unsupported platform "${platform2}".`
+      );
+  }
+  let mappedArch;
+  switch (arch2) {
+    case "x64":
+      mappedArch = "x64";
+      break;
+    case "arm64":
+      mappedArch = "arm64";
+      break;
+    case "arm":
+      mappedArch = "armv7";
+      break;
+    case "ppc64":
+      mappedArch = "ppc64";
+      break;
+    case "s390x":
+      mappedArch = "s390x";
+      break;
+    default:
+      throw new ValidationError(`Cannot auto-detect host target \u2014 unsupported arch "${arch2}".`);
+  }
+  let nodeMajor = Number(nodeVersion.split(".")[0]);
+  if (!Number.isFinite(nodeMajor))
+    throw new ValidationError(`Cannot parse Node version "${nodeVersion}".`);
+  return { node: nodeMajor, os: os8, arch: mappedArch };
+}
+
+// packages/core/src/templates.ts
+var TEMPLATE_TOKEN_NAMES = [
+  "name",
+  "version",
+  "target",
+  "node",
+  "os",
+  "arch",
+  "sha",
+  "ref",
+  "date",
+  "tag"
+], TOKEN_RE = /\{([a-zA-Z]+)\}/g;
+function render(template, tokens) {
+  return template.replace(TOKEN_RE, (full, name) => {
+    if (!TEMPLATE_TOKEN_NAMES.includes(name)) {
+      let suggestion = closestToken(name), hint = suggestion !== null ? ` Did you mean "{${suggestion}}"?` : "";
+      throw new ValidationError(`Unknown template token "${full}".${hint}`);
+    }
+    let value = tokens[name];
+    if (value === void 0)
+      throw new ValidationError(`Template token "${full}" is undefined.`);
+    return value;
+  });
+}
+function closestToken(input) {
+  let best = null, bestDist = 1 / 0;
+  for (let candidate of TEMPLATE_TOKEN_NAMES) {
+    let d = levenshtein(input.toLowerCase(), candidate);
+    d < bestDist && (bestDist = d, best = candidate);
+  }
+  return bestDist <= 3 ? best : null;
+}
+function levenshtein(a, b) {
+  if (a === b) return 0;
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+  let prev = new Array(b.length + 1), curr = new Array(b.length + 1);
+  for (let j = 0; j <= b.length; j += 1) prev[j] = j;
+  for (let i = 1; i <= a.length; i += 1) {
+    curr[0] = i;
+    for (let j = 1; j <= b.length; j += 1) {
+      let cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      curr[j] = Math.min((curr[j - 1] ?? 0) + 1, (prev[j] ?? 0) + 1, (prev[j - 1] ?? 0) + cost);
+    }
+    [prev, curr] = [curr, prev];
+  }
+  return prev[b.length] ?? 0;
+}
+function buildTokens(args) {
+  let d = args.date ?? /* @__PURE__ */ new Date(), yyyymmdd = [
+    d.getUTCFullYear().toString().padStart(4, "0"),
+    (d.getUTCMonth() + 1).toString().padStart(2, "0"),
+    d.getUTCDate().toString().padStart(2, "0")
+  ].join("");
+  return {
+    name: args.name,
+    version: args.version,
+    target: args.target,
+    node: args.node,
+    os: args.os,
+    arch: args.arch,
+    sha: args.sha ?? "",
+    ref: args.ref ?? "",
+    date: yyyymmdd,
+    tag: args.tag ?? ""
+  };
+}
+
+// packages/core/src/checksum.ts
+import { createHash } from "node:crypto";
+import { createReadStream } from "node:fs";
+import { basename as basename3 } from "node:path";
+import { pipeline } from "node:stream/promises";
+var CHECKSUM_ALGORITHMS = ["sha256", "sha512", "md5"];
+async function computeChecksum(filePath, algo) {
+  let hash = createHash(algo);
+  try {
+    await pipeline(createReadStream(filePath, { highWaterMark: 64 * 1024 }), hash);
+  } catch (err) {
+    throw new ChecksumError(`Failed to hash ${filePath} with ${algo}`, { cause: err });
+  }
+  return hash.digest("hex");
+}
+async function writeShasumsFile(outPath, entries) {
+  if (entries.length === 0)
+    throw new ChecksumError(`Cannot write empty SHASUMS file to ${outPath}`);
+  let body2 = [...entries].sort((a, b) => a.path.localeCompare(b.path)).map((e) => `${e.digest}  ${basename3(e.path)}`).join(`
+`) + `
+`;
+  await atomicWriteFile(outPath, body2);
+}
+async function writeSidecar(binaryPath, digest, algo) {
+  let sidecar = `${binaryPath}.${algo}`, body2 = `${digest}  ${basename3(binaryPath)}
+`;
+  return await atomicWriteFile(sidecar, body2), sidecar;
+}
+async function computeAllChecksums(filePath, algos) {
+  let entries = await Promise.all(
+    algos.map(async (a) => [a, await computeChecksum(filePath, a)])
+  ), result = {};
+  for (let [a, d] of entries) result[a] = d;
+  return result;
+}
+
+// packages/core/src/sbom.ts
+import { readFile } from "node:fs/promises";
+import { randomUUID as randomUUID3 } from "node:crypto";
+import { join as join4 } from "node:path";
+var SBOM_FORMATS = ["none", "cyclonedx", "spdx"];
+var defaultFs = {
+  readFile: (p, enc) => readFile(p, enc)
+};
+async function readPackageJson(path7, fs8) {
+  let raw;
+  try {
+    raw = await fs8.readFile(path7, "utf8");
+  } catch {
+    return;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return;
+  }
+}
+async function collectDependencyTree(projectDir, fs8 = defaultFs) {
+  let rootPkg = await readPackageJson(join4(projectDir, "package.json"), fs8);
+  if (rootPkg === void 0)
+    throw new ValidationError(`SBOM: cannot read package.json at ${projectDir}`);
+  let seen = /* @__PURE__ */ new Map();
+  async function visit(name, fromDir) {
+    let resolved = await resolveNodeModule(name, fromDir, fs8);
+    if (resolved === void 0) return;
+    let key = `${resolved.pkg.name ?? name}@${resolved.pkg.version ?? "0.0.0"}`;
+    if (seen.has(key)) return;
+    let node = {
+      name: resolved.pkg.name ?? name,
+      version: resolved.pkg.version ?? "0.0.0",
+      purl: toPurl(resolved.pkg.name ?? name, resolved.pkg.version ?? "0.0.0"),
+      license: normalizeLicense(resolved.pkg.license),
+      description: resolved.pkg.description
+    };
+    seen.set(key, node);
+    let children = {
+      ...resolved.pkg.dependencies ?? {},
+      ...resolved.pkg.optionalDependencies ?? {}
+    };
+    for (let childName of Object.keys(children))
+      await visit(childName, resolved.dir);
+  }
+  let directDeps = Object.keys(rootPkg.dependencies ?? {});
+  for (let dep of directDeps)
+    await visit(dep, projectDir);
+  return [...seen.values()].sort(
+    (a, b) => a.name === b.name ? a.version.localeCompare(b.version) : a.name.localeCompare(b.name)
+  );
+}
+async function resolveNodeModule(name, fromDir, fs8) {
+  let current = fromDir;
+  for (; ; ) {
+    let candidate = join4(current, "node_modules", name), pkg = await readPackageJson(join4(candidate, "package.json"), fs8);
+    if (pkg !== void 0) return { dir: candidate, pkg };
+    let parent = join4(current, "..");
+    if (parent === current) return;
+    current = parent;
+  }
+}
+function normalizeLicense(raw) {
+  if (raw !== void 0) {
+    if (typeof raw == "string") return raw;
+    if (typeof raw == "object" && typeof raw.type == "string") return raw.type;
+  }
+}
+function toPurl(name, version3) {
+  if (name.startsWith("@")) {
+    let [scope, bare] = name.split("/", 2);
+    return `pkg:npm/${encodeURIComponent(scope ?? "")}%2F${encodeURIComponent(bare ?? "")}@${encodeURIComponent(version3)}`;
+  }
+  return `pkg:npm/${encodeURIComponent(name)}@${encodeURIComponent(version3)}`;
+}
+function renderCycloneDx(data) {
+  let doc = {
+    $schema: "http://cyclonedx.org/schema/bom-1.5.schema.json",
+    bomFormat: "CycloneDX",
+    specVersion: "1.5",
+    serialNumber: `urn:uuid:${data.serialNumber}`,
+    version: 1,
+    metadata: {
+      timestamp: data.timestamp,
+      tools: [
+        {
+          vendor: "yao-pkg",
+          name: "pkg-action",
+          version: data.actionVersion
+        }
+      ],
+      component: {
+        type: "application",
+        "bom-ref": `${data.project.name}@${data.project.version}`,
+        name: data.project.name,
+        version: data.project.version,
+        purl: toPurl(data.project.name, data.project.version)
+      }
+    },
+    components: data.deps.map((d) => {
+      let comp26 = {
+        type: "library",
+        "bom-ref": d.purl,
+        name: d.name,
+        version: d.version,
+        purl: d.purl
+      };
+      return d.license !== void 0 && (comp26.licenses = [{ license: { id: d.license } }]), d.description !== void 0 && (comp26.description = d.description), comp26;
+    }),
+    ...data.artifacts.length > 0 ? {
+      formulation: [
+        {
+          components: data.artifacts.map((a) => ({
+            type: "file",
+            name: a.filename,
+            hashes: a.hashes.map((h) => ({ alg: h.algo, content: h.value }))
+          }))
+        }
+      ]
+    } : {}
+  };
+  return JSON.stringify(doc, null, 2);
+}
+function renderSpdx(data) {
+  let rootRef = `SPDXRef-Package-${sanitizeSpdxId(data.project.name)}`, packages = [
+    {
+      SPDXID: rootRef,
+      name: data.project.name,
+      versionInfo: data.project.version,
+      downloadLocation: "NOASSERTION",
+      filesAnalyzed: !1,
+      externalRefs: [
+        {
+          referenceCategory: "PACKAGE-MANAGER",
+          referenceType: "purl",
+          referenceLocator: toPurl(data.project.name, data.project.version)
+        }
+      ]
+    }
+  ], relationships = [
+    {
+      spdxElementId: "SPDXRef-DOCUMENT",
+      relationshipType: "DESCRIBES",
+      relatedSpdxElement: rootRef
+    }
+  ];
+  for (let dep of data.deps) {
+    let depRef = `SPDXRef-Package-npm-${sanitizeSpdxId(dep.name)}-${sanitizeSpdxId(dep.version)}`, pkg = {
+      SPDXID: depRef,
+      name: dep.name,
+      versionInfo: dep.version,
+      downloadLocation: "NOASSERTION",
+      filesAnalyzed: !1,
+      externalRefs: [
+        {
+          referenceCategory: "PACKAGE-MANAGER",
+          referenceType: "purl",
+          referenceLocator: dep.purl
+        }
+      ]
+    };
+    dep.license !== void 0 && (pkg.licenseConcluded = dep.license), dep.description !== void 0 && (pkg.description = dep.description), packages.push(pkg), relationships.push({
+      spdxElementId: rootRef,
+      relationshipType: "DEPENDS_ON",
+      relatedSpdxElement: depRef
+    });
+  }
+  for (let artifact of data.artifacts) {
+    let fileRef = `SPDXRef-File-${sanitizeSpdxId(artifact.filename)}`, checksums = artifact.hashes.map((h) => ({
+      algorithm: h.algo.replace("-", ""),
+      checksumValue: h.value
+    }));
+    packages.push({
+      SPDXID: fileRef,
+      name: artifact.filename,
+      versionInfo: data.project.version,
+      downloadLocation: "NOASSERTION",
+      filesAnalyzed: !1,
+      checksums
+    }), relationships.push({
+      spdxElementId: rootRef,
+      relationshipType: "GENERATES",
+      relatedSpdxElement: fileRef
+    });
+  }
+  let doc = {
+    spdxVersion: "SPDX-2.3",
+    dataLicense: "CC0-1.0",
+    SPDXID: "SPDXRef-DOCUMENT",
+    name: `${data.project.name}-${data.project.version}`,
+    documentNamespace: `https://yao-pkg.github.io/pkg-action/spdxdocs/${encodeURIComponent(data.project.name)}-${encodeURIComponent(data.project.version)}-${data.serialNumber}`,
+    creationInfo: {
+      created: data.timestamp,
+      creators: [`Tool: yao-pkg/pkg-action@${data.actionVersion}`]
+    },
+    packages,
+    relationships
+  };
+  return JSON.stringify(doc, null, 2);
+}
+function sanitizeSpdxId(raw) {
+  return raw.replace(/[^A-Za-z0-9.-]/g, "-");
+}
+async function writeSbom(req) {
+  let suffix = req.format === "cyclonedx" ? "cdx.json" : "spdx.json", base = `${req.data.project.name}-${req.data.project.version}.${suffix}`, outPath = join4(req.outDir, base), body2 = req.format === "cyclonedx" ? renderCycloneDx(req.data) : renderSpdx(req.data);
+  return await atomicWriteFile(outPath, body2), outPath;
+}
+function newSbomSerialNumber() {
+  return randomUUID3();
+}
+function nowTimestamp() {
+  return (/* @__PURE__ */ new Date()).toISOString();
+}
+
+// packages/core/src/inputs.ts
+var INPUT_SPECS = [
+  // Build configuration (§5.1)
+  {
+    name: "config",
+    category: "build",
+    description: "Path to a pkg config (.pkgrc, pkg.config.{js,ts,json}, or package.json). Auto-detected when omitted."
+  },
+  {
+    name: "entry",
+    category: "build",
+    description: "Entry script when not specified in the config."
+  },
+  {
+    name: "targets",
+    category: "build",
+    description: "Comma- or newline-separated pkg target triples, e.g. node22-linux-x64,node22-macos-arm64. Defaults to the host target."
+  },
+  {
+    name: "mode",
+    category: "build",
+    description: "standard | sea \u2014 selects pkg Standard or SEA mode.",
+    default: "standard"
+  },
+  {
+    name: "node-version",
+    category: "build",
+    description: "pkg's bundled Node.js major (e.g. 22, 24). Does not affect the action's own Node runtime.",
+    default: "22"
+  },
+  {
+    name: "compress-node",
+    category: "build",
+    description: "pkg's bundled-binary compression: Brotli | GZip | None.",
+    default: "None"
+  },
+  {
+    name: "fallback-to-source",
+    category: "build",
+    description: "Pass pkg --fallback-to-source for bytecode-fabricator failures.",
+    default: "false"
+  },
+  {
+    name: "public",
+    category: "build",
+    description: "Pass pkg --public (ships sources as plaintext).",
+    default: "false"
+  },
+  {
+    name: "public-packages",
+    category: "build",
+    description: "Comma-separated package names to mark public (pkg --public-packages)."
+  },
+  {
+    name: "options",
+    category: "build",
+    description: "Comma-separated V8 options baked into the binary (pkg --options)."
+  },
+  {
+    name: "no-bytecode",
+    category: "build",
+    description: "Pass pkg --no-bytecode.",
+    default: "false"
+  },
+  {
+    name: "no-dict",
+    category: "build",
+    description: "Comma-separated list of packages for pkg --no-dict (or * for all)."
+  },
+  { name: "debug", category: "build", description: "Pass pkg --debug.", default: "false" },
+  {
+    name: "extra-args",
+    category: "build",
+    description: "Raw extra flags appended to the pkg CLI invocation."
+  },
+  {
+    name: "pkg-version",
+    category: "build",
+    description: "npm version specifier for @yao-pkg/pkg (e.g. ~6.16.0). Bypassed when pkg-path is set.",
+    default: "~6.16.0"
+  },
+  {
+    name: "pkg-path",
+    category: "build",
+    description: "Absolute path to a pre-installed pkg binary. Skips the implicit npm i -g."
+  },
+  // Post-build (§5.2)
+  {
+    name: "strip",
+    category: "post-build",
+    description: "Strip debug symbols on Linux/macOS outputs.",
+    default: "false"
+  },
+  {
+    name: "compress",
+    category: "post-build",
+    description: "Archive format: tar.gz | tar.xz | zip | 7z | none.",
+    default: "none"
+  },
+  {
+    name: "filename",
+    category: "post-build",
+    description: "Output filename template. Tokens: {name} {version} {target} {node} {os} {arch} {sha} {ref} {date} {tag}.",
+    default: "{name}-{version}-{os}-{arch}"
+  },
+  {
+    name: "checksum",
+    category: "post-build",
+    description: "Checksum algorithms: comma list of none | sha256 | sha512 | md5.",
+    default: "sha256"
+  },
+  // Windows metadata (§5.3) — M3
+  {
+    name: "windows-metadata-file",
+    category: "windows-metadata",
+    description: "Path to a JSON file with any subset of the Windows metadata fields."
+  },
+  {
+    name: "windows-icon",
+    category: "windows-metadata",
+    description: "Newline- or comma-separated list of <id>=<path> icon entries, or just <path> for id 1."
+  },
+  {
+    name: "windows-product-name",
+    category: "windows-metadata",
+    description: "ProductName string."
+  },
+  {
+    name: "windows-product-version",
+    category: "windows-metadata",
+    description: "ProductVersion (auto-padded to four parts)."
+  },
+  {
+    name: "windows-file-version",
+    category: "windows-metadata",
+    description: "FileVersion (auto-padded to four parts)."
+  },
+  {
+    name: "windows-file-description",
+    category: "windows-metadata",
+    description: "FileDescription string."
+  },
+  {
+    name: "windows-company-name",
+    category: "windows-metadata",
+    description: "CompanyName string."
+  },
+  {
+    name: "windows-legal-copyright",
+    category: "windows-metadata",
+    description: "LegalCopyright string (\xA9 auto-inserted if omitted)."
+  },
+  {
+    name: "windows-original-filename",
+    category: "windows-metadata",
+    description: "OriginalFilename string. Defaults to the output basename."
+  },
+  {
+    name: "windows-internal-name",
+    category: "windows-metadata",
+    description: "InternalName string."
+  },
+  { name: "windows-comments", category: "windows-metadata", description: "Comments string." },
+  {
+    name: "windows-manifest",
+    category: "windows-metadata",
+    description: "Path to a raw app.manifest file to embed as RT_MANIFEST."
+  },
+  {
+    name: "windows-lang",
+    category: "windows-metadata",
+    description: "Language identifier for VersionInfo.",
+    default: "1033"
+  },
+  {
+    name: "windows-codepage",
+    category: "windows-metadata",
+    description: "Codepage for VersionInfo strings.",
+    default: "1200"
+  },
+  // Signing & notarization (§5.4) — M4
+  {
+    name: "macos-sign-identity",
+    category: "signing",
+    description: "codesign identity (Common Name or SHA-1)."
+  },
+  {
+    name: "macos-sign-certificate",
+    category: "signing",
+    description: "Base64-encoded .p12 certificate.",
+    secret: !0
+  },
+  {
+    name: "macos-keychain-password",
+    category: "signing",
+    description: "Password for the ephemeral keychain holding the signing identity.",
+    secret: !0
+  },
+  {
+    name: "macos-entitlements",
+    category: "signing",
+    description: "Path to an entitlements plist."
+  },
+  {
+    name: "macos-notarize",
+    category: "signing",
+    description: "Run xcrun notarytool + staple after signing.",
+    default: "false"
+  },
+  {
+    name: "macos-apple-id",
+    category: "signing",
+    description: "Apple ID for notarytool.",
+    secret: !0
+  },
+  {
+    name: "macos-team-id",
+    category: "signing",
+    description: "Apple Team ID for notarytool.",
+    secret: !0
+  },
+  {
+    name: "macos-app-password",
+    category: "signing",
+    description: "App-specific password for notarytool.",
+    secret: !0
+  },
+  {
+    name: "windows-sign-mode",
+    category: "signing",
+    description: "none | signtool | trusted-signing.",
+    default: "none"
+  },
+  {
+    name: "windows-sign-cert",
+    category: "signing",
+    description: "Base64-encoded .pfx for signtool mode.",
+    secret: !0
+  },
+  {
+    name: "windows-sign-password",
+    category: "signing",
+    description: "Password for the .pfx.",
+    secret: !0
+  },
+  {
+    name: "windows-sign-rfc3161-url",
+    category: "signing",
+    description: "RFC3161 timestamp URL for signtool.",
+    default: "http://timestamp.digicert.com"
+  },
+  {
+    name: "windows-sign-description",
+    category: "signing",
+    description: "Description passed to signtool /d."
+  },
+  {
+    name: "azure-tenant-id",
+    category: "signing",
+    description: "Azure Trusted Signing: tenant ID.",
+    secret: !0
+  },
+  {
+    name: "azure-client-id",
+    category: "signing",
+    description: "Azure Trusted Signing: client ID.",
+    secret: !0
+  },
+  {
+    name: "azure-client-secret",
+    category: "signing",
+    description: "Azure Trusted Signing: client secret.",
+    secret: !0
+  },
+  {
+    name: "azure-endpoint",
+    category: "signing",
+    description: "Azure Trusted Signing: endpoint URL."
+  },
+  {
+    name: "azure-cert-profile",
+    category: "signing",
+    description: "Azure Trusted Signing: certificate profile name."
+  },
+  // Publishing (§5.5)
+  {
+    name: "upload-artifact",
+    category: "publishing",
+    description: "Upload each produced file as a workflow artifact.",
+    default: "true"
+  },
+  {
+    name: "artifact-name",
+    category: "publishing",
+    description: "Artifact name template. Must be unique per target (@actions/artifact v2 rejects collisions).",
+    default: "{name}-{version}-{target}"
+  },
+  {
+    name: "attach-to-release",
+    category: "publishing",
+    description: "Attach artifacts to the release matching the triggering tag.",
+    default: "false"
+  },
+  {
+    name: "release-tag",
+    category: "publishing",
+    description: "Override the release tag. Required for non-tag triggers when attach-to-release is true."
+  },
+  {
+    name: "release-name",
+    category: "publishing",
+    description: "Release title (optional override)."
+  },
+  {
+    name: "release-body",
+    category: "publishing",
+    description: "Release body (optional override)."
+  },
+  {
+    name: "release-draft",
+    category: "publishing",
+    description: "Mark the release as draft.",
+    default: "false"
+  },
+  {
+    name: "release-prerelease",
+    category: "publishing",
+    description: "Mark the release as prerelease.",
+    default: "false"
+  },
+  {
+    name: "generate-release-table",
+    category: "publishing",
+    description: "Append a markdown table of binaries + sizes + checksums to the release body.",
+    default: "true"
+  },
+  // Homebrew tap (§6.4)
+  {
+    name: "homebrew-tap-repo",
+    category: "publishing",
+    description: "owner/repo of a homebrew-tap. When set, opens a PR with an updated formula."
+  },
+  {
+    name: "homebrew-tap-token",
+    category: "publishing",
+    description: "PAT with contents:write on the tap repo. Falls back to GITHUB_TOKEN.",
+    secret: !0
+  },
+  {
+    name: "homebrew-formula-name",
+    category: "publishing",
+    description: "Formula filename without .rb. Defaults to the project name."
+  },
+  {
+    name: "homebrew-formula-description",
+    category: "publishing",
+    description: 'Formula description (desc). Defaults to package.json "description".'
+  },
+  {
+    name: "homebrew-formula-homepage",
+    category: "publishing",
+    description: "Formula homepage. Defaults to the repository URL."
+  },
+  {
+    name: "homebrew-formula-license",
+    category: "publishing",
+    description: 'Formula license string. Defaults to package.json "license".'
+  },
+  {
+    name: "homebrew-formula-binary",
+    category: "publishing",
+    description: "Binary name installed into $prefix/bin. Defaults to the formula name."
+  },
+  {
+    name: "homebrew-tap-branch",
+    category: "publishing",
+    description: "Branch to push the updated formula on. Defaults to pkg-action/<project>-<version>."
+  },
+  // Docker publishing (§6.3)
+  {
+    name: "docker-image",
+    category: "publishing",
+    description: "OCI image reference with optional {version}/{tag}/{sha} tokens, e.g. ghcr.io/org/app:{version}. When set, the linux-* binaries are pushed as an OCI image."
+  },
+  {
+    name: "docker-registry",
+    category: "publishing",
+    description: "Registry host for auth. Derived from docker-image when unset."
+  },
+  {
+    name: "docker-username",
+    category: "publishing",
+    description: "Registry username. Paired with docker-password.",
+    secret: !0
+  },
+  {
+    name: "docker-password",
+    category: "publishing",
+    description: "Registry password or token.",
+    secret: !0
+  },
+  {
+    name: "docker-base-image",
+    category: "publishing",
+    description: "Base image the generated Dockerfile FROMs. Defaults to distroless/cc \u2014 the cc variant bundles libc/libstdc++/libgcc that the pkg-packaged Node binary links against.",
+    default: "gcr.io/distroless/cc-debian12:latest"
+  },
+  {
+    name: "docker-dockerfile",
+    category: "publishing",
+    description: "Path to a user-supplied Dockerfile. Skips the generated minimal layout."
+  },
+  // Scoop bucket (§6.5)
+  {
+    name: "scoop-bucket-repo",
+    category: "publishing",
+    description: "owner/repo of a scoop bucket. When set, opens a PR with an updated manifest."
+  },
+  {
+    name: "scoop-bucket-token",
+    category: "publishing",
+    description: "PAT with contents:write on the bucket repo. Falls back to GITHUB_TOKEN.",
+    secret: !0
+  },
+  {
+    name: "scoop-manifest-name",
+    category: "publishing",
+    description: "Manifest filename without .json. Defaults to the project name."
+  },
+  {
+    name: "scoop-manifest-description",
+    category: "publishing",
+    description: 'Manifest description. Defaults to package.json "description".'
+  },
+  {
+    name: "scoop-manifest-homepage",
+    category: "publishing",
+    description: "Manifest homepage. Defaults to the repository URL."
+  },
+  {
+    name: "scoop-manifest-license",
+    category: "publishing",
+    description: 'Manifest license. Defaults to package.json "license".'
+  },
+  {
+    name: "scoop-manifest-binary",
+    category: "publishing",
+    description: "Binary name inside the archive. Defaults to <manifest-name>.exe."
+  },
+  {
+    name: "scoop-bucket-branch",
+    category: "publishing",
+    description: "Branch to push the updated manifest on. Defaults to pkg-action/<project>-<version>."
+  },
+  // Performance / observability (§5.6)
+  {
+    name: "cache",
+    category: "performance",
+    description: "Cache the pkg-fetch Node downloads between runs.",
+    default: "true"
+  },
+  {
+    name: "cache-key",
+    category: "performance",
+    description: "Override the auto-derived cache key."
+  },
+  {
+    name: "step-summary",
+    category: "performance",
+    description: "Write a markdown summary of build time / size / checksum to the job summary.",
+    default: "true"
+  },
+  {
+    name: "sbom",
+    category: "performance",
+    description: "Generate a Software Bill of Materials: none | cyclonedx | spdx. Written alongside the artifacts and attached to the release when attach-to-release=true.",
+    default: "none"
+  },
+  {
+    name: "provenance",
+    category: "performance",
+    description: "Emit SLSA provenance attestation via actions/attest-build-provenance.",
+    default: "false"
+  }
+], SPEC_BY_NAME = new Map(
+  INPUT_SPECS.map((s) => [s.name, s])
+);
+function specFor(name) {
+  return SPEC_BY_NAME.get(name);
+}
+function readInputRaw(env, name) {
+  let key = `INPUT_${name.replace(/ /g, "_").toUpperCase()}`, raw = env[key];
+  if (raw === void 0) return;
+  let trimmed = raw.trim();
+  return trimmed === "" ? void 0 : trimmed;
+}
+function readInput(env, name) {
+  let raw = readInputRaw(env, name);
+  return raw !== void 0 ? raw : specFor(name)?.default;
+}
+function parseBoolean(value, name) {
+  if (value === void 0) return !1;
+  let normalized = value.toLowerCase();
+  if (normalized === "true" || normalized === "1" || normalized === "yes") return !0;
+  if (normalized === "false" || normalized === "0" || normalized === "no") return !1;
+  throw new ValidationError(`Input "${name}" expected a boolean (true/false) but got "${value}".`);
+}
+function parseEnum(value, name, allowed) {
+  if (value === void 0)
+    throw new ValidationError(`Input "${name}" is required but not set.`);
+  if (!allowed.includes(value))
+    throw new ValidationError(
+      `Input "${name}" must be one of ${allowed.join(" | ")}, got "${value}".`
+    );
+  return value;
+}
+function parseList(value) {
+  return value === void 0 ? [] : value.split(/[\n,]/).map((s) => s.trim()).filter((s) => s.length > 0);
+}
+function parseChecksumList(value, name) {
+  let items = parseList(value);
+  if (items.length === 0 || items.length === 1 && items[0] === "none") return [];
+  let result = [], seen = /* @__PURE__ */ new Set();
+  for (let item of items) {
+    if (item === "none")
+      throw new ValidationError(`Input "${name}" cannot mix "none" with other algorithms.`);
+    if (!CHECKSUM_ALGORITHMS.includes(item))
+      throw new ValidationError(
+        `Input "${name}" contains unknown algorithm "${item}". Expected: ${CHECKSUM_ALGORITHMS.join(", ")}.`
+      );
+    seen.has(item) || (seen.add(item), result.push(item));
+  }
+  return result;
+}
+function parseInputs(opts = {}) {
+  let env = opts.env ?? process.env;
+  for (let spec of INPUT_SPECS)
+    if (spec.secret === !0) {
+      let raw = readInputRaw(env, spec.name);
+      raw !== void 0 && opts.registerSecret?.(raw);
+    }
+  let targetsRaw = readInput(env, "targets"), targets = targetsRaw === void 0 ? "host" : parseTargetList(targetsRaw);
+  if (Array.isArray(targets) && targets.length === 0)
+    throw new ValidationError('Input "targets" was set but resolved to an empty list.');
+  let build = {
+    config: readInput(env, "config"),
+    entry: readInput(env, "entry"),
+    targets,
+    mode: parseEnum(readInput(env, "mode"), "mode", ["standard", "sea"]),
+    nodeVersion: readInput(env, "node-version") ?? "22",
+    compressNode: parseEnum(readInput(env, "compress-node"), "compress-node", [
+      "Brotli",
+      "GZip",
+      "None"
+    ]),
+    fallbackToSource: parseBoolean(readInput(env, "fallback-to-source"), "fallback-to-source"),
+    public: parseBoolean(readInput(env, "public"), "public"),
+    publicPackages: parseList(readInput(env, "public-packages")),
+    options: parseList(readInput(env, "options")),
+    noBytecode: parseBoolean(readInput(env, "no-bytecode"), "no-bytecode"),
+    noDict: parseList(readInput(env, "no-dict")),
+    debug: parseBoolean(readInput(env, "debug"), "debug"),
+    extraArgs: readInput(env, "extra-args"),
+    pkgVersion: readInput(env, "pkg-version") ?? "~6.16.0",
+    pkgPath: readInput(env, "pkg-path")
+  }, postBuild = {
+    strip: parseBoolean(readInput(env, "strip"), "strip"),
+    compress: parseEnum(readInput(env, "compress"), "compress", [
+      "tar.gz",
+      "tar.xz",
+      "zip",
+      "7z",
+      "none"
+    ]),
+    filename: readInput(env, "filename") ?? "{name}-{version}-{os}-{arch}",
+    checksum: parseChecksumList(readInput(env, "checksum"), "checksum")
+  }, attachToRelease = parseBoolean(readInput(env, "attach-to-release"), "attach-to-release"), releaseTag = readInput(env, "release-tag");
+  if (attachToRelease) {
+    let ref = env.GITHUB_REF, refTag = ref !== void 0 && ref.startsWith("refs/tags/") ? ref.slice(10) : void 0;
+    if (releaseTag === void 0 && (refTag === void 0 || refTag === ""))
+      throw new ValidationError(
+        "attach-to-release=true requires either a tag-triggered run (GITHUB_REF=refs/tags/...) or an explicit release-tag input."
+      );
+  }
+  let homebrewTapRepo = readInput(env, "homebrew-tap-repo"), homebrew = homebrewTapRepo !== void 0 ? {
+    tapRepo: homebrewTapRepo,
+    tapToken: readInput(env, "homebrew-tap-token"),
+    formulaName: readInput(env, "homebrew-formula-name"),
+    formulaDescription: readInput(env, "homebrew-formula-description"),
+    formulaHomepage: readInput(env, "homebrew-formula-homepage"),
+    formulaLicense: readInput(env, "homebrew-formula-license"),
+    formulaBinary: readInput(env, "homebrew-formula-binary"),
+    tapBranch: readInput(env, "homebrew-tap-branch")
+  } : void 0, scoopBucketRepo = readInput(env, "scoop-bucket-repo"), scoop = scoopBucketRepo !== void 0 ? {
+    bucketRepo: scoopBucketRepo,
+    bucketToken: readInput(env, "scoop-bucket-token"),
+    manifestName: readInput(env, "scoop-manifest-name"),
+    manifestDescription: readInput(env, "scoop-manifest-description"),
+    manifestHomepage: readInput(env, "scoop-manifest-homepage"),
+    manifestLicense: readInput(env, "scoop-manifest-license"),
+    manifestBinary: readInput(env, "scoop-manifest-binary"),
+    bucketBranch: readInput(env, "scoop-bucket-branch")
+  } : void 0, dockerImage = readInput(env, "docker-image"), docker = dockerImage !== void 0 ? {
+    image: dockerImage,
+    registry: readInput(env, "docker-registry"),
+    username: readInput(env, "docker-username"),
+    password: readInput(env, "docker-password"),
+    baseImage: readInput(env, "docker-base-image") ?? "gcr.io/distroless/cc-debian12:latest",
+    dockerfile: readInput(env, "docker-dockerfile")
+  } : void 0;
+  if ((homebrew !== void 0 || scoop !== void 0) && !attachToRelease)
+    throw new ValidationError(
+      "homebrew-tap-repo / scoop-bucket-repo require attach-to-release=true (the generated manifest points at release download URLs)."
+    );
+  if (docker !== void 0 && docker.username === void 0 != (docker.password === void 0))
+    throw new ValidationError(
+      "docker-username and docker-password must be set together (or both left unset for an unauthenticated registry)."
+    );
+  let publishing = {
+    uploadArtifact: parseBoolean(readInput(env, "upload-artifact"), "upload-artifact"),
+    artifactName: readInput(env, "artifact-name") ?? "{name}-{version}-{target}",
+    attachToRelease,
+    releaseTag,
+    releaseName: readInput(env, "release-name"),
+    releaseBody: readInput(env, "release-body"),
+    releaseDraft: parseBoolean(readInput(env, "release-draft"), "release-draft"),
+    releasePrerelease: parseBoolean(readInput(env, "release-prerelease"), "release-prerelease"),
+    generateReleaseTable: parseBoolean(
+      readInput(env, "generate-release-table"),
+      "generate-release-table"
+    ),
+    homebrew,
+    scoop,
+    docker
+  }, performance2 = {
+    cache: parseBoolean(readInput(env, "cache"), "cache"),
+    cacheKey: readInput(env, "cache-key"),
+    stepSummary: parseBoolean(readInput(env, "step-summary"), "step-summary"),
+    sbom: parseEnum(readInput(env, "sbom"), "sbom", SBOM_FORMATS),
+    provenance: parseBoolean(readInput(env, "provenance"), "provenance")
+  };
+  if (opts.onUnknownInput !== void 0)
+    for (let key of Object.keys(env)) {
+      if (!key.startsWith("INPUT_")) continue;
+      let kebab = key.slice(6).toLowerCase();
+      SPEC_BY_NAME.has(kebab) || opts.onUnknownInput(kebab);
+    }
+  return { build, postBuild, publishing, performance: performance2 };
+}
+function closestInputName(input) {
+  let best = null, bestDist = 1 / 0;
+  for (let spec of INPUT_SPECS) {
+    let d = levenshtein2(input.toLowerCase(), spec.name);
+    d < bestDist && (bestDist = d, best = spec.name);
+  }
+  return bestDist <= 3 ? best : null;
+}
+function levenshtein2(a, b) {
+  if (a === b) return 0;
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+  let prev = new Array(b.length + 1), curr = new Array(b.length + 1);
+  for (let j = 0; j <= b.length; j += 1) prev[j] = j;
+  for (let i = 1; i <= a.length; i += 1) {
+    curr[0] = i;
+    for (let j = 1; j <= b.length; j += 1) {
+      let cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      curr[j] = Math.min((curr[j - 1] ?? 0) + 1, (prev[j] ?? 0) + 1, (prev[j - 1] ?? 0) + cost);
+    }
+    [prev, curr] = [curr, prev];
+  }
+  return prev[b.length] ?? 0;
+}
+
+// packages/core/src/pkg-runner.ts
+function buildPkgArgs(inv) {
+  let args = [];
+  if (inv.targets.length > 0 && args.push("--targets", inv.targets.map(formatTarget).join(",")), inv.build.config !== void 0 && args.push("--config", inv.build.config), inv.build.mode === "sea" && args.push("--sea"), inv.build.compressNode !== "None" && args.push("--compress", inv.build.compressNode), inv.build.fallbackToSource && args.push("--fallback-to-source"), inv.build.public && args.push("--public"), inv.build.publicPackages.length > 0 && args.push("--public-packages", inv.build.publicPackages.join(",")), inv.build.options.length > 0 && args.push("--options", inv.build.options.join(",")), inv.build.noBytecode && args.push("--no-bytecode"), inv.build.noDict.length > 0 && args.push("--no-dict", inv.build.noDict.join(",")), inv.build.debug && args.push("--debug"), args.push("--out-path", inv.outputDir), inv.build.extraArgs !== void 0 && inv.build.extraArgs.trim() !== "")
+    for (let tok of inv.build.extraArgs.split(/\s+/).filter((s) => s.length > 0))
+      args.push(tok);
+  let entry = inv.build.entry ?? ".";
+  return args.push(entry), args;
+}
+async function runPkg(inv, deps) {
+  let args = buildPkgArgs(inv);
+  deps.logger.info(`[pkg-action] Invoking: ${deps.pkgCommand} ${args.join(" ")}`);
+  let result;
+  try {
+    result = await deps.exec(deps.pkgCommand, args, {
+      ignoreReturnCode: !0,
+      ...inv.cwd !== void 0 ? { cwd: inv.cwd } : {},
+      ...inv.env !== void 0 ? { env: inv.env } : {}
+    });
+  } catch (err) {
+    throw new PkgRunError(`Failed to spawn pkg: ${String(err)}`, { cause: err });
+  }
+  if (result.exitCode !== 0)
+    throw new PkgRunError(`pkg exited with code ${String(result.exitCode)}. See stderr above.`);
+  return result;
+}
+
+// packages/core/src/pkg-output-map.ts
+import { access as access2, readdir as readdir2 } from "node:fs/promises";
+import { join as join5 } from "node:path";
+function predictOutputNames(targets, baseName) {
+  if (targets.length === 0) return [];
+  if (targets.length === 1) {
+    let only = targets[0];
+    return only ? [withWindowsSuffix(baseName, only)] : [];
+  }
+  let nodes = new Set(targets.map((t) => String(t.node))), oses = new Set(targets.map((t) => t.os)), archs = new Set(targets.map((t) => t.arch)), diverges = {
+    node: nodes.size > 1,
+    os: oses.size > 1,
+    arch: archs.size > 1
+  };
+  return targets.map((t) => {
+    let parts = [baseName];
+    return diverges.node && parts.push(String(t.node)), diverges.os && parts.push(t.os), diverges.arch && parts.push(t.arch), withWindowsSuffix(parts.join("-"), t);
+  });
+}
+function withWindowsSuffix(name, target) {
+  return target.os === "win" && !name.toLowerCase().endsWith(".exe") ? `${name}.exe` : name;
+}
+async function mapPkgOutputs(targets, baseName, outputDir) {
+  let predicted = predictOutputNames(targets, baseName), entries = [], unresolved = [];
+  for (let i = 0; i < targets.length; i += 1) {
+    let target = targets[i], name = predicted[i];
+    if (target === void 0 || name === void 0) continue;
+    let candidate = join5(outputDir, name);
+    await exists2(candidate) ? entries.push({ target, path: candidate }) : unresolved.push({ target, predicted: name });
+  }
+  if (unresolved.length > 0) {
+    let listing = await readdir2(outputDir);
+    for (let { target, predicted: predictedName } of unresolved) {
+      let match = findFallbackMatch(listing, target, predictedName);
+      if (match === void 0)
+        throw new PkgRunError(
+          `pkg did not produce an output for ${formatTarget(target)}. Expected "${predictedName}" in ${outputDir}; directory contains: ${listing.join(", ") || "(empty)"}.`
+        );
+      entries.push({ target, path: join5(outputDir, match) });
+    }
+  }
+  return entries;
+}
+function findFallbackMatch(listing, target, predicted) {
+  if (listing.includes(predicted)) return predicted;
+  let lower = predicted.toLowerCase(), ci = listing.find((f) => f.toLowerCase() === lower);
+  if (ci !== void 0) return ci;
+  let needle = `${target.os}-${target.arch}`;
+  return listing.find((f) => f.toLowerCase().includes(needle.toLowerCase()));
+}
+async function exists2(path7) {
+  try {
+    return await access2(path7), !0;
+  } catch {
+    return !1;
+  }
+}
+
+// packages/core/src/archive.ts
+var import_yazl = __toESM(require_yazl(), 1);
+import { createWriteStream } from "node:fs";
+import { stat as stat3 } from "node:fs/promises";
+import { basename as basename4 } from "node:path";
+import { pipeline as pipeline2 } from "node:stream/promises";
+async function archive(req, deps) {
+  let entry = req.entryName ?? basename4(req.inputPath), mode = req.mode ?? 493;
+  try {
+    await stat3(req.inputPath);
+  } catch (err) {
+    throw new ArchiveError(`Archive input does not exist: ${req.inputPath}`, { cause: err });
+  }
+  switch (req.format) {
+    case "tar.gz":
+      return await shellTar(req.inputPath, req.outputPath, "gz", entry, deps), req.outputPath;
+    case "tar.xz":
+      return await shellTar(req.inputPath, req.outputPath, "xz", entry, deps), req.outputPath;
+    case "zip":
+      return await writeZip(req.inputPath, req.outputPath, entry, mode), req.outputPath;
+    case "7z":
+      return await shell7z(req.inputPath, req.outputPath, entry, deps), req.outputPath;
+  }
+}
+async function shellTar(inputPath, outputPath, compression, entry, deps) {
+  let { dirname: dirname5 } = await import("node:path"), { mkdtemp, symlink: symlink2, rm: rm3 } = await import("node:fs/promises"), { tmpdir } = await import("node:os"), compressFlag = compression === "gz" ? "-z" : "-J", stageDir, workDir = dirname5(inputPath), fileName = basename4(inputPath);
+  if (entry !== basename4(inputPath)) {
+    stageDir = await mkdtemp(`${tmpdir()}/pkgaction-tar-`);
+    let linkPath = `${stageDir}/${entry}`;
+    await symlink2(inputPath, linkPath), workDir = stageDir, fileName = entry;
+  }
+  try {
+    let result = await deps.exec(
+      "tar",
+      ["-c", compressFlag, "-f", outputPath, "-C", workDir, fileName],
+      { ignoreReturnCode: !0 }
+    );
+    if (result.exitCode !== 0)
+      throw new ArchiveError(
+        `tar exited ${String(result.exitCode)} writing ${outputPath}. stderr: ${result.stderr.trim()}`
+      );
+  } finally {
+    stageDir !== void 0 && await rm3(stageDir, { recursive: !0, force: !0 });
+  }
+}
+async function writeZip(inputPath, outputPath, entry, mode) {
+  let zipfile = new import_yazl.default.ZipFile(), mtime = new Date(Date.UTC(2020, 0, 1, 0, 0, 0));
+  zipfile.addFile(inputPath, entry, { mode, mtime, compress: !0 }), zipfile.end();
+  try {
+    await pipeline2(zipfile.outputStream, createWriteStream(outputPath));
+  } catch (err) {
+    throw new ArchiveError(`Failed to write zip ${outputPath}`, { cause: err });
+  }
+}
+async function shell7z(inputPath, outputPath, entry, deps) {
+  let { dirname: dirname5 } = await import("node:path"), { mkdtemp, symlink: symlink2, rm: rm3 } = await import("node:fs/promises"), { tmpdir } = await import("node:os"), stageDir, workDir = dirname5(inputPath), fileName = basename4(inputPath);
+  if (entry !== basename4(inputPath)) {
+    stageDir = await mkdtemp(`${tmpdir()}/pkgaction-7z-`);
+    let linkPath = `${stageDir}/${entry}`;
+    await symlink2(inputPath, linkPath), workDir = stageDir, fileName = entry;
+  }
+  try {
+    let result = await deps.exec("7z", ["a", "-bb0", outputPath, fileName], {
+      cwd: workDir,
+      ignoreReturnCode: !0
+    });
+    if (result.exitCode !== 0)
+      throw new ArchiveError(
+        `7z exited ${String(result.exitCode)} writing ${outputPath}. stderr: ${result.stderr.trim()}`
+      );
+  } finally {
+    stageDir !== void 0 && await rm3(stageDir, { recursive: !0, force: !0 });
+  }
+}
+
+// packages/core/src/summary.ts
+import { appendFile as appendFile2 } from "node:fs/promises";
+import { basename as basename5 } from "node:path";
+function renderSummary(rows, opts = {}) {
+  let parts = [];
+  parts.push(`## ${opts.title ?? "pkg-action build summary"}`), parts.push("");
+  let meta = [];
+  if (opts.actionVersion !== void 0 && meta.push(`**action:** \`${opts.actionVersion}\``), opts.pkgVersion !== void 0 && meta.push(`**pkg:** \`${opts.pkgVersion}\``), meta.length > 0 && (parts.push(meta.join(" \xB7 ")), parts.push("")), rows.length === 0)
+    return parts.push("_No binaries produced._"), parts.push(""), parts.join(`
+`);
+  let hasDuration = rows.some((r) => r.durationMs !== void 0), hasDigest = rows.some((r) => r.primaryDigest !== void 0), hasSigned = rows.some((r) => r.signed === !0), header = ["Target", "Filename", "Size"];
+  hasDigest && header.push("SHA"), hasSigned && header.push("Signed"), hasDuration && header.push("Time");
+  let sep3 = header.map(() => "---");
+  parts.push(`| ${header.join(" | ")} |`), parts.push(`| ${sep3.join(" | ")} |`);
+  for (let row of rows) {
+    let cells = [
+      `\`${row.target}\``,
+      `\`${basename5(row.filename)}\``,
+      formatBytes(row.sizeBytes)
+    ];
+    hasDigest && (row.primaryDigest !== void 0 ? cells.push(`\`${row.primaryDigest.algo}:${row.primaryDigest.value.slice(0, 12)}\u2026\``) : cells.push("\u2014")), hasSigned && cells.push(row.signed === !0 ? "\u2713" : "\u2014"), hasDuration && cells.push(row.durationMs !== void 0 ? formatDuration(row.durationMs) : "\u2014"), parts.push(`| ${cells.join(" | ")} |`);
+  }
+  return parts.push(""), opts.releaseUrl !== void 0 && opts.releaseUrl !== "" && (parts.push(`**Release:** ${opts.releaseUrl}`), parts.push("")), parts.join(`
+`);
+}
+async function writeSummary(rows, opts = {}, env = process.env) {
+  let path7 = env.GITHUB_STEP_SUMMARY;
+  if (path7 === void 0 || path7 === "") return !1;
+  let markdown = renderSummary(rows, opts);
+  return await appendFile2(path7, markdown), !0;
+}
+function formatBytes(bytes) {
+  if (bytes < 1024) return `${bytes} B`;
+  let units = ["KiB", "MiB", "GiB", "TiB"], v = bytes, i = -1;
+  for (; v >= 1024 && i < units.length - 1; )
+    v /= 1024, i += 1;
+  return `${v.toFixed(v >= 100 ? 0 : v >= 10 ? 1 : 2)} ${units[i]}`;
+}
+function formatDuration(ms) {
+  if (ms < 1e3) return `${ms} ms`;
+  let s = ms / 1e3;
+  if (s < 60) return `${s.toFixed(1)} s`;
+  let m = Math.floor(s / 60), rem = s - m * 60;
+  return `${m}m ${rem.toFixed(0)}s`;
+}
+
 // packages/core/src/uploader.ts
 import { createReadStream as createReadStream3 } from "node:fs";
-import { basename as basename8 } from "node:path";
 import { stat as stat4 } from "node:fs/promises";
 async function uploadArtifacts(requests, deps) {
   let results = [], seenNames = /* @__PURE__ */ new Set();
@@ -75841,15 +75693,6 @@ function extractTagFromRef(ref) {
   let tag = ref.slice(prefix2.length);
   return tag === "" ? void 0 : tag;
 }
-function artifactBasename(path7) {
-  return basename8(path7);
-}
-var init_uploader = __esm({
-  "packages/core/src/uploader.ts"() {
-    "use strict";
-    init_errors();
-  }
-});
 
 // packages/core/src/project-info.ts
 import { readFile as readFile2 } from "node:fs/promises";
@@ -75898,14 +75741,6 @@ function extractTag(githubRef) {
   let tag = githubRef.slice(prefix2.length);
   return tag === "" ? void 0 : tag;
 }
-var init_project_info = __esm({
-  "packages/core/src/project-info.ts"() {
-    "use strict";
-    init_errors();
-    init_templates();
-    init_targets();
-  }
-});
 
 // packages/core/src/windows-metadata.ts
 function parseIconSpec(raw) {
@@ -76045,169 +75880,150 @@ function parseUint16(raw, inputName) {
     throw new ValidationError(`${inputName} must be a uint16 integer, got "${raw}".`);
   return n;
 }
-var init_windows_metadata = __esm({
-  "packages/core/src/windows-metadata.ts"() {
-    "use strict";
-    init_errors();
-    init_inputs();
-  }
-});
 
 // node_modules/pe-library/dist/format/FormatBase.js
-var FormatBase, FormatBase_default, init_FormatBase = __esm({
-  "node_modules/pe-library/dist/format/FormatBase.js"() {
-    FormatBase = /** @class */
-    (function() {
-      function FormatBase2(view) {
-        this.view = view;
-      }
-      return FormatBase2.prototype.copyTo = function(bin, offset) {
-        new Uint8Array(bin, offset, this.view.byteLength).set(new Uint8Array(this.view.buffer, this.view.byteOffset, this.view.byteLength));
-      }, Object.defineProperty(FormatBase2.prototype, "byteLength", {
-        get: function() {
-          return this.view.byteLength;
-        },
-        enumerable: !1,
-        configurable: !0
-      }), FormatBase2;
-    })(), FormatBase_default = FormatBase;
-  }
-});
+var FormatBase = (
+  /** @class */
+  (function() {
+    function FormatBase2(view) {
+      this.view = view;
+    }
+    return FormatBase2.prototype.copyTo = function(bin, offset) {
+      new Uint8Array(bin, offset, this.view.byteLength).set(new Uint8Array(this.view.buffer, this.view.byteOffset, this.view.byteLength));
+    }, Object.defineProperty(FormatBase2.prototype, "byteLength", {
+      get: function() {
+        return this.view.byteLength;
+      },
+      enumerable: !1,
+      configurable: !0
+    }), FormatBase2;
+  })()
+), FormatBase_default = FormatBase;
 
 // node_modules/pe-library/dist/format/ArrayFormatBase.js
-var __extends, ArrayFormatBase, ArrayFormatBase_default, init_ArrayFormatBase = __esm({
-  "node_modules/pe-library/dist/format/ArrayFormatBase.js"() {
-    init_FormatBase();
-    __extends = /* @__PURE__ */ (function() {
-      var extendStatics = function(d, b) {
-        return extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
-          d2.__proto__ = b2;
-        } || function(d2, b2) {
-          for (var p in b2) Object.prototype.hasOwnProperty.call(b2, p) && (d2[p] = b2[p]);
-        }, extendStatics(d, b);
-      };
-      return function(d, b) {
-        if (typeof b != "function" && b !== null)
-          throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
-        extendStatics(d, b);
-        function __() {
-          this.constructor = d;
+var __extends = /* @__PURE__ */ (function() {
+  var extendStatics = function(d, b) {
+    return extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
+      d2.__proto__ = b2;
+    } || function(d2, b2) {
+      for (var p in b2) Object.prototype.hasOwnProperty.call(b2, p) && (d2[p] = b2[p]);
+    }, extendStatics(d, b);
+  };
+  return function(d, b) {
+    if (typeof b != "function" && b !== null)
+      throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+    extendStatics(d, b);
+    function __() {
+      this.constructor = d;
+    }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+  };
+})(), ArrayFormatBase = (
+  /** @class */
+  (function(_super) {
+    __extends(ArrayFormatBase2, _super);
+    function ArrayFormatBase2(view) {
+      return _super.call(this, view) || this;
+    }
+    return ArrayFormatBase2.prototype.forEach = function(callback) {
+      var len = this.length, a = [];
+      a.length = len;
+      for (var i = 0; i < len; ++i)
+        a[i] = this.get(i);
+      for (var i = 0; i < len; ++i)
+        callback(a[i], i, this);
+    }, ArrayFormatBase2.prototype._iterator = function() {
+      return new /** @class */
+      ((function() {
+        function class_1(base) {
+          this.base = base, this.i = 0;
         }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-      };
-    })(), ArrayFormatBase = /** @class */
-    (function(_super) {
-      __extends(ArrayFormatBase2, _super);
-      function ArrayFormatBase2(view) {
-        return _super.call(this, view) || this;
-      }
-      return ArrayFormatBase2.prototype.forEach = function(callback) {
-        var len = this.length, a = [];
-        a.length = len;
-        for (var i = 0; i < len; ++i)
-          a[i] = this.get(i);
-        for (var i = 0; i < len; ++i)
-          callback(a[i], i, this);
-      }, ArrayFormatBase2.prototype._iterator = function() {
-        return new /** @class */
-        ((function() {
-          function class_1(base) {
-            this.base = base, this.i = 0;
-          }
-          return class_1.prototype.next = function() {
-            return this.i === this.base.length ? {
-              value: void 0,
-              done: !0
-            } : {
-              value: this.base.get(this.i++),
-              done: !1
-            };
-          }, class_1;
-        })())(this);
-      }, ArrayFormatBase2;
-    })(FormatBase_default);
-    typeof Symbol < "u" && (ArrayFormatBase.prototype[Symbol.iterator] = // eslint-disable-next-line @typescript-eslint/unbound-method
-    ArrayFormatBase.prototype._iterator);
-    ArrayFormatBase_default = ArrayFormatBase;
-  }
-});
+        return class_1.prototype.next = function() {
+          return this.i === this.base.length ? {
+            value: void 0,
+            done: !0
+          } : {
+            value: this.base.get(this.i++),
+            done: !1
+          };
+        }, class_1;
+      })())(this);
+    }, ArrayFormatBase2;
+  })(FormatBase_default)
+);
+typeof Symbol < "u" && (ArrayFormatBase.prototype[Symbol.iterator] = // eslint-disable-next-line @typescript-eslint/unbound-method
+ArrayFormatBase.prototype._iterator);
+var ArrayFormatBase_default = ArrayFormatBase;
 
 // node_modules/pe-library/dist/format/ImageDataDirectoryArray.js
-var __extends2, ImageDataDirectoryArray, ImageDataDirectoryArray_default, init_ImageDataDirectoryArray = __esm({
-  "node_modules/pe-library/dist/format/ImageDataDirectoryArray.js"() {
-    init_ArrayFormatBase();
-    __extends2 = /* @__PURE__ */ (function() {
-      var extendStatics = function(d, b) {
-        return extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
-          d2.__proto__ = b2;
-        } || function(d2, b2) {
-          for (var p in b2) Object.prototype.hasOwnProperty.call(b2, p) && (d2[p] = b2[p]);
-        }, extendStatics(d, b);
+var __extends2 = /* @__PURE__ */ (function() {
+  var extendStatics = function(d, b) {
+    return extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
+      d2.__proto__ = b2;
+    } || function(d2, b2) {
+      for (var p in b2) Object.prototype.hasOwnProperty.call(b2, p) && (d2[p] = b2[p]);
+    }, extendStatics(d, b);
+  };
+  return function(d, b) {
+    if (typeof b != "function" && b !== null)
+      throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+    extendStatics(d, b);
+    function __() {
+      this.constructor = d;
+    }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+  };
+})(), ImageDataDirectoryArray = (
+  /** @class */
+  (function(_super) {
+    __extends2(ImageDataDirectoryArray2, _super);
+    function ImageDataDirectoryArray2(view) {
+      var _this = _super.call(this, view) || this;
+      return _this.length = 16, _this;
+    }
+    return ImageDataDirectoryArray2.from = function(bin, offset) {
+      return offset === void 0 && (offset = 0), new ImageDataDirectoryArray2(new DataView(bin, offset, 128));
+    }, ImageDataDirectoryArray2.prototype.get = function(index) {
+      return {
+        virtualAddress: this.view.getUint32(index * 8, !0),
+        size: this.view.getUint32(4 + index * 8, !0)
       };
-      return function(d, b) {
-        if (typeof b != "function" && b !== null)
-          throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
-        extendStatics(d, b);
-        function __() {
-          this.constructor = d;
-        }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-      };
-    })(), ImageDataDirectoryArray = /** @class */
-    (function(_super) {
-      __extends2(ImageDataDirectoryArray2, _super);
-      function ImageDataDirectoryArray2(view) {
-        var _this = _super.call(this, view) || this;
-        return _this.length = 16, _this;
+    }, ImageDataDirectoryArray2.prototype.set = function(index, data) {
+      this.view.setUint32(index * 8, data.virtualAddress, !0), this.view.setUint32(4 + index * 8, data.size, !0);
+    }, ImageDataDirectoryArray2.prototype.findIndexByVirtualAddress = function(virtualAddress) {
+      for (var i = 0; i < 16; ++i) {
+        var va = this.view.getUint32(i * 8, !0), vs = this.view.getUint32(4 + i * 8, !0);
+        if (virtualAddress >= va && virtualAddress < va + vs)
+          return i;
       }
-      return ImageDataDirectoryArray2.from = function(bin, offset) {
-        return offset === void 0 && (offset = 0), new ImageDataDirectoryArray2(new DataView(bin, offset, 128));
-      }, ImageDataDirectoryArray2.prototype.get = function(index) {
-        return {
-          virtualAddress: this.view.getUint32(index * 8, !0),
-          size: this.view.getUint32(4 + index * 8, !0)
-        };
-      }, ImageDataDirectoryArray2.prototype.set = function(index, data) {
-        this.view.setUint32(index * 8, data.virtualAddress, !0), this.view.setUint32(4 + index * 8, data.size, !0);
-      }, ImageDataDirectoryArray2.prototype.findIndexByVirtualAddress = function(virtualAddress) {
-        for (var i = 0; i < 16; ++i) {
-          var va = this.view.getUint32(i * 8, !0), vs = this.view.getUint32(4 + i * 8, !0);
-          if (virtualAddress >= va && virtualAddress < va + vs)
-            return i;
-        }
-        return null;
-      }, ImageDataDirectoryArray2.size = 128, ImageDataDirectoryArray2.itemSize = 8, ImageDataDirectoryArray2;
-    })(ArrayFormatBase_default), ImageDataDirectoryArray_default = ImageDataDirectoryArray;
-  }
-});
+      return null;
+    }, ImageDataDirectoryArray2.size = 128, ImageDataDirectoryArray2.itemSize = 8, ImageDataDirectoryArray2;
+  })(ArrayFormatBase_default)
+), ImageDataDirectoryArray_default = ImageDataDirectoryArray;
 
 // node_modules/pe-library/dist/format/ImageDirectoryEntry.js
-var ImageDirectoryEntry, ImageDirectoryEntry_default, init_ImageDirectoryEntry = __esm({
-  "node_modules/pe-library/dist/format/ImageDirectoryEntry.js"() {
-    ImageDirectoryEntry = {
-      Export: 0,
-      Import: 1,
-      Resource: 2,
-      Exception: 3,
-      Certificate: 4,
-      Security: 4,
-      BaseRelocation: 5,
-      Debug: 6,
-      Architecture: 7,
-      GlobalPointer: 8,
-      Tls: 9,
-      TLS: 9,
-      LoadConfig: 10,
-      BoundImport: 11,
-      Iat: 12,
-      IAT: 12,
-      DelayImport: 13,
-      ComDescriptor: 14,
-      COMDescriptor: 14
-      // alias
-    }, ImageDirectoryEntry_default = ImageDirectoryEntry;
-  }
-});
+var ImageDirectoryEntry = {
+  Export: 0,
+  Import: 1,
+  Resource: 2,
+  Exception: 3,
+  Certificate: 4,
+  Security: 4,
+  BaseRelocation: 5,
+  Debug: 6,
+  Architecture: 7,
+  GlobalPointer: 8,
+  Tls: 9,
+  TLS: 9,
+  LoadConfig: 10,
+  BoundImport: 11,
+  Iat: 12,
+  IAT: 12,
+  DelayImport: 13,
+  ComDescriptor: 14,
+  COMDescriptor: 14
+  // alias
+}, ImageDirectoryEntry_default = ImageDirectoryEntry;
 
 // node_modules/pe-library/dist/util/functions.js
 function cloneObject(object) {
@@ -76352,606 +76168,609 @@ function stringToBinary(string) {
     }
   }
 }
-var init_functions = __esm({
-  "node_modules/pe-library/dist/util/functions.js"() {
-    init_ImageDosHeader();
-  }
-});
 
 // node_modules/pe-library/dist/format/ImageDosHeader.js
-var __extends3, ImageDosHeader, ImageDosHeader_default, init_ImageDosHeader = __esm({
-  "node_modules/pe-library/dist/format/ImageDosHeader.js"() {
-    init_functions();
-    init_FormatBase();
-    __extends3 = /* @__PURE__ */ (function() {
-      var extendStatics = function(d, b) {
-        return extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
-          d2.__proto__ = b2;
-        } || function(d2, b2) {
-          for (var p in b2) Object.prototype.hasOwnProperty.call(b2, p) && (d2[p] = b2[p]);
-        }, extendStatics(d, b);
-      };
-      return function(d, b) {
-        if (typeof b != "function" && b !== null)
-          throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
-        extendStatics(d, b);
-        function __() {
-          this.constructor = d;
-        }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-      };
-    })(), ImageDosHeader = /** @class */
-    (function(_super) {
-      __extends3(ImageDosHeader2, _super);
-      function ImageDosHeader2(view) {
-        return _super.call(this, view) || this;
-      }
-      return ImageDosHeader2.from = function(bin, offset) {
-        return offset === void 0 && (offset = 0), new ImageDosHeader2(createDataView(bin, offset, 64));
-      }, ImageDosHeader2.prototype.isValid = function() {
-        return this.magic === ImageDosHeader2.DEFAULT_MAGIC;
-      }, Object.defineProperty(ImageDosHeader2.prototype, "magic", {
-        get: function() {
-          return this.view.getUint16(0, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(0, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageDosHeader2.prototype, "lastPageSize", {
-        get: function() {
-          return this.view.getUint16(2, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(2, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageDosHeader2.prototype, "pages", {
-        get: function() {
-          return this.view.getUint16(4, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(4, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageDosHeader2.prototype, "relocations", {
-        get: function() {
-          return this.view.getUint16(6, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(6, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageDosHeader2.prototype, "headerSizeInParagraph", {
-        get: function() {
-          return this.view.getUint16(8, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(8, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageDosHeader2.prototype, "minAllocParagraphs", {
-        get: function() {
-          return this.view.getUint16(10, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(10, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageDosHeader2.prototype, "maxAllocParagraphs", {
-        get: function() {
-          return this.view.getUint16(12, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(12, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageDosHeader2.prototype, "initialSS", {
-        get: function() {
-          return this.view.getUint16(14, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(14, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageDosHeader2.prototype, "initialSP", {
-        get: function() {
-          return this.view.getUint16(16, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(16, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageDosHeader2.prototype, "checkSum", {
-        get: function() {
-          return this.view.getUint16(18, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(18, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageDosHeader2.prototype, "initialIP", {
-        get: function() {
-          return this.view.getUint16(20, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(20, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageDosHeader2.prototype, "initialCS", {
-        get: function() {
-          return this.view.getUint16(22, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(22, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageDosHeader2.prototype, "relocationTableAddress", {
-        get: function() {
-          return this.view.getUint16(24, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(24, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageDosHeader2.prototype, "overlayNum", {
-        get: function() {
-          return this.view.getUint16(26, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(26, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageDosHeader2.prototype, "oemId", {
-        // WORD e_res[4] (28,30,32,34)
-        get: function() {
-          return this.view.getUint16(36, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(36, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageDosHeader2.prototype, "oemInfo", {
-        get: function() {
-          return this.view.getUint16(38, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(38, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageDosHeader2.prototype, "newHeaderAddress", {
-        // WORD e_res2[10] (40,42,44,46,48,50,52,54,56,58)
-        get: function() {
-          return this.view.getUint32(60, !0);
-        },
-        set: function(val) {
-          this.view.setUint32(60, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), ImageDosHeader2.size = 64, ImageDosHeader2.DEFAULT_MAGIC = 23117, ImageDosHeader2;
-    })(FormatBase_default), ImageDosHeader_default = ImageDosHeader;
-  }
-});
+var __extends3 = /* @__PURE__ */ (function() {
+  var extendStatics = function(d, b) {
+    return extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
+      d2.__proto__ = b2;
+    } || function(d2, b2) {
+      for (var p in b2) Object.prototype.hasOwnProperty.call(b2, p) && (d2[p] = b2[p]);
+    }, extendStatics(d, b);
+  };
+  return function(d, b) {
+    if (typeof b != "function" && b !== null)
+      throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+    extendStatics(d, b);
+    function __() {
+      this.constructor = d;
+    }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+  };
+})(), ImageDosHeader = (
+  /** @class */
+  (function(_super) {
+    __extends3(ImageDosHeader2, _super);
+    function ImageDosHeader2(view) {
+      return _super.call(this, view) || this;
+    }
+    return ImageDosHeader2.from = function(bin, offset) {
+      return offset === void 0 && (offset = 0), new ImageDosHeader2(createDataView(bin, offset, 64));
+    }, ImageDosHeader2.prototype.isValid = function() {
+      return this.magic === ImageDosHeader2.DEFAULT_MAGIC;
+    }, Object.defineProperty(ImageDosHeader2.prototype, "magic", {
+      get: function() {
+        return this.view.getUint16(0, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(0, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageDosHeader2.prototype, "lastPageSize", {
+      get: function() {
+        return this.view.getUint16(2, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(2, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageDosHeader2.prototype, "pages", {
+      get: function() {
+        return this.view.getUint16(4, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(4, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageDosHeader2.prototype, "relocations", {
+      get: function() {
+        return this.view.getUint16(6, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(6, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageDosHeader2.prototype, "headerSizeInParagraph", {
+      get: function() {
+        return this.view.getUint16(8, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(8, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageDosHeader2.prototype, "minAllocParagraphs", {
+      get: function() {
+        return this.view.getUint16(10, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(10, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageDosHeader2.prototype, "maxAllocParagraphs", {
+      get: function() {
+        return this.view.getUint16(12, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(12, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageDosHeader2.prototype, "initialSS", {
+      get: function() {
+        return this.view.getUint16(14, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(14, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageDosHeader2.prototype, "initialSP", {
+      get: function() {
+        return this.view.getUint16(16, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(16, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageDosHeader2.prototype, "checkSum", {
+      get: function() {
+        return this.view.getUint16(18, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(18, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageDosHeader2.prototype, "initialIP", {
+      get: function() {
+        return this.view.getUint16(20, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(20, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageDosHeader2.prototype, "initialCS", {
+      get: function() {
+        return this.view.getUint16(22, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(22, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageDosHeader2.prototype, "relocationTableAddress", {
+      get: function() {
+        return this.view.getUint16(24, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(24, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageDosHeader2.prototype, "overlayNum", {
+      get: function() {
+        return this.view.getUint16(26, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(26, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageDosHeader2.prototype, "oemId", {
+      // WORD e_res[4] (28,30,32,34)
+      get: function() {
+        return this.view.getUint16(36, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(36, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageDosHeader2.prototype, "oemInfo", {
+      get: function() {
+        return this.view.getUint16(38, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(38, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageDosHeader2.prototype, "newHeaderAddress", {
+      // WORD e_res2[10] (40,42,44,46,48,50,52,54,56,58)
+      get: function() {
+        return this.view.getUint32(60, !0);
+      },
+      set: function(val) {
+        this.view.setUint32(60, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), ImageDosHeader2.size = 64, ImageDosHeader2.DEFAULT_MAGIC = 23117, ImageDosHeader2;
+  })(FormatBase_default)
+), ImageDosHeader_default = ImageDosHeader;
 
 // node_modules/pe-library/dist/format/ImageFileHeader.js
-var __extends4, ImageFileHeader, ImageFileHeader_default, init_ImageFileHeader = __esm({
-  "node_modules/pe-library/dist/format/ImageFileHeader.js"() {
-    init_FormatBase();
-    __extends4 = /* @__PURE__ */ (function() {
-      var extendStatics = function(d, b) {
-        return extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
-          d2.__proto__ = b2;
-        } || function(d2, b2) {
-          for (var p in b2) Object.prototype.hasOwnProperty.call(b2, p) && (d2[p] = b2[p]);
-        }, extendStatics(d, b);
-      };
-      return function(d, b) {
-        if (typeof b != "function" && b !== null)
-          throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
-        extendStatics(d, b);
-        function __() {
-          this.constructor = d;
-        }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-      };
-    })(), ImageFileHeader = /** @class */
-    (function(_super) {
-      __extends4(ImageFileHeader2, _super);
-      function ImageFileHeader2(view) {
-        return _super.call(this, view) || this;
-      }
-      return ImageFileHeader2.from = function(bin, offset) {
-        return offset === void 0 && (offset = 0), new ImageFileHeader2(new DataView(bin, offset, 20));
-      }, Object.defineProperty(ImageFileHeader2.prototype, "machine", {
-        get: function() {
-          return this.view.getUint16(0, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(0, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageFileHeader2.prototype, "numberOfSections", {
-        get: function() {
-          return this.view.getUint16(2, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(2, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageFileHeader2.prototype, "timeDateStamp", {
-        get: function() {
-          return this.view.getUint32(4, !0);
-        },
-        set: function(val) {
-          this.view.setUint32(4, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageFileHeader2.prototype, "pointerToSymbolTable", {
-        get: function() {
-          return this.view.getUint32(8, !0);
-        },
-        set: function(val) {
-          this.view.setUint32(8, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageFileHeader2.prototype, "numberOfSymbols", {
-        get: function() {
-          return this.view.getUint32(12, !0);
-        },
-        set: function(val) {
-          this.view.setUint32(12, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageFileHeader2.prototype, "sizeOfOptionalHeader", {
-        get: function() {
-          return this.view.getUint16(16, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(16, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageFileHeader2.prototype, "characteristics", {
-        get: function() {
-          return this.view.getUint16(18, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(18, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), ImageFileHeader2.size = 20, ImageFileHeader2;
-    })(FormatBase_default), ImageFileHeader_default = ImageFileHeader;
-  }
-});
+var __extends4 = /* @__PURE__ */ (function() {
+  var extendStatics = function(d, b) {
+    return extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
+      d2.__proto__ = b2;
+    } || function(d2, b2) {
+      for (var p in b2) Object.prototype.hasOwnProperty.call(b2, p) && (d2[p] = b2[p]);
+    }, extendStatics(d, b);
+  };
+  return function(d, b) {
+    if (typeof b != "function" && b !== null)
+      throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+    extendStatics(d, b);
+    function __() {
+      this.constructor = d;
+    }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+  };
+})(), ImageFileHeader = (
+  /** @class */
+  (function(_super) {
+    __extends4(ImageFileHeader2, _super);
+    function ImageFileHeader2(view) {
+      return _super.call(this, view) || this;
+    }
+    return ImageFileHeader2.from = function(bin, offset) {
+      return offset === void 0 && (offset = 0), new ImageFileHeader2(new DataView(bin, offset, 20));
+    }, Object.defineProperty(ImageFileHeader2.prototype, "machine", {
+      get: function() {
+        return this.view.getUint16(0, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(0, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageFileHeader2.prototype, "numberOfSections", {
+      get: function() {
+        return this.view.getUint16(2, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(2, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageFileHeader2.prototype, "timeDateStamp", {
+      get: function() {
+        return this.view.getUint32(4, !0);
+      },
+      set: function(val) {
+        this.view.setUint32(4, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageFileHeader2.prototype, "pointerToSymbolTable", {
+      get: function() {
+        return this.view.getUint32(8, !0);
+      },
+      set: function(val) {
+        this.view.setUint32(8, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageFileHeader2.prototype, "numberOfSymbols", {
+      get: function() {
+        return this.view.getUint32(12, !0);
+      },
+      set: function(val) {
+        this.view.setUint32(12, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageFileHeader2.prototype, "sizeOfOptionalHeader", {
+      get: function() {
+        return this.view.getUint16(16, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(16, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageFileHeader2.prototype, "characteristics", {
+      get: function() {
+        return this.view.getUint16(18, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(18, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), ImageFileHeader2.size = 20, ImageFileHeader2;
+  })(FormatBase_default)
+), ImageFileHeader_default = ImageFileHeader;
 
 // node_modules/pe-library/dist/format/ImageOptionalHeader.js
-var __extends5, ImageOptionalHeader, ImageOptionalHeader_default, init_ImageOptionalHeader = __esm({
-  "node_modules/pe-library/dist/format/ImageOptionalHeader.js"() {
-    init_FormatBase();
-    __extends5 = /* @__PURE__ */ (function() {
-      var extendStatics = function(d, b) {
-        return extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
-          d2.__proto__ = b2;
-        } || function(d2, b2) {
-          for (var p in b2) Object.prototype.hasOwnProperty.call(b2, p) && (d2[p] = b2[p]);
-        }, extendStatics(d, b);
-      };
-      return function(d, b) {
-        if (typeof b != "function" && b !== null)
-          throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
-        extendStatics(d, b);
-        function __() {
-          this.constructor = d;
-        }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-      };
-    })(), ImageOptionalHeader = /** @class */
-    (function(_super) {
-      __extends5(ImageOptionalHeader2, _super);
-      function ImageOptionalHeader2(view) {
-        return _super.call(this, view) || this;
-      }
-      return ImageOptionalHeader2.from = function(bin, offset) {
-        return offset === void 0 && (offset = 0), new ImageOptionalHeader2(new DataView(bin, offset, 96));
-      }, Object.defineProperty(ImageOptionalHeader2.prototype, "magic", {
-        get: function() {
-          return this.view.getUint16(0, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(0, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader2.prototype, "majorLinkerVersion", {
-        get: function() {
-          return this.view.getUint8(2);
-        },
-        set: function(val) {
-          this.view.setUint8(2, val);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader2.prototype, "minorLinkerVersion", {
-        get: function() {
-          return this.view.getUint8(3);
-        },
-        set: function(val) {
-          this.view.setUint8(3, val);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader2.prototype, "sizeOfCode", {
-        get: function() {
-          return this.view.getUint32(4, !0);
-        },
-        set: function(val) {
-          this.view.setUint32(4, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader2.prototype, "sizeOfInitializedData", {
-        get: function() {
-          return this.view.getUint32(8, !0);
-        },
-        set: function(val) {
-          this.view.setUint32(8, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader2.prototype, "sizeOfUninitializedData", {
-        get: function() {
-          return this.view.getUint32(12, !0);
-        },
-        set: function(val) {
-          this.view.setUint32(12, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader2.prototype, "addressOfEntryPoint", {
-        get: function() {
-          return this.view.getUint32(16, !0);
-        },
-        set: function(val) {
-          this.view.setUint32(16, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader2.prototype, "baseOfCode", {
-        get: function() {
-          return this.view.getUint32(20, !0);
-        },
-        set: function(val) {
-          this.view.setUint32(20, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader2.prototype, "baseOfData", {
-        get: function() {
-          return this.view.getUint32(24, !0);
-        },
-        set: function(val) {
-          this.view.setUint32(24, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader2.prototype, "imageBase", {
-        get: function() {
-          return this.view.getUint32(28, !0);
-        },
-        set: function(val) {
-          this.view.setUint32(28, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader2.prototype, "sectionAlignment", {
-        get: function() {
-          return this.view.getUint32(32, !0);
-        },
-        set: function(val) {
-          this.view.setUint32(32, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader2.prototype, "fileAlignment", {
-        get: function() {
-          return this.view.getUint32(36, !0);
-        },
-        set: function(val) {
-          this.view.setUint32(36, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader2.prototype, "majorOperatingSystemVersion", {
-        get: function() {
-          return this.view.getUint16(40, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(40, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader2.prototype, "minorOperatingSystemVersion", {
-        get: function() {
-          return this.view.getUint16(42, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(42, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader2.prototype, "majorImageVersion", {
-        get: function() {
-          return this.view.getUint16(44, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(44, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader2.prototype, "minorImageVersion", {
-        get: function() {
-          return this.view.getUint16(46, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(46, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader2.prototype, "majorSubsystemVersion", {
-        get: function() {
-          return this.view.getUint16(48, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(48, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader2.prototype, "minorSubsystemVersion", {
-        get: function() {
-          return this.view.getUint16(50, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(50, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader2.prototype, "win32VersionValue", {
-        get: function() {
-          return this.view.getUint32(52, !0);
-        },
-        set: function(val) {
-          this.view.setUint32(52, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader2.prototype, "sizeOfImage", {
-        get: function() {
-          return this.view.getUint32(56, !0);
-        },
-        set: function(val) {
-          this.view.setUint32(56, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader2.prototype, "sizeOfHeaders", {
-        get: function() {
-          return this.view.getUint32(60, !0);
-        },
-        set: function(val) {
-          this.view.setUint32(60, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader2.prototype, "checkSum", {
-        get: function() {
-          return this.view.getUint32(64, !0);
-        },
-        set: function(val) {
-          this.view.setUint32(64, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader2.prototype, "subsystem", {
-        get: function() {
-          return this.view.getUint16(68, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(68, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader2.prototype, "dllCharacteristics", {
-        get: function() {
-          return this.view.getUint16(70, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(70, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader2.prototype, "sizeOfStackReserve", {
-        get: function() {
-          return this.view.getUint32(72, !0);
-        },
-        set: function(val) {
-          this.view.setUint32(72, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader2.prototype, "sizeOfStackCommit", {
-        get: function() {
-          return this.view.getUint32(76, !0);
-        },
-        set: function(val) {
-          this.view.setUint32(76, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader2.prototype, "sizeOfHeapReserve", {
-        get: function() {
-          return this.view.getUint32(80, !0);
-        },
-        set: function(val) {
-          this.view.setUint32(80, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader2.prototype, "sizeOfHeapCommit", {
-        get: function() {
-          return this.view.getUint32(84, !0);
-        },
-        set: function(val) {
-          this.view.setUint32(84, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader2.prototype, "loaderFlags", {
-        get: function() {
-          return this.view.getUint32(88, !0);
-        },
-        set: function(val) {
-          this.view.setUint32(88, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader2.prototype, "numberOfRvaAndSizes", {
-        get: function() {
-          return this.view.getUint32(92, !0);
-        },
-        set: function(val) {
-          this.view.setUint32(92, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), ImageOptionalHeader2.size = 96, ImageOptionalHeader2.DEFAULT_MAGIC = 267, ImageOptionalHeader2;
-    })(FormatBase_default), ImageOptionalHeader_default = ImageOptionalHeader;
-  }
-});
+var __extends5 = /* @__PURE__ */ (function() {
+  var extendStatics = function(d, b) {
+    return extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
+      d2.__proto__ = b2;
+    } || function(d2, b2) {
+      for (var p in b2) Object.prototype.hasOwnProperty.call(b2, p) && (d2[p] = b2[p]);
+    }, extendStatics(d, b);
+  };
+  return function(d, b) {
+    if (typeof b != "function" && b !== null)
+      throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+    extendStatics(d, b);
+    function __() {
+      this.constructor = d;
+    }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+  };
+})(), ImageOptionalHeader = (
+  /** @class */
+  (function(_super) {
+    __extends5(ImageOptionalHeader2, _super);
+    function ImageOptionalHeader2(view) {
+      return _super.call(this, view) || this;
+    }
+    return ImageOptionalHeader2.from = function(bin, offset) {
+      return offset === void 0 && (offset = 0), new ImageOptionalHeader2(new DataView(bin, offset, 96));
+    }, Object.defineProperty(ImageOptionalHeader2.prototype, "magic", {
+      get: function() {
+        return this.view.getUint16(0, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(0, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader2.prototype, "majorLinkerVersion", {
+      get: function() {
+        return this.view.getUint8(2);
+      },
+      set: function(val) {
+        this.view.setUint8(2, val);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader2.prototype, "minorLinkerVersion", {
+      get: function() {
+        return this.view.getUint8(3);
+      },
+      set: function(val) {
+        this.view.setUint8(3, val);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader2.prototype, "sizeOfCode", {
+      get: function() {
+        return this.view.getUint32(4, !0);
+      },
+      set: function(val) {
+        this.view.setUint32(4, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader2.prototype, "sizeOfInitializedData", {
+      get: function() {
+        return this.view.getUint32(8, !0);
+      },
+      set: function(val) {
+        this.view.setUint32(8, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader2.prototype, "sizeOfUninitializedData", {
+      get: function() {
+        return this.view.getUint32(12, !0);
+      },
+      set: function(val) {
+        this.view.setUint32(12, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader2.prototype, "addressOfEntryPoint", {
+      get: function() {
+        return this.view.getUint32(16, !0);
+      },
+      set: function(val) {
+        this.view.setUint32(16, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader2.prototype, "baseOfCode", {
+      get: function() {
+        return this.view.getUint32(20, !0);
+      },
+      set: function(val) {
+        this.view.setUint32(20, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader2.prototype, "baseOfData", {
+      get: function() {
+        return this.view.getUint32(24, !0);
+      },
+      set: function(val) {
+        this.view.setUint32(24, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader2.prototype, "imageBase", {
+      get: function() {
+        return this.view.getUint32(28, !0);
+      },
+      set: function(val) {
+        this.view.setUint32(28, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader2.prototype, "sectionAlignment", {
+      get: function() {
+        return this.view.getUint32(32, !0);
+      },
+      set: function(val) {
+        this.view.setUint32(32, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader2.prototype, "fileAlignment", {
+      get: function() {
+        return this.view.getUint32(36, !0);
+      },
+      set: function(val) {
+        this.view.setUint32(36, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader2.prototype, "majorOperatingSystemVersion", {
+      get: function() {
+        return this.view.getUint16(40, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(40, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader2.prototype, "minorOperatingSystemVersion", {
+      get: function() {
+        return this.view.getUint16(42, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(42, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader2.prototype, "majorImageVersion", {
+      get: function() {
+        return this.view.getUint16(44, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(44, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader2.prototype, "minorImageVersion", {
+      get: function() {
+        return this.view.getUint16(46, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(46, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader2.prototype, "majorSubsystemVersion", {
+      get: function() {
+        return this.view.getUint16(48, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(48, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader2.prototype, "minorSubsystemVersion", {
+      get: function() {
+        return this.view.getUint16(50, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(50, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader2.prototype, "win32VersionValue", {
+      get: function() {
+        return this.view.getUint32(52, !0);
+      },
+      set: function(val) {
+        this.view.setUint32(52, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader2.prototype, "sizeOfImage", {
+      get: function() {
+        return this.view.getUint32(56, !0);
+      },
+      set: function(val) {
+        this.view.setUint32(56, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader2.prototype, "sizeOfHeaders", {
+      get: function() {
+        return this.view.getUint32(60, !0);
+      },
+      set: function(val) {
+        this.view.setUint32(60, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader2.prototype, "checkSum", {
+      get: function() {
+        return this.view.getUint32(64, !0);
+      },
+      set: function(val) {
+        this.view.setUint32(64, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader2.prototype, "subsystem", {
+      get: function() {
+        return this.view.getUint16(68, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(68, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader2.prototype, "dllCharacteristics", {
+      get: function() {
+        return this.view.getUint16(70, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(70, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader2.prototype, "sizeOfStackReserve", {
+      get: function() {
+        return this.view.getUint32(72, !0);
+      },
+      set: function(val) {
+        this.view.setUint32(72, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader2.prototype, "sizeOfStackCommit", {
+      get: function() {
+        return this.view.getUint32(76, !0);
+      },
+      set: function(val) {
+        this.view.setUint32(76, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader2.prototype, "sizeOfHeapReserve", {
+      get: function() {
+        return this.view.getUint32(80, !0);
+      },
+      set: function(val) {
+        this.view.setUint32(80, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader2.prototype, "sizeOfHeapCommit", {
+      get: function() {
+        return this.view.getUint32(84, !0);
+      },
+      set: function(val) {
+        this.view.setUint32(84, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader2.prototype, "loaderFlags", {
+      get: function() {
+        return this.view.getUint32(88, !0);
+      },
+      set: function(val) {
+        this.view.setUint32(88, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader2.prototype, "numberOfRvaAndSizes", {
+      get: function() {
+        return this.view.getUint32(92, !0);
+      },
+      set: function(val) {
+        this.view.setUint32(92, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), ImageOptionalHeader2.size = 96, ImageOptionalHeader2.DEFAULT_MAGIC = 267, ImageOptionalHeader2;
+  })(FormatBase_default)
+), ImageOptionalHeader_default = ImageOptionalHeader;
 
 // node_modules/pe-library/dist/format/ImageOptionalHeader64.js
+var __extends6 = /* @__PURE__ */ (function() {
+  var extendStatics = function(d, b) {
+    return extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
+      d2.__proto__ = b2;
+    } || function(d2, b2) {
+      for (var p in b2) Object.prototype.hasOwnProperty.call(b2, p) && (d2[p] = b2[p]);
+    }, extendStatics(d, b);
+  };
+  return function(d, b) {
+    if (typeof b != "function" && b !== null)
+      throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+    extendStatics(d, b);
+    function __() {
+      this.constructor = d;
+    }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+  };
+})();
 function getUint64LE(view, offset) {
   return view.getUint32(offset + 4, !0) * 4294967296 + view.getUint32(offset, !0);
 }
@@ -76968,494 +76787,495 @@ function setUint64LEBigInt(view, offset, val) {
     throw new Error("BigInt not supported");
   view.setUint32(offset, Number(val & BigInt(4294967295)), !0), view.setUint32(offset + 4, Math.floor(Number(val / BigInt(4294967296) & BigInt(4294967295))), !0);
 }
-var __extends6, ImageOptionalHeader64, ImageOptionalHeader64_default, init_ImageOptionalHeader64 = __esm({
-  "node_modules/pe-library/dist/format/ImageOptionalHeader64.js"() {
-    init_FormatBase();
-    __extends6 = /* @__PURE__ */ (function() {
-      var extendStatics = function(d, b) {
-        return extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
-          d2.__proto__ = b2;
-        } || function(d2, b2) {
-          for (var p in b2) Object.prototype.hasOwnProperty.call(b2, p) && (d2[p] = b2[p]);
-        }, extendStatics(d, b);
-      };
-      return function(d, b) {
-        if (typeof b != "function" && b !== null)
-          throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
-        extendStatics(d, b);
-        function __() {
-          this.constructor = d;
-        }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-      };
-    })();
-    ImageOptionalHeader64 = /** @class */
-    (function(_super) {
-      __extends6(ImageOptionalHeader642, _super);
-      function ImageOptionalHeader642(view) {
-        return _super.call(this, view) || this;
-      }
-      return ImageOptionalHeader642.from = function(bin, offset) {
-        return offset === void 0 && (offset = 0), new ImageOptionalHeader642(new DataView(bin, offset, 112));
-      }, Object.defineProperty(ImageOptionalHeader642.prototype, "magic", {
-        get: function() {
-          return this.view.getUint16(0, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(0, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader642.prototype, "majorLinkerVersion", {
-        get: function() {
-          return this.view.getUint8(2);
-        },
-        set: function(val) {
-          this.view.setUint8(2, val);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader642.prototype, "minorLinkerVersion", {
-        get: function() {
-          return this.view.getUint8(3);
-        },
-        set: function(val) {
-          this.view.setUint8(3, val);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfCode", {
-        get: function() {
-          return this.view.getUint32(4, !0);
-        },
-        set: function(val) {
-          this.view.setUint32(4, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfInitializedData", {
-        get: function() {
-          return this.view.getUint32(8, !0);
-        },
-        set: function(val) {
-          this.view.setUint32(8, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfUninitializedData", {
-        get: function() {
-          return this.view.getUint32(12, !0);
-        },
-        set: function(val) {
-          this.view.setUint32(12, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader642.prototype, "addressOfEntryPoint", {
-        get: function() {
-          return this.view.getUint32(16, !0);
-        },
-        set: function(val) {
-          this.view.setUint32(16, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader642.prototype, "baseOfCode", {
-        get: function() {
-          return this.view.getUint32(20, !0);
-        },
-        set: function(val) {
-          this.view.setUint32(20, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader642.prototype, "imageBase", {
-        get: function() {
-          return getUint64LE(this.view, 24);
-        },
-        set: function(val) {
-          setUint64LE(this.view, 24, val);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader642.prototype, "imageBaseBigInt", {
-        get: function() {
-          return getUint64LEBigInt(this.view, 24);
-        },
-        set: function(val) {
-          setUint64LEBigInt(this.view, 24, val);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader642.prototype, "sectionAlignment", {
-        get: function() {
-          return this.view.getUint32(32, !0);
-        },
-        set: function(val) {
-          this.view.setUint32(32, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader642.prototype, "fileAlignment", {
-        get: function() {
-          return this.view.getUint32(36, !0);
-        },
-        set: function(val) {
-          this.view.setUint32(36, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader642.prototype, "majorOperatingSystemVersion", {
-        get: function() {
-          return this.view.getUint16(40, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(40, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader642.prototype, "minorOperatingSystemVersion", {
-        get: function() {
-          return this.view.getUint16(42, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(42, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader642.prototype, "majorImageVersion", {
-        get: function() {
-          return this.view.getUint16(44, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(44, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader642.prototype, "minorImageVersion", {
-        get: function() {
-          return this.view.getUint16(46, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(46, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader642.prototype, "majorSubsystemVersion", {
-        get: function() {
-          return this.view.getUint16(48, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(48, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader642.prototype, "minorSubsystemVersion", {
-        get: function() {
-          return this.view.getUint16(50, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(50, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader642.prototype, "win32VersionValue", {
-        get: function() {
-          return this.view.getUint32(52, !0);
-        },
-        set: function(val) {
-          this.view.setUint32(52, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfImage", {
-        get: function() {
-          return this.view.getUint32(56, !0);
-        },
-        set: function(val) {
-          this.view.setUint32(56, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfHeaders", {
-        get: function() {
-          return this.view.getUint32(60, !0);
-        },
-        set: function(val) {
-          this.view.setUint32(60, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader642.prototype, "checkSum", {
-        get: function() {
-          return this.view.getUint32(64, !0);
-        },
-        set: function(val) {
-          this.view.setUint32(64, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader642.prototype, "subsystem", {
-        get: function() {
-          return this.view.getUint16(68, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(68, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader642.prototype, "dllCharacteristics", {
-        get: function() {
-          return this.view.getUint16(70, !0);
-        },
-        set: function(val) {
-          this.view.setUint16(70, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfStackReserve", {
-        get: function() {
-          return getUint64LE(this.view, 72);
-        },
-        set: function(val) {
-          setUint64LE(this.view, 72, val);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfStackReserveBigInt", {
-        get: function() {
-          return getUint64LEBigInt(this.view, 72);
-        },
-        set: function(val) {
-          setUint64LEBigInt(this.view, 72, val);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfStackCommit", {
-        get: function() {
-          return getUint64LE(this.view, 80);
-        },
-        set: function(val) {
-          setUint64LE(this.view, 80, val);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfStackCommitBigInt", {
-        get: function() {
-          return getUint64LEBigInt(this.view, 80);
-        },
-        set: function(val) {
-          setUint64LEBigInt(this.view, 80, val);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfHeapReserve", {
-        get: function() {
-          return getUint64LE(this.view, 88);
-        },
-        set: function(val) {
-          setUint64LE(this.view, 88, val);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfHeapReserveBigInt", {
-        get: function() {
-          return getUint64LEBigInt(this.view, 88);
-        },
-        set: function(val) {
-          setUint64LEBigInt(this.view, 88, val);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfHeapCommit", {
-        get: function() {
-          return getUint64LE(this.view, 96);
-        },
-        set: function(val) {
-          setUint64LE(this.view, 96, val);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfHeapCommitBigInt", {
-        get: function() {
-          return getUint64LEBigInt(this.view, 96);
-        },
-        set: function(val) {
-          setUint64LEBigInt(this.view, 96, val);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader642.prototype, "loaderFlags", {
-        get: function() {
-          return this.view.getUint32(104, !0);
-        },
-        set: function(val) {
-          this.view.setUint32(104, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageOptionalHeader642.prototype, "numberOfRvaAndSizes", {
-        get: function() {
-          return this.view.getUint32(108, !0);
-        },
-        set: function(val) {
-          this.view.setUint32(108, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), ImageOptionalHeader642.size = 112, ImageOptionalHeader642.DEFAULT_MAGIC = 523, ImageOptionalHeader642;
-    })(FormatBase_default), ImageOptionalHeader64_default = ImageOptionalHeader64;
-  }
-});
+var ImageOptionalHeader64 = (
+  /** @class */
+  (function(_super) {
+    __extends6(ImageOptionalHeader642, _super);
+    function ImageOptionalHeader642(view) {
+      return _super.call(this, view) || this;
+    }
+    return ImageOptionalHeader642.from = function(bin, offset) {
+      return offset === void 0 && (offset = 0), new ImageOptionalHeader642(new DataView(bin, offset, 112));
+    }, Object.defineProperty(ImageOptionalHeader642.prototype, "magic", {
+      get: function() {
+        return this.view.getUint16(0, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(0, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader642.prototype, "majorLinkerVersion", {
+      get: function() {
+        return this.view.getUint8(2);
+      },
+      set: function(val) {
+        this.view.setUint8(2, val);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader642.prototype, "minorLinkerVersion", {
+      get: function() {
+        return this.view.getUint8(3);
+      },
+      set: function(val) {
+        this.view.setUint8(3, val);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfCode", {
+      get: function() {
+        return this.view.getUint32(4, !0);
+      },
+      set: function(val) {
+        this.view.setUint32(4, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfInitializedData", {
+      get: function() {
+        return this.view.getUint32(8, !0);
+      },
+      set: function(val) {
+        this.view.setUint32(8, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfUninitializedData", {
+      get: function() {
+        return this.view.getUint32(12, !0);
+      },
+      set: function(val) {
+        this.view.setUint32(12, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader642.prototype, "addressOfEntryPoint", {
+      get: function() {
+        return this.view.getUint32(16, !0);
+      },
+      set: function(val) {
+        this.view.setUint32(16, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader642.prototype, "baseOfCode", {
+      get: function() {
+        return this.view.getUint32(20, !0);
+      },
+      set: function(val) {
+        this.view.setUint32(20, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader642.prototype, "imageBase", {
+      get: function() {
+        return getUint64LE(this.view, 24);
+      },
+      set: function(val) {
+        setUint64LE(this.view, 24, val);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader642.prototype, "imageBaseBigInt", {
+      get: function() {
+        return getUint64LEBigInt(this.view, 24);
+      },
+      set: function(val) {
+        setUint64LEBigInt(this.view, 24, val);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader642.prototype, "sectionAlignment", {
+      get: function() {
+        return this.view.getUint32(32, !0);
+      },
+      set: function(val) {
+        this.view.setUint32(32, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader642.prototype, "fileAlignment", {
+      get: function() {
+        return this.view.getUint32(36, !0);
+      },
+      set: function(val) {
+        this.view.setUint32(36, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader642.prototype, "majorOperatingSystemVersion", {
+      get: function() {
+        return this.view.getUint16(40, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(40, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader642.prototype, "minorOperatingSystemVersion", {
+      get: function() {
+        return this.view.getUint16(42, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(42, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader642.prototype, "majorImageVersion", {
+      get: function() {
+        return this.view.getUint16(44, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(44, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader642.prototype, "minorImageVersion", {
+      get: function() {
+        return this.view.getUint16(46, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(46, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader642.prototype, "majorSubsystemVersion", {
+      get: function() {
+        return this.view.getUint16(48, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(48, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader642.prototype, "minorSubsystemVersion", {
+      get: function() {
+        return this.view.getUint16(50, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(50, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader642.prototype, "win32VersionValue", {
+      get: function() {
+        return this.view.getUint32(52, !0);
+      },
+      set: function(val) {
+        this.view.setUint32(52, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfImage", {
+      get: function() {
+        return this.view.getUint32(56, !0);
+      },
+      set: function(val) {
+        this.view.setUint32(56, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfHeaders", {
+      get: function() {
+        return this.view.getUint32(60, !0);
+      },
+      set: function(val) {
+        this.view.setUint32(60, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader642.prototype, "checkSum", {
+      get: function() {
+        return this.view.getUint32(64, !0);
+      },
+      set: function(val) {
+        this.view.setUint32(64, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader642.prototype, "subsystem", {
+      get: function() {
+        return this.view.getUint16(68, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(68, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader642.prototype, "dllCharacteristics", {
+      get: function() {
+        return this.view.getUint16(70, !0);
+      },
+      set: function(val) {
+        this.view.setUint16(70, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfStackReserve", {
+      get: function() {
+        return getUint64LE(this.view, 72);
+      },
+      set: function(val) {
+        setUint64LE(this.view, 72, val);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfStackReserveBigInt", {
+      get: function() {
+        return getUint64LEBigInt(this.view, 72);
+      },
+      set: function(val) {
+        setUint64LEBigInt(this.view, 72, val);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfStackCommit", {
+      get: function() {
+        return getUint64LE(this.view, 80);
+      },
+      set: function(val) {
+        setUint64LE(this.view, 80, val);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfStackCommitBigInt", {
+      get: function() {
+        return getUint64LEBigInt(this.view, 80);
+      },
+      set: function(val) {
+        setUint64LEBigInt(this.view, 80, val);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfHeapReserve", {
+      get: function() {
+        return getUint64LE(this.view, 88);
+      },
+      set: function(val) {
+        setUint64LE(this.view, 88, val);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfHeapReserveBigInt", {
+      get: function() {
+        return getUint64LEBigInt(this.view, 88);
+      },
+      set: function(val) {
+        setUint64LEBigInt(this.view, 88, val);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfHeapCommit", {
+      get: function() {
+        return getUint64LE(this.view, 96);
+      },
+      set: function(val) {
+        setUint64LE(this.view, 96, val);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader642.prototype, "sizeOfHeapCommitBigInt", {
+      get: function() {
+        return getUint64LEBigInt(this.view, 96);
+      },
+      set: function(val) {
+        setUint64LEBigInt(this.view, 96, val);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader642.prototype, "loaderFlags", {
+      get: function() {
+        return this.view.getUint32(104, !0);
+      },
+      set: function(val) {
+        this.view.setUint32(104, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageOptionalHeader642.prototype, "numberOfRvaAndSizes", {
+      get: function() {
+        return this.view.getUint32(108, !0);
+      },
+      set: function(val) {
+        this.view.setUint32(108, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), ImageOptionalHeader642.size = 112, ImageOptionalHeader642.DEFAULT_MAGIC = 523, ImageOptionalHeader642;
+  })(FormatBase_default)
+), ImageOptionalHeader64_default = ImageOptionalHeader64;
 
 // node_modules/pe-library/dist/format/ImageNtHeaders.js
-var __extends7, ImageNtHeaders, ImageNtHeaders_default, init_ImageNtHeaders = __esm({
-  "node_modules/pe-library/dist/format/ImageNtHeaders.js"() {
-    init_functions();
-    init_FormatBase();
-    init_ImageDataDirectoryArray();
-    init_ImageFileHeader();
-    init_ImageOptionalHeader();
-    init_ImageOptionalHeader64();
-    __extends7 = /* @__PURE__ */ (function() {
-      var extendStatics = function(d, b) {
-        return extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
-          d2.__proto__ = b2;
-        } || function(d2, b2) {
-          for (var p in b2) Object.prototype.hasOwnProperty.call(b2, p) && (d2[p] = b2[p]);
-        }, extendStatics(d, b);
-      };
-      return function(d, b) {
-        if (typeof b != "function" && b !== null)
-          throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
-        extendStatics(d, b);
-        function __() {
-          this.constructor = d;
-        }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-      };
-    })(), ImageNtHeaders = /** @class */
-    (function(_super) {
-      __extends7(ImageNtHeaders2, _super);
-      function ImageNtHeaders2(view) {
-        return _super.call(this, view) || this;
-      }
-      return ImageNtHeaders2.from = function(bin, offset) {
-        offset === void 0 && (offset = 0);
-        var magic = createDataView(bin, offset + ImageFileHeader_default.size, 6).getUint16(4, !0), len = 4 + ImageFileHeader_default.size + ImageDataDirectoryArray_default.size;
-        return magic === ImageOptionalHeader64_default.DEFAULT_MAGIC ? len += ImageOptionalHeader64_default.size : len += ImageOptionalHeader_default.size, new ImageNtHeaders2(createDataView(bin, offset, len));
-      }, ImageNtHeaders2.prototype.isValid = function() {
-        return this.signature === ImageNtHeaders2.DEFAULT_SIGNATURE;
-      }, ImageNtHeaders2.prototype.is32bit = function() {
-        return this.view.getUint16(ImageFileHeader_default.size + 4, !0) === ImageOptionalHeader_default.DEFAULT_MAGIC;
-      }, Object.defineProperty(ImageNtHeaders2.prototype, "signature", {
-        get: function() {
-          return this.view.getUint32(0, !0);
-        },
-        set: function(val) {
-          this.view.setUint32(0, val, !0);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageNtHeaders2.prototype, "fileHeader", {
-        get: function() {
-          return ImageFileHeader_default.from(this.view.buffer, this.view.byteOffset + 4);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageNtHeaders2.prototype, "optionalHeader", {
-        get: function() {
-          var off = ImageFileHeader_default.size + 4, magic = this.view.getUint16(off, !0);
-          return magic === ImageOptionalHeader64_default.DEFAULT_MAGIC ? ImageOptionalHeader64_default.from(this.view.buffer, this.view.byteOffset + off) : ImageOptionalHeader_default.from(this.view.buffer, this.view.byteOffset + off);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(ImageNtHeaders2.prototype, "optionalHeaderDataDirectory", {
-        get: function() {
-          return ImageDataDirectoryArray_default.from(this.view.buffer, this.view.byteOffset + this.getDataDirectoryOffset());
-        },
-        enumerable: !1,
-        configurable: !0
-      }), ImageNtHeaders2.prototype.getDataDirectoryOffset = function() {
+var __extends7 = /* @__PURE__ */ (function() {
+  var extendStatics = function(d, b) {
+    return extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
+      d2.__proto__ = b2;
+    } || function(d2, b2) {
+      for (var p in b2) Object.prototype.hasOwnProperty.call(b2, p) && (d2[p] = b2[p]);
+    }, extendStatics(d, b);
+  };
+  return function(d, b) {
+    if (typeof b != "function" && b !== null)
+      throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+    extendStatics(d, b);
+    function __() {
+      this.constructor = d;
+    }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+  };
+})(), ImageNtHeaders = (
+  /** @class */
+  (function(_super) {
+    __extends7(ImageNtHeaders2, _super);
+    function ImageNtHeaders2(view) {
+      return _super.call(this, view) || this;
+    }
+    return ImageNtHeaders2.from = function(bin, offset) {
+      offset === void 0 && (offset = 0);
+      var magic = createDataView(bin, offset + ImageFileHeader_default.size, 6).getUint16(4, !0), len = 4 + ImageFileHeader_default.size + ImageDataDirectoryArray_default.size;
+      return magic === ImageOptionalHeader64_default.DEFAULT_MAGIC ? len += ImageOptionalHeader64_default.size : len += ImageOptionalHeader_default.size, new ImageNtHeaders2(createDataView(bin, offset, len));
+    }, ImageNtHeaders2.prototype.isValid = function() {
+      return this.signature === ImageNtHeaders2.DEFAULT_SIGNATURE;
+    }, ImageNtHeaders2.prototype.is32bit = function() {
+      return this.view.getUint16(ImageFileHeader_default.size + 4, !0) === ImageOptionalHeader_default.DEFAULT_MAGIC;
+    }, Object.defineProperty(ImageNtHeaders2.prototype, "signature", {
+      get: function() {
+        return this.view.getUint32(0, !0);
+      },
+      set: function(val) {
+        this.view.setUint32(0, val, !0);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageNtHeaders2.prototype, "fileHeader", {
+      get: function() {
+        return ImageFileHeader_default.from(this.view.buffer, this.view.byteOffset + 4);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageNtHeaders2.prototype, "optionalHeader", {
+      get: function() {
         var off = ImageFileHeader_default.size + 4, magic = this.view.getUint16(off, !0);
-        return magic === ImageOptionalHeader64_default.DEFAULT_MAGIC ? off += ImageOptionalHeader64_default.size : off += ImageOptionalHeader_default.size, off;
-      }, ImageNtHeaders2.prototype.getSectionHeaderOffset = function() {
-        return this.getDataDirectoryOffset() + ImageDataDirectoryArray_default.size;
-      }, ImageNtHeaders2.DEFAULT_SIGNATURE = 17744, ImageNtHeaders2;
-    })(FormatBase_default), ImageNtHeaders_default = ImageNtHeaders;
-  }
-});
+        return magic === ImageOptionalHeader64_default.DEFAULT_MAGIC ? ImageOptionalHeader64_default.from(this.view.buffer, this.view.byteOffset + off) : ImageOptionalHeader_default.from(this.view.buffer, this.view.byteOffset + off);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(ImageNtHeaders2.prototype, "optionalHeaderDataDirectory", {
+      get: function() {
+        return ImageDataDirectoryArray_default.from(this.view.buffer, this.view.byteOffset + this.getDataDirectoryOffset());
+      },
+      enumerable: !1,
+      configurable: !0
+    }), ImageNtHeaders2.prototype.getDataDirectoryOffset = function() {
+      var off = ImageFileHeader_default.size + 4, magic = this.view.getUint16(off, !0);
+      return magic === ImageOptionalHeader64_default.DEFAULT_MAGIC ? off += ImageOptionalHeader64_default.size : off += ImageOptionalHeader_default.size, off;
+    }, ImageNtHeaders2.prototype.getSectionHeaderOffset = function() {
+      return this.getDataDirectoryOffset() + ImageDataDirectoryArray_default.size;
+    }, ImageNtHeaders2.DEFAULT_SIGNATURE = 17744, ImageNtHeaders2;
+  })(FormatBase_default)
+), ImageNtHeaders_default = ImageNtHeaders;
 
 // node_modules/pe-library/dist/format/ImageSectionHeaderArray.js
-var __extends8, ImageSectionHeaderArray, ImageSectionHeaderArray_default, init_ImageSectionHeaderArray = __esm({
-  "node_modules/pe-library/dist/format/ImageSectionHeaderArray.js"() {
-    init_functions();
-    init_ArrayFormatBase();
-    __extends8 = /* @__PURE__ */ (function() {
-      var extendStatics = function(d, b) {
-        return extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
-          d2.__proto__ = b2;
-        } || function(d2, b2) {
-          for (var p in b2) Object.prototype.hasOwnProperty.call(b2, p) && (d2[p] = b2[p]);
-        }, extendStatics(d, b);
+var __extends8 = /* @__PURE__ */ (function() {
+  var extendStatics = function(d, b) {
+    return extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
+      d2.__proto__ = b2;
+    } || function(d2, b2) {
+      for (var p in b2) Object.prototype.hasOwnProperty.call(b2, p) && (d2[p] = b2[p]);
+    }, extendStatics(d, b);
+  };
+  return function(d, b) {
+    if (typeof b != "function" && b !== null)
+      throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+    extendStatics(d, b);
+    function __() {
+      this.constructor = d;
+    }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+  };
+})(), ImageSectionHeaderArray = (
+  /** @class */
+  (function(_super) {
+    __extends8(ImageSectionHeaderArray2, _super);
+    function ImageSectionHeaderArray2(view, length) {
+      var _this = _super.call(this, view) || this;
+      return _this.length = length, _this;
+    }
+    return ImageSectionHeaderArray2.from = function(bin, length, offset) {
+      offset === void 0 && (offset = 0);
+      var size = length * 40;
+      return new ImageSectionHeaderArray2(new DataView(bin, offset, size), length);
+    }, ImageSectionHeaderArray2.prototype.get = function(index) {
+      return {
+        name: getFixedString(this.view, index * 40, 8),
+        virtualSize: this.view.getUint32(8 + index * 40, !0),
+        virtualAddress: this.view.getUint32(12 + index * 40, !0),
+        sizeOfRawData: this.view.getUint32(16 + index * 40, !0),
+        pointerToRawData: this.view.getUint32(20 + index * 40, !0),
+        pointerToRelocations: this.view.getUint32(24 + index * 40, !0),
+        pointerToLineNumbers: this.view.getUint32(28 + index * 40, !0),
+        numberOfRelocations: this.view.getUint16(32 + index * 40, !0),
+        numberOfLineNumbers: this.view.getUint16(34 + index * 40, !0),
+        characteristics: this.view.getUint32(36 + index * 40, !0)
       };
-      return function(d, b) {
-        if (typeof b != "function" && b !== null)
-          throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
-        extendStatics(d, b);
-        function __() {
-          this.constructor = d;
-        }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-      };
-    })(), ImageSectionHeaderArray = /** @class */
-    (function(_super) {
-      __extends8(ImageSectionHeaderArray2, _super);
-      function ImageSectionHeaderArray2(view, length) {
-        var _this = _super.call(this, view) || this;
-        return _this.length = length, _this;
-      }
-      return ImageSectionHeaderArray2.from = function(bin, length, offset) {
-        offset === void 0 && (offset = 0);
-        var size = length * 40;
-        return new ImageSectionHeaderArray2(new DataView(bin, offset, size), length);
-      }, ImageSectionHeaderArray2.prototype.get = function(index) {
-        return {
-          name: getFixedString(this.view, index * 40, 8),
-          virtualSize: this.view.getUint32(8 + index * 40, !0),
-          virtualAddress: this.view.getUint32(12 + index * 40, !0),
-          sizeOfRawData: this.view.getUint32(16 + index * 40, !0),
-          pointerToRawData: this.view.getUint32(20 + index * 40, !0),
-          pointerToRelocations: this.view.getUint32(24 + index * 40, !0),
-          pointerToLineNumbers: this.view.getUint32(28 + index * 40, !0),
-          numberOfRelocations: this.view.getUint16(32 + index * 40, !0),
-          numberOfLineNumbers: this.view.getUint16(34 + index * 40, !0),
-          characteristics: this.view.getUint32(36 + index * 40, !0)
-        };
-      }, ImageSectionHeaderArray2.prototype.set = function(index, data) {
-        setFixedString(this.view, index * 40, 8, data.name), this.view.setUint32(8 + index * 40, data.virtualSize, !0), this.view.setUint32(12 + index * 40, data.virtualAddress, !0), this.view.setUint32(16 + index * 40, data.sizeOfRawData, !0), this.view.setUint32(20 + index * 40, data.pointerToRawData, !0), this.view.setUint32(24 + index * 40, data.pointerToRelocations, !0), this.view.setUint32(28 + index * 40, data.pointerToLineNumbers, !0), this.view.setUint16(32 + index * 40, data.numberOfRelocations, !0), this.view.setUint16(34 + index * 40, data.numberOfLineNumbers, !0), this.view.setUint32(36 + index * 40, data.characteristics, !0);
-      }, ImageSectionHeaderArray2.itemSize = 40, ImageSectionHeaderArray2;
-    })(ArrayFormatBase_default), ImageSectionHeaderArray_default = ImageSectionHeaderArray;
-  }
-});
-
-// node_modules/pe-library/dist/format/index.js
-var init_format = __esm({
-  "node_modules/pe-library/dist/format/index.js"() {
-    init_ArrayFormatBase();
-    init_FormatBase();
-    init_ImageDataDirectoryArray();
-    init_ImageDirectoryEntry();
-    init_ImageDosHeader();
-    init_ImageFileHeader();
-    init_ImageNtHeaders();
-    init_ImageOptionalHeader();
-    init_ImageOptionalHeader64();
-    init_ImageSectionHeaderArray();
-  }
-});
+    }, ImageSectionHeaderArray2.prototype.set = function(index, data) {
+      setFixedString(this.view, index * 40, 8, data.name), this.view.setUint32(8 + index * 40, data.virtualSize, !0), this.view.setUint32(12 + index * 40, data.virtualAddress, !0), this.view.setUint32(16 + index * 40, data.sizeOfRawData, !0), this.view.setUint32(20 + index * 40, data.pointerToRawData, !0), this.view.setUint32(24 + index * 40, data.pointerToRelocations, !0), this.view.setUint32(28 + index * 40, data.pointerToLineNumbers, !0), this.view.setUint16(32 + index * 40, data.numberOfRelocations, !0), this.view.setUint16(34 + index * 40, data.numberOfLineNumbers, !0), this.view.setUint32(36 + index * 40, data.characteristics, !0);
+    }, ImageSectionHeaderArray2.itemSize = 40, ImageSectionHeaderArray2;
+  })(ArrayFormatBase_default)
+), ImageSectionHeaderArray_default = ImageSectionHeaderArray;
 
 // node_modules/pe-library/dist/util/generate.js
+var DOS_STUB_PROGRAM = new Uint8Array([
+  14,
+  31,
+  186,
+  14,
+  0,
+  180,
+  9,
+  205,
+  33,
+  184,
+  1,
+  76,
+  205,
+  33,
+  68,
+  79,
+  83,
+  32,
+  109,
+  111,
+  100,
+  101,
+  32,
+  110,
+  111,
+  116,
+  32,
+  115,
+  117,
+  112,
+  112,
+  111,
+  114,
+  116,
+  101,
+  100,
+  46,
+  13,
+  13,
+  10,
+  36,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0
+]), DOS_STUB_SIZE = roundUp(ImageDosHeader_default.size + DOS_STUB_PROGRAM.length, 128), DEFAULT_FILE_ALIGNMENT = 512;
 function fillDosStubData(bin) {
   var dos = ImageDosHeader_default.from(bin);
   dos.magic = ImageDosHeader_default.DEFAULT_MAGIC, dos.lastPageSize = DOS_STUB_SIZE % 512, dos.pages = Math.ceil(DOS_STUB_SIZE / 512), dos.relocations = 0, dos.headerSizeInParagraph = Math.ceil(ImageDosHeader_default.size / 16), dos.minAllocParagraphs = 0, dos.maxAllocParagraphs = 65535, dos.initialSS = 0, dos.initialSP = 128, dos.relocationTableAddress = ImageDosHeader_default.size, dos.newHeaderAddress = DOS_STUB_SIZE, copyBuffer(bin, ImageDosHeader_default.size, DOS_STUB_PROGRAM, 0, DOS_STUB_PROGRAM.length);
@@ -77480,241 +77300,171 @@ function makeEmptyNtExecutableBinary(is32Bit, isDLL) {
   var bufferSize = roundUp(DOS_STUB_SIZE + estimateNewHeaderSize(is32Bit), DEFAULT_FILE_ALIGNMENT), bin = new ArrayBuffer(bufferSize);
   return fillDosStubData(bin), fillPeHeaderEmptyData(bin, DOS_STUB_SIZE, bufferSize, is32Bit, isDLL), bin;
 }
-var DOS_STUB_PROGRAM, DOS_STUB_SIZE, DEFAULT_FILE_ALIGNMENT, init_generate = __esm({
-  "node_modules/pe-library/dist/util/generate.js"() {
-    init_ImageDataDirectoryArray();
-    init_ImageDosHeader();
-    init_ImageFileHeader();
-    init_ImageNtHeaders();
-    init_ImageOptionalHeader();
-    init_ImageOptionalHeader64();
-    init_functions();
-    DOS_STUB_PROGRAM = new Uint8Array([
-      14,
-      31,
-      186,
-      14,
-      0,
-      180,
-      9,
-      205,
-      33,
-      184,
-      1,
-      76,
-      205,
-      33,
-      68,
-      79,
-      83,
-      32,
-      109,
-      111,
-      100,
-      101,
-      32,
-      110,
-      111,
-      116,
-      32,
-      115,
-      117,
-      112,
-      112,
-      111,
-      114,
-      116,
-      101,
-      100,
-      46,
-      13,
-      13,
-      10,
-      36,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0
-    ]), DOS_STUB_SIZE = roundUp(ImageDosHeader_default.size + DOS_STUB_PROGRAM.length, 128), DEFAULT_FILE_ALIGNMENT = 512;
-  }
-});
 
 // node_modules/pe-library/dist/NtExecutable.js
-var NtExecutable, NtExecutable_default, init_NtExecutable = __esm({
-  "node_modules/pe-library/dist/NtExecutable.js"() {
-    init_ImageDataDirectoryArray();
-    init_ImageDirectoryEntry();
-    init_ImageDosHeader();
-    init_ImageNtHeaders();
-    init_ImageSectionHeaderArray();
-    init_functions();
-    init_generate();
-    NtExecutable = /** @class */
-    (function() {
-      function NtExecutable2(_headers, _sections, _ex) {
-        this._headers = _headers, this._sections = _sections, this._ex = _ex;
-        var dh = ImageDosHeader_default.from(_headers), nh = ImageNtHeaders_default.from(_headers, dh.newHeaderAddress);
-        this._dh = dh, this._nh = nh, this._dda = nh.optionalHeaderDataDirectory, _sections.sort(function(a, b) {
-          var ra = a.info.pointerToRawData, rb = a.info.pointerToRawData;
-          if (ra !== rb)
-            return ra - rb;
-          var va = a.info.virtualAddress, vb = b.info.virtualAddress;
-          return va === vb ? a.info.virtualSize - b.info.virtualSize : va - vb;
-        });
-      }
-      return NtExecutable2.createEmpty = function(is32Bit, isDLL) {
-        return is32Bit === void 0 && (is32Bit = !1), isDLL === void 0 && (isDLL = !0), this.from(makeEmptyNtExecutableBinary(is32Bit, isDLL));
-      }, NtExecutable2.from = function(bin, options) {
-        var dh = ImageDosHeader_default.from(bin), nh = ImageNtHeaders_default.from(bin, dh.newHeaderAddress);
-        if (!dh.isValid() || !nh.isValid())
-          throw new TypeError("Invalid binary format");
-        if (nh.fileHeader.numberOfSymbols > 0)
-          throw new Error("Binary with symbols is not supported now");
-        var fileAlignment = nh.optionalHeader.fileAlignment, securityEntry = nh.optionalHeaderDataDirectory.get(ImageDirectoryEntry_default.Certificate);
-        if (securityEntry.size > 0 && !options?.ignoreCert)
-          throw new Error("Parsing signed executable binary is not allowed by default.");
-        var secOff = dh.newHeaderAddress + nh.getSectionHeaderOffset(), secCount = nh.fileHeader.numberOfSections, sections = [], tempSectionHeaderBinary = allocatePartialBinary(bin, secOff, secCount * ImageSectionHeaderArray_default.itemSize), secArray = ImageSectionHeaderArray_default.from(tempSectionHeaderBinary, secCount, 0), lastOffset = roundUp(secOff + secCount * ImageSectionHeaderArray_default.itemSize, fileAlignment);
-        secArray.forEach(function(info2) {
-          if (!info2.pointerToRawData || !info2.sizeOfRawData)
-            info2.pointerToRawData = 0, info2.sizeOfRawData = 0, sections.push({
-              info: info2,
-              data: null
-            });
-          else {
-            var secBin = allocatePartialBinary(bin, info2.pointerToRawData, info2.sizeOfRawData);
-            sections.push({
-              info: info2,
-              data: secBin
-            });
-            var secEndOffset = roundUp(info2.pointerToRawData + info2.sizeOfRawData, fileAlignment);
-            secEndOffset > lastOffset && (lastOffset = secEndOffset);
-          }
-        });
-        var headers = allocatePartialBinary(bin, 0, secOff), exData = null, lastExDataOffset = bin.byteLength;
-        return securityEntry.size > 0 && (lastExDataOffset = securityEntry.virtualAddress), lastOffset < lastExDataOffset && (exData = allocatePartialBinary(bin, lastOffset, lastExDataOffset - lastOffset)), new NtExecutable2(headers, sections, exData);
-      }, NtExecutable2.prototype.is32bit = function() {
-        return this._nh.is32bit();
-      }, NtExecutable2.prototype.getTotalHeaderSize = function() {
-        return this._headers.byteLength;
-      }, Object.defineProperty(NtExecutable2.prototype, "dosHeader", {
-        get: function() {
-          return this._dh;
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(NtExecutable2.prototype, "newHeader", {
-        get: function() {
-          return this._nh;
-        },
-        enumerable: !1,
-        configurable: !0
-      }), NtExecutable2.prototype.getRawHeader = function() {
-        return this._headers;
-      }, NtExecutable2.prototype.getImageBase = function() {
-        return this._nh.optionalHeader.imageBase;
-      }, NtExecutable2.prototype.getFileAlignment = function() {
-        return this._nh.optionalHeader.fileAlignment;
-      }, NtExecutable2.prototype.getSectionAlignment = function() {
-        return this._nh.optionalHeader.sectionAlignment;
-      }, NtExecutable2.prototype.getAllSections = function() {
-        return this._sections;
-      }, NtExecutable2.prototype.getSectionByEntry = function(entry) {
-        var dd = this._dda.get(entry), r = this._sections.filter(function(sec) {
-          var vaEnd = sec.info.virtualAddress + sec.info.virtualSize;
-          return dd.virtualAddress >= sec.info.virtualAddress && dd.virtualAddress < vaEnd;
-        }).shift();
-        return r !== void 0 ? r : null;
-      }, NtExecutable2.prototype.setSectionByEntry = function(entry, section) {
-        var sec = section ? { data: section.data, info: section.info } : null, dd = this._dda.get(entry), hasEntry = dd.size > 0;
-        if (sec) {
-          var rawSize = sec.data ? sec.data.byteLength : 0, fileAlign = this._nh.optionalHeader.fileAlignment, secAlign = this._nh.optionalHeader.sectionAlignment, alignedFileSize = sec.data ? roundUp(rawSize, fileAlign) : 0, alignedSecSize = sec.data ? roundUp(sec.info.virtualSize, secAlign) : 0;
-          if (sec.info.sizeOfRawData < alignedFileSize ? sec.info.sizeOfRawData = alignedFileSize : alignedFileSize = sec.info.sizeOfRawData, hasEntry)
-            this.replaceSectionImpl(dd.virtualAddress, sec.info, sec.data);
-          else {
-            var virtAddr_1 = 0, rawAddr_1 = roundUp(this._headers.byteLength, fileAlign);
-            this._sections.forEach(function(secExist) {
-              secExist.info.pointerToRawData && rawAddr_1 <= secExist.info.pointerToRawData && (rawAddr_1 = secExist.info.pointerToRawData + secExist.info.sizeOfRawData), virtAddr_1 <= secExist.info.virtualAddress && (virtAddr_1 = secExist.info.virtualAddress + secExist.info.virtualSize);
-            }), alignedFileSize || (rawAddr_1 = 0), virtAddr_1 || (virtAddr_1 = this.newHeader.optionalHeader.baseOfCode), virtAddr_1 = roundUp(virtAddr_1, secAlign), sec.info.pointerToRawData = rawAddr_1, sec.info.virtualAddress = virtAddr_1, this._dda.set(entry, {
-              size: rawSize,
-              virtualAddress: virtAddr_1
-            }), this._sections.push(sec), this._nh.fileHeader.numberOfSections = this._sections.length, this._nh.optionalHeader.sizeOfImage = roundUp(virtAddr_1 + alignedSecSize, this._nh.optionalHeader.sectionAlignment);
-          }
-        } else if (hasEntry) {
-          this._dda.set(entry, { size: 0, virtualAddress: 0 });
-          for (var len = this._sections.length, i = 0; i < len; ++i) {
-            var sec_1 = this._sections[i], vaStart = sec_1.info.virtualAddress, vaLast = vaStart + sec_1.info.virtualSize;
-            if (dd.virtualAddress >= vaStart && dd.virtualAddress < vaLast) {
-              this._sections.splice(i, 1), this._nh.fileHeader.numberOfSections = this._sections.length;
-              break;
-            }
-          }
+var NtExecutable = (
+  /** @class */
+  (function() {
+    function NtExecutable2(_headers, _sections, _ex) {
+      this._headers = _headers, this._sections = _sections, this._ex = _ex;
+      var dh = ImageDosHeader_default.from(_headers), nh = ImageNtHeaders_default.from(_headers, dh.newHeaderAddress);
+      this._dh = dh, this._nh = nh, this._dda = nh.optionalHeaderDataDirectory, _sections.sort(function(a, b) {
+        var ra = a.info.pointerToRawData, rb = a.info.pointerToRawData;
+        if (ra !== rb)
+          return ra - rb;
+        var va = a.info.virtualAddress, vb = b.info.virtualAddress;
+        return va === vb ? a.info.virtualSize - b.info.virtualSize : va - vb;
+      });
+    }
+    return NtExecutable2.createEmpty = function(is32Bit, isDLL) {
+      return is32Bit === void 0 && (is32Bit = !1), isDLL === void 0 && (isDLL = !0), this.from(makeEmptyNtExecutableBinary(is32Bit, isDLL));
+    }, NtExecutable2.from = function(bin, options) {
+      var dh = ImageDosHeader_default.from(bin), nh = ImageNtHeaders_default.from(bin, dh.newHeaderAddress);
+      if (!dh.isValid() || !nh.isValid())
+        throw new TypeError("Invalid binary format");
+      if (nh.fileHeader.numberOfSymbols > 0)
+        throw new Error("Binary with symbols is not supported now");
+      var fileAlignment = nh.optionalHeader.fileAlignment, securityEntry = nh.optionalHeaderDataDirectory.get(ImageDirectoryEntry_default.Certificate);
+      if (securityEntry.size > 0 && !options?.ignoreCert)
+        throw new Error("Parsing signed executable binary is not allowed by default.");
+      var secOff = dh.newHeaderAddress + nh.getSectionHeaderOffset(), secCount = nh.fileHeader.numberOfSections, sections = [], tempSectionHeaderBinary = allocatePartialBinary(bin, secOff, secCount * ImageSectionHeaderArray_default.itemSize), secArray = ImageSectionHeaderArray_default.from(tempSectionHeaderBinary, secCount, 0), lastOffset = roundUp(secOff + secCount * ImageSectionHeaderArray_default.itemSize, fileAlignment);
+      secArray.forEach(function(info2) {
+        if (!info2.pointerToRawData || !info2.sizeOfRawData)
+          info2.pointerToRawData = 0, info2.sizeOfRawData = 0, sections.push({
+            info: info2,
+            data: null
+          });
+        else {
+          var secBin = allocatePartialBinary(bin, info2.pointerToRawData, info2.sizeOfRawData);
+          sections.push({
+            info: info2,
+            data: secBin
+          });
+          var secEndOffset = roundUp(info2.pointerToRawData + info2.sizeOfRawData, fileAlignment);
+          secEndOffset > lastOffset && (lastOffset = secEndOffset);
         }
-      }, NtExecutable2.prototype.getExtraData = function() {
-        return this._ex;
-      }, NtExecutable2.prototype.setExtraData = function(bin) {
-        bin === null ? this._ex = null : this._ex = cloneToArrayBuffer(bin);
-      }, NtExecutable2.prototype.generate = function(paddingSize) {
-        var dh = this._dh, nh = this._nh, secOff = dh.newHeaderAddress + nh.getSectionHeaderOffset(), size = secOff;
-        size += this._sections.length * ImageSectionHeaderArray_default.itemSize;
-        var align = nh.optionalHeader.fileAlignment;
-        size = roundUp(size, align), this._sections.forEach(function(sec) {
-          if (sec.info.pointerToRawData) {
-            var lastOff = sec.info.pointerToRawData + sec.info.sizeOfRawData;
-            size < lastOff && (size = lastOff, size = roundUp(size, align));
-          }
-        });
-        var lastPosition = size;
-        this._ex !== null && (size += this._ex.byteLength), typeof paddingSize == "number" && (size += paddingSize);
-        var bin = new ArrayBuffer(size), u8bin = new Uint8Array(bin);
-        u8bin.set(new Uint8Array(this._headers, 0, secOff)), ImageDataDirectoryArray_default.from(bin, dh.newHeaderAddress + nh.getDataDirectoryOffset()).set(ImageDirectoryEntry_default.Certificate, {
-          size: 0,
-          virtualAddress: 0
-        });
-        var secArray = ImageSectionHeaderArray_default.from(bin, this._sections.length, secOff);
-        return this._sections.forEach(function(sec, i) {
-          sec.data || (sec.info.pointerToRawData = 0, sec.info.sizeOfRawData = 0), secArray.set(i, sec.info), !(!sec.data || !sec.info.pointerToRawData) && u8bin.set(new Uint8Array(sec.data), sec.info.pointerToRawData);
-        }), this._ex !== null && u8bin.set(new Uint8Array(this._ex), lastPosition), nh.optionalHeader.checkSum !== 0 && calculateCheckSumForPE(bin, !0), bin;
-      }, NtExecutable2.prototype.rearrangeSections = function(rawAddressStart, rawDiff, virtualAddressStart, virtualDiff) {
-        if (!(!rawDiff && !virtualDiff)) {
-          for (var nh = this._nh, secAlign = nh.optionalHeader.sectionAlignment, dirs = this._dda, len = this._sections.length, lastVirtAddress = 0, i = 0; i < len; ++i) {
-            var sec = this._sections[i], virtAddr = sec.info.virtualAddress;
-            if (virtualDiff && virtAddr >= virtualAddressStart) {
-              var iDir = dirs.findIndexByVirtualAddress(virtAddr);
-              virtAddr += virtualDiff, iDir !== null && dirs.set(iDir, {
-                virtualAddress: virtAddr,
-                size: sec.info.virtualSize
-              }), sec.info.virtualAddress = virtAddr;
-            }
-            var fileAddr = sec.info.pointerToRawData;
-            rawDiff && fileAddr >= rawAddressStart && (sec.info.pointerToRawData = fileAddr + rawDiff), lastVirtAddress = roundUp(sec.info.virtualAddress + sec.info.virtualSize, secAlign);
-          }
-          nh.optionalHeader.sizeOfImage = lastVirtAddress;
+      });
+      var headers = allocatePartialBinary(bin, 0, secOff), exData = null, lastExDataOffset = bin.byteLength;
+      return securityEntry.size > 0 && (lastExDataOffset = securityEntry.virtualAddress), lastOffset < lastExDataOffset && (exData = allocatePartialBinary(bin, lastOffset, lastExDataOffset - lastOffset)), new NtExecutable2(headers, sections, exData);
+    }, NtExecutable2.prototype.is32bit = function() {
+      return this._nh.is32bit();
+    }, NtExecutable2.prototype.getTotalHeaderSize = function() {
+      return this._headers.byteLength;
+    }, Object.defineProperty(NtExecutable2.prototype, "dosHeader", {
+      get: function() {
+        return this._dh;
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(NtExecutable2.prototype, "newHeader", {
+      get: function() {
+        return this._nh;
+      },
+      enumerable: !1,
+      configurable: !0
+    }), NtExecutable2.prototype.getRawHeader = function() {
+      return this._headers;
+    }, NtExecutable2.prototype.getImageBase = function() {
+      return this._nh.optionalHeader.imageBase;
+    }, NtExecutable2.prototype.getFileAlignment = function() {
+      return this._nh.optionalHeader.fileAlignment;
+    }, NtExecutable2.prototype.getSectionAlignment = function() {
+      return this._nh.optionalHeader.sectionAlignment;
+    }, NtExecutable2.prototype.getAllSections = function() {
+      return this._sections;
+    }, NtExecutable2.prototype.getSectionByEntry = function(entry) {
+      var dd = this._dda.get(entry), r = this._sections.filter(function(sec) {
+        var vaEnd = sec.info.virtualAddress + sec.info.virtualSize;
+        return dd.virtualAddress >= sec.info.virtualAddress && dd.virtualAddress < vaEnd;
+      }).shift();
+      return r !== void 0 ? r : null;
+    }, NtExecutable2.prototype.setSectionByEntry = function(entry, section) {
+      var sec = section ? { data: section.data, info: section.info } : null, dd = this._dda.get(entry), hasEntry = dd.size > 0;
+      if (sec) {
+        var rawSize = sec.data ? sec.data.byteLength : 0, fileAlign = this._nh.optionalHeader.fileAlignment, secAlign = this._nh.optionalHeader.sectionAlignment, alignedFileSize = sec.data ? roundUp(rawSize, fileAlign) : 0, alignedSecSize = sec.data ? roundUp(sec.info.virtualSize, secAlign) : 0;
+        if (sec.info.sizeOfRawData < alignedFileSize ? sec.info.sizeOfRawData = alignedFileSize : alignedFileSize = sec.info.sizeOfRawData, hasEntry)
+          this.replaceSectionImpl(dd.virtualAddress, sec.info, sec.data);
+        else {
+          var virtAddr_1 = 0, rawAddr_1 = roundUp(this._headers.byteLength, fileAlign);
+          this._sections.forEach(function(secExist) {
+            secExist.info.pointerToRawData && rawAddr_1 <= secExist.info.pointerToRawData && (rawAddr_1 = secExist.info.pointerToRawData + secExist.info.sizeOfRawData), virtAddr_1 <= secExist.info.virtualAddress && (virtAddr_1 = secExist.info.virtualAddress + secExist.info.virtualSize);
+          }), alignedFileSize || (rawAddr_1 = 0), virtAddr_1 || (virtAddr_1 = this.newHeader.optionalHeader.baseOfCode), virtAddr_1 = roundUp(virtAddr_1, secAlign), sec.info.pointerToRawData = rawAddr_1, sec.info.virtualAddress = virtAddr_1, this._dda.set(entry, {
+            size: rawSize,
+            virtualAddress: virtAddr_1
+          }), this._sections.push(sec), this._nh.fileHeader.numberOfSections = this._sections.length, this._nh.optionalHeader.sizeOfImage = roundUp(virtAddr_1 + alignedSecSize, this._nh.optionalHeader.sectionAlignment);
         }
-      }, NtExecutable2.prototype.replaceSectionImpl = function(virtualAddress, info2, data) {
+      } else if (hasEntry) {
+        this._dda.set(entry, { size: 0, virtualAddress: 0 });
         for (var len = this._sections.length, i = 0; i < len; ++i) {
-          var s = this._sections[i];
-          if (s.info.virtualAddress === virtualAddress) {
-            var secAlign = this._nh.optionalHeader.sectionAlignment, fileAddr = s.info.pointerToRawData, oldFileAddr = fileAddr + s.info.sizeOfRawData, oldVirtAddr = virtualAddress + roundUp(s.info.virtualSize, secAlign);
-            s.info = cloneObject(info2), s.info.virtualAddress = virtualAddress, s.info.pointerToRawData = fileAddr, s.data = data;
-            var newFileAddr = fileAddr + info2.sizeOfRawData, newVirtAddr = virtualAddress + roundUp(info2.virtualSize, secAlign);
-            this.rearrangeSections(oldFileAddr, newFileAddr - oldFileAddr, oldVirtAddr, newVirtAddr - oldVirtAddr);
-            {
-              var dirs = this._dda, iDir = dirs.findIndexByVirtualAddress(virtualAddress);
-              iDir !== null && dirs.set(iDir, {
-                virtualAddress,
-                size: info2.virtualSize
-              });
-            }
+          var sec_1 = this._sections[i], vaStart = sec_1.info.virtualAddress, vaLast = vaStart + sec_1.info.virtualSize;
+          if (dd.virtualAddress >= vaStart && dd.virtualAddress < vaLast) {
+            this._sections.splice(i, 1), this._nh.fileHeader.numberOfSections = this._sections.length;
             break;
           }
         }
-      }, NtExecutable2;
-    })(), NtExecutable_default = NtExecutable;
-  }
-});
+      }
+    }, NtExecutable2.prototype.getExtraData = function() {
+      return this._ex;
+    }, NtExecutable2.prototype.setExtraData = function(bin) {
+      bin === null ? this._ex = null : this._ex = cloneToArrayBuffer(bin);
+    }, NtExecutable2.prototype.generate = function(paddingSize) {
+      var dh = this._dh, nh = this._nh, secOff = dh.newHeaderAddress + nh.getSectionHeaderOffset(), size = secOff;
+      size += this._sections.length * ImageSectionHeaderArray_default.itemSize;
+      var align = nh.optionalHeader.fileAlignment;
+      size = roundUp(size, align), this._sections.forEach(function(sec) {
+        if (sec.info.pointerToRawData) {
+          var lastOff = sec.info.pointerToRawData + sec.info.sizeOfRawData;
+          size < lastOff && (size = lastOff, size = roundUp(size, align));
+        }
+      });
+      var lastPosition = size;
+      this._ex !== null && (size += this._ex.byteLength), typeof paddingSize == "number" && (size += paddingSize);
+      var bin = new ArrayBuffer(size), u8bin = new Uint8Array(bin);
+      u8bin.set(new Uint8Array(this._headers, 0, secOff)), ImageDataDirectoryArray_default.from(bin, dh.newHeaderAddress + nh.getDataDirectoryOffset()).set(ImageDirectoryEntry_default.Certificate, {
+        size: 0,
+        virtualAddress: 0
+      });
+      var secArray = ImageSectionHeaderArray_default.from(bin, this._sections.length, secOff);
+      return this._sections.forEach(function(sec, i) {
+        sec.data || (sec.info.pointerToRawData = 0, sec.info.sizeOfRawData = 0), secArray.set(i, sec.info), !(!sec.data || !sec.info.pointerToRawData) && u8bin.set(new Uint8Array(sec.data), sec.info.pointerToRawData);
+      }), this._ex !== null && u8bin.set(new Uint8Array(this._ex), lastPosition), nh.optionalHeader.checkSum !== 0 && calculateCheckSumForPE(bin, !0), bin;
+    }, NtExecutable2.prototype.rearrangeSections = function(rawAddressStart, rawDiff, virtualAddressStart, virtualDiff) {
+      if (!(!rawDiff && !virtualDiff)) {
+        for (var nh = this._nh, secAlign = nh.optionalHeader.sectionAlignment, dirs = this._dda, len = this._sections.length, lastVirtAddress = 0, i = 0; i < len; ++i) {
+          var sec = this._sections[i], virtAddr = sec.info.virtualAddress;
+          if (virtualDiff && virtAddr >= virtualAddressStart) {
+            var iDir = dirs.findIndexByVirtualAddress(virtAddr);
+            virtAddr += virtualDiff, iDir !== null && dirs.set(iDir, {
+              virtualAddress: virtAddr,
+              size: sec.info.virtualSize
+            }), sec.info.virtualAddress = virtAddr;
+          }
+          var fileAddr = sec.info.pointerToRawData;
+          rawDiff && fileAddr >= rawAddressStart && (sec.info.pointerToRawData = fileAddr + rawDiff), lastVirtAddress = roundUp(sec.info.virtualAddress + sec.info.virtualSize, secAlign);
+        }
+        nh.optionalHeader.sizeOfImage = lastVirtAddress;
+      }
+    }, NtExecutable2.prototype.replaceSectionImpl = function(virtualAddress, info2, data) {
+      for (var len = this._sections.length, i = 0; i < len; ++i) {
+        var s = this._sections[i];
+        if (s.info.virtualAddress === virtualAddress) {
+          var secAlign = this._nh.optionalHeader.sectionAlignment, fileAddr = s.info.pointerToRawData, oldFileAddr = fileAddr + s.info.sizeOfRawData, oldVirtAddr = virtualAddress + roundUp(s.info.virtualSize, secAlign);
+          s.info = cloneObject(info2), s.info.virtualAddress = virtualAddress, s.info.pointerToRawData = fileAddr, s.data = data;
+          var newFileAddr = fileAddr + info2.sizeOfRawData, newVirtAddr = virtualAddress + roundUp(info2.virtualSize, secAlign);
+          this.rearrangeSections(oldFileAddr, newFileAddr - oldFileAddr, oldVirtAddr, newVirtAddr - oldVirtAddr);
+          {
+            var dirs = this._dda, iDir = dirs.findIndexByVirtualAddress(virtualAddress);
+            iDir !== null && dirs.set(iDir, {
+              virtualAddress,
+              size: info2.virtualSize
+            });
+          }
+          break;
+        }
+      }
+    }, NtExecutable2;
+  })()
+), NtExecutable_default = NtExecutable;
 
 // node_modules/pe-library/dist/NtExecutableResource.js
 function removeDuplicates(a) {
@@ -77923,202 +77673,189 @@ function writeTypeTable(view, offset, strings, data) {
     view.setUint32(offset, e.type, !0), view.setUint32(offset + 4, e.offset + 2147483648, !0), offset += 8, nextTableOffset = writeNameTable(view, e.offset, nextTableOffset, strings, e);
   }), nextTableOffset;
 }
-var NtExecutableResource, NtExecutableResource_default, init_NtExecutableResource = __esm({
-  "node_modules/pe-library/dist/NtExecutableResource.js"() {
-    init_ImageDirectoryEntry();
-    init_functions();
-    NtExecutableResource = /** @class */
-    (function() {
-      function NtExecutableResource2() {
-        this.dateTime = 0, this.majorVersion = 0, this.minorVersion = 0, this.entries = [], this.sectionDataHeader = null, this.originalSize = 0;
+var NtExecutableResource = (
+  /** @class */
+  (function() {
+    function NtExecutableResource2() {
+      this.dateTime = 0, this.majorVersion = 0, this.minorVersion = 0, this.entries = [], this.sectionDataHeader = null, this.originalSize = 0;
+    }
+    return NtExecutableResource2.prototype.parse = function(section, ignoreUnparsableData) {
+      if (section.data) {
+        var view = new DataView(section.data);
+        this.dateTime = view.getUint32(4, !0), this.majorVersion = view.getUint16(8, !0), this.minorVersion = view.getUint16(10, !0);
+        for (var nameCount = view.getUint16(12, !0), idCount = view.getUint16(14, !0), off = 16, res = [], cb = function(t, n, l) {
+          var off2 = view.getUint32(l.dataOffset, !0) - section.info.virtualAddress, size = view.getUint32(l.dataOffset + 4, !0), cp = view.getUint32(l.dataOffset + 8, !0);
+          if (off2 >= 0) {
+            var bin = new Uint8Array(size);
+            bin.set(new Uint8Array(section.data, off2, size)), res.push({
+              type: t.type,
+              id: n.name,
+              lang: l.lang,
+              codepage: cp,
+              bin: bin.buffer
+            });
+          } else {
+            if (!ignoreUnparsableData)
+              throw new Error("Cannot parse resource directory entry; RVA seems to be invalid.");
+            res.push({
+              type: t.type,
+              id: n.name,
+              lang: l.lang,
+              codepage: cp,
+              bin: new ArrayBuffer(0),
+              rva: l.dataOffset
+            });
+          }
+        }, i = 0; i < nameCount; ++i) {
+          var nameOffset = view.getUint32(off, !0) & 2147483647, nextTable = view.getUint32(off + 4, !0);
+          if (!(nextTable & 2147483648)) {
+            off += 8;
+            continue;
+          }
+          nextTable &= 2147483647;
+          var name_3 = readString(view, nameOffset);
+          readNameTable(view, name_3, nextTable, cb), off += 8;
+        }
+        for (var i = 0; i < idCount; ++i) {
+          var typeId = view.getUint32(off, !0) & 2147483647, nextTable = view.getUint32(off + 4, !0);
+          if (!(nextTable & 2147483648)) {
+            off += 8;
+            continue;
+          }
+          nextTable &= 2147483647, readNameTable(view, typeId, nextTable, cb), off += 8;
+        }
+        this.entries = res, this.originalSize = section.data.byteLength;
       }
-      return NtExecutableResource2.prototype.parse = function(section, ignoreUnparsableData) {
-        if (section.data) {
-          var view = new DataView(section.data);
-          this.dateTime = view.getUint32(4, !0), this.majorVersion = view.getUint16(8, !0), this.minorVersion = view.getUint16(10, !0);
-          for (var nameCount = view.getUint16(12, !0), idCount = view.getUint16(14, !0), off = 16, res = [], cb = function(t, n, l) {
-            var off2 = view.getUint32(l.dataOffset, !0) - section.info.virtualAddress, size = view.getUint32(l.dataOffset + 4, !0), cp = view.getUint32(l.dataOffset + 8, !0);
-            if (off2 >= 0) {
-              var bin = new Uint8Array(size);
-              bin.set(new Uint8Array(section.data, off2, size)), res.push({
-                type: t.type,
-                id: n.name,
-                lang: l.lang,
-                codepage: cp,
-                bin: bin.buffer
-              });
-            } else {
-              if (!ignoreUnparsableData)
-                throw new Error("Cannot parse resource directory entry; RVA seems to be invalid.");
-              res.push({
-                type: t.type,
-                id: n.name,
-                lang: l.lang,
-                codepage: cp,
-                bin: new ArrayBuffer(0),
-                rva: l.dataOffset
-              });
-            }
-          }, i = 0; i < nameCount; ++i) {
-            var nameOffset = view.getUint32(off, !0) & 2147483647, nextTable = view.getUint32(off + 4, !0);
-            if (!(nextTable & 2147483648)) {
-              off += 8;
-              continue;
-            }
-            nextTable &= 2147483647;
-            var name_3 = readString(view, nameOffset);
-            readNameTable(view, name_3, nextTable, cb), off += 8;
-          }
-          for (var i = 0; i < idCount; ++i) {
-            var typeId = view.getUint32(off, !0) & 2147483647, nextTable = view.getUint32(off + 4, !0);
-            if (!(nextTable & 2147483648)) {
-              off += 8;
-              continue;
-            }
-            nextTable &= 2147483647, readNameTable(view, typeId, nextTable, cb), off += 8;
-          }
-          this.entries = res, this.originalSize = section.data.byteLength;
-        }
-      }, NtExecutableResource2.from = function(exe, ignoreUnparsableData) {
-        ignoreUnparsableData === void 0 && (ignoreUnparsableData = !1);
-        var secs = [].concat(exe.getAllSections()).sort(function(a, b) {
-          return a.info.virtualAddress - b.info.virtualAddress;
-        }), entry = exe.getSectionByEntry(ImageDirectoryEntry_default.Resource);
-        if (entry)
-          for (var reloc = exe.getSectionByEntry(ImageDirectoryEntry_default.BaseRelocation), i = 0; i < secs.length; ++i) {
-            var s = secs[i];
-            if (s === entry) {
-              for (var j = i + 1; j < secs.length; ++j)
-                if (!reloc || secs[j] !== reloc)
-                  throw new Error("After Resource section, sections except for relocation are not supported");
-              break;
-            }
-          }
-        var r = new NtExecutableResource2();
-        return r.sectionDataHeader = entry ? cloneObject(entry.info) : null, entry && r.parse(entry, ignoreUnparsableData), r;
-      }, NtExecutableResource2.prototype.replaceResourceEntry = function(entry) {
-        for (var len = this.entries.length, i = 0; i < len; ++i) {
-          var e = this.entries[i];
-          if (e.type === entry.type && e.id === entry.id && e.lang === entry.lang) {
-            this.entries[i] = entry;
-            return;
+    }, NtExecutableResource2.from = function(exe, ignoreUnparsableData) {
+      ignoreUnparsableData === void 0 && (ignoreUnparsableData = !1);
+      var secs = [].concat(exe.getAllSections()).sort(function(a, b) {
+        return a.info.virtualAddress - b.info.virtualAddress;
+      }), entry = exe.getSectionByEntry(ImageDirectoryEntry_default.Resource);
+      if (entry)
+        for (var reloc = exe.getSectionByEntry(ImageDirectoryEntry_default.BaseRelocation), i = 0; i < secs.length; ++i) {
+          var s = secs[i];
+          if (s === entry) {
+            for (var j = i + 1; j < secs.length; ++j)
+              if (!reloc || secs[j] !== reloc)
+                throw new Error("After Resource section, sections except for relocation are not supported");
+            break;
           }
         }
-        this.entries.push(entry);
-      }, NtExecutableResource2.prototype.getResourceEntriesAsString = function(type, id) {
-        return this.entries.filter(function(entry) {
-          return entry.type === type && entry.id === id;
-        }).map(function(entry) {
-          return [entry.lang, binaryToString(entry.bin)];
-        });
-      }, NtExecutableResource2.prototype.replaceResourceEntryFromString = function(type, id, lang, value) {
-        var entry = {
-          type,
-          id,
-          lang,
-          codepage: 1200,
-          bin: stringToBinary(value)
-        };
-        this.replaceResourceEntry(entry);
-      }, NtExecutableResource2.prototype.removeResourceEntry = function(type, id, lang) {
-        this.entries = this.entries.filter(function(entry) {
-          return !(entry.type === type && entry.id === id && (typeof lang > "u" || entry.lang === lang));
-        });
-      }, NtExecutableResource2.prototype.generateResourceData = function(virtualAddress, alignment, noGrow, allowShrink) {
-        noGrow === void 0 && (noGrow = !1), allowShrink === void 0 && (allowShrink = !1);
-        var r = {
-          s: [],
-          n: []
-        }, strings = [], size = divideEntriesImplByType(r, strings, this.entries);
-        strings = removeDuplicates(strings);
-        var stringsOffset = size;
-        size += strings.reduce(function(prev, cur) {
-          return prev + 2 + calculateStringLengthForWrite(cur) * 2;
-        }, 0), size = roundUp(size, 8);
-        var descOffset = size;
-        size = this.entries.reduce(function(p, e) {
-          return e.offset = p, p + 16;
-        }, descOffset);
-        var dataOffset = size;
-        size = this.entries.reduce(function(p, e) {
-          return roundUp(p, 8) + e.bin.byteLength;
-        }, dataOffset);
-        var alignedSize = roundUp(size, alignment), originalAlignedSize = roundUp(this.originalSize, alignment);
-        if (noGrow && alignedSize > originalAlignedSize)
-          throw new Error("New resource data is larger than original");
-        allowShrink || alignedSize < originalAlignedSize && (alignedSize = originalAlignedSize);
-        var bin = new ArrayBuffer(alignedSize), view = new DataView(bin), o = descOffset, va = virtualAddress + dataOffset;
-        this.entries.forEach(function(e) {
-          var len = e.bin.byteLength;
-          typeof e.rva < "u" ? view.setUint32(o, e.rva, !0) : (va = roundUp(va, 8), view.setUint32(o, va, !0), va += len), view.setUint32(o + 4, len, !0), view.setUint32(o + 8, e.codepage, !0), view.setUint32(o + 12, 0, !0), o += 16;
-        }), o = dataOffset, this.entries.forEach(function(e) {
-          var len = e.bin.byteLength;
-          copyBuffer(bin, o, e.bin, 0, len), o += roundUp(len, 8);
-        });
-        var stringsData = [];
-        if (o = stringsOffset, strings.forEach(function(s) {
-          stringsData.push({
-            offset: o,
-            text: s
-          }), o = writeString(view, o, s);
-        }), writeTypeTable(view, 0, stringsData, r), alignedSize > size)
-          for (var pad = "PADDINGX", i = size, j = 0; i < alignedSize; ++i, ++j)
-            j === 8 && (j = 0), view.setUint8(i, pad.charCodeAt(j));
-        return {
-          bin,
-          rawSize: size,
-          dataOffset,
-          descEntryOffset: descOffset,
-          descEntryCount: this.entries.length
-        };
-      }, NtExecutableResource2.prototype.outputResource = function(exeDest, noGrow, allowShrink) {
-        noGrow === void 0 && (noGrow = !1), allowShrink === void 0 && (allowShrink = !1);
-        var fileAlign = exeDest.getFileAlignment(), sectionData;
-        this.sectionDataHeader ? sectionData = {
-          data: null,
-          info: cloneObject(this.sectionDataHeader)
-        } : sectionData = {
-          data: null,
-          info: {
-            name: ".rsrc",
-            virtualSize: 0,
-            virtualAddress: 0,
-            sizeOfRawData: 0,
-            pointerToRawData: 0,
-            pointerToRelocations: 0,
-            pointerToLineNumbers: 0,
-            numberOfRelocations: 0,
-            numberOfLineNumbers: 0,
-            characteristics: 1073741888
-            // read access and initialized data
-          }
-        };
-        var data = this.generateResourceData(0, fileAlign, noGrow, allowShrink);
-        sectionData.data = data.bin, sectionData.info.sizeOfRawData = data.bin.byteLength, sectionData.info.virtualSize = data.rawSize, exeDest.setSectionByEntry(ImageDirectoryEntry_default.Resource, sectionData);
-        for (var generatedSection = exeDest.getSectionByEntry(ImageDirectoryEntry_default.Resource), view = new DataView(generatedSection.data), o = data.descEntryOffset, va = generatedSection.info.virtualAddress + data.dataOffset, i = 0; i < data.descEntryCount; ++i) {
-          var len = view.getUint32(o + 4, !0);
-          va = roundUp(va, 8), view.setUint32(o, va, !0), va += len, o += 16;
+      var r = new NtExecutableResource2();
+      return r.sectionDataHeader = entry ? cloneObject(entry.info) : null, entry && r.parse(entry, ignoreUnparsableData), r;
+    }, NtExecutableResource2.prototype.replaceResourceEntry = function(entry) {
+      for (var len = this.entries.length, i = 0; i < len; ++i) {
+        var e = this.entries[i];
+        if (e.type === entry.type && e.id === entry.id && e.lang === entry.lang) {
+          this.entries[i] = entry;
+          return;
         }
-      }, NtExecutableResource2;
-    })(), NtExecutableResource_default = NtExecutableResource;
-  }
-});
+      }
+      this.entries.push(entry);
+    }, NtExecutableResource2.prototype.getResourceEntriesAsString = function(type, id) {
+      return this.entries.filter(function(entry) {
+        return entry.type === type && entry.id === id;
+      }).map(function(entry) {
+        return [entry.lang, binaryToString(entry.bin)];
+      });
+    }, NtExecutableResource2.prototype.replaceResourceEntryFromString = function(type, id, lang, value) {
+      var entry = {
+        type,
+        id,
+        lang,
+        codepage: 1200,
+        bin: stringToBinary(value)
+      };
+      this.replaceResourceEntry(entry);
+    }, NtExecutableResource2.prototype.removeResourceEntry = function(type, id, lang) {
+      this.entries = this.entries.filter(function(entry) {
+        return !(entry.type === type && entry.id === id && (typeof lang > "u" || entry.lang === lang));
+      });
+    }, NtExecutableResource2.prototype.generateResourceData = function(virtualAddress, alignment, noGrow, allowShrink) {
+      noGrow === void 0 && (noGrow = !1), allowShrink === void 0 && (allowShrink = !1);
+      var r = {
+        s: [],
+        n: []
+      }, strings = [], size = divideEntriesImplByType(r, strings, this.entries);
+      strings = removeDuplicates(strings);
+      var stringsOffset = size;
+      size += strings.reduce(function(prev, cur) {
+        return prev + 2 + calculateStringLengthForWrite(cur) * 2;
+      }, 0), size = roundUp(size, 8);
+      var descOffset = size;
+      size = this.entries.reduce(function(p, e) {
+        return e.offset = p, p + 16;
+      }, descOffset);
+      var dataOffset = size;
+      size = this.entries.reduce(function(p, e) {
+        return roundUp(p, 8) + e.bin.byteLength;
+      }, dataOffset);
+      var alignedSize = roundUp(size, alignment), originalAlignedSize = roundUp(this.originalSize, alignment);
+      if (noGrow && alignedSize > originalAlignedSize)
+        throw new Error("New resource data is larger than original");
+      allowShrink || alignedSize < originalAlignedSize && (alignedSize = originalAlignedSize);
+      var bin = new ArrayBuffer(alignedSize), view = new DataView(bin), o = descOffset, va = virtualAddress + dataOffset;
+      this.entries.forEach(function(e) {
+        var len = e.bin.byteLength;
+        typeof e.rva < "u" ? view.setUint32(o, e.rva, !0) : (va = roundUp(va, 8), view.setUint32(o, va, !0), va += len), view.setUint32(o + 4, len, !0), view.setUint32(o + 8, e.codepage, !0), view.setUint32(o + 12, 0, !0), o += 16;
+      }), o = dataOffset, this.entries.forEach(function(e) {
+        var len = e.bin.byteLength;
+        copyBuffer(bin, o, e.bin, 0, len), o += roundUp(len, 8);
+      });
+      var stringsData = [];
+      if (o = stringsOffset, strings.forEach(function(s) {
+        stringsData.push({
+          offset: o,
+          text: s
+        }), o = writeString(view, o, s);
+      }), writeTypeTable(view, 0, stringsData, r), alignedSize > size)
+        for (var pad = "PADDINGX", i = size, j = 0; i < alignedSize; ++i, ++j)
+          j === 8 && (j = 0), view.setUint8(i, pad.charCodeAt(j));
+      return {
+        bin,
+        rawSize: size,
+        dataOffset,
+        descEntryOffset: descOffset,
+        descEntryCount: this.entries.length
+      };
+    }, NtExecutableResource2.prototype.outputResource = function(exeDest, noGrow, allowShrink) {
+      noGrow === void 0 && (noGrow = !1), allowShrink === void 0 && (allowShrink = !1);
+      var fileAlign = exeDest.getFileAlignment(), sectionData;
+      this.sectionDataHeader ? sectionData = {
+        data: null,
+        info: cloneObject(this.sectionDataHeader)
+      } : sectionData = {
+        data: null,
+        info: {
+          name: ".rsrc",
+          virtualSize: 0,
+          virtualAddress: 0,
+          sizeOfRawData: 0,
+          pointerToRawData: 0,
+          pointerToRelocations: 0,
+          pointerToLineNumbers: 0,
+          numberOfRelocations: 0,
+          numberOfLineNumbers: 0,
+          characteristics: 1073741888
+          // read access and initialized data
+        }
+      };
+      var data = this.generateResourceData(0, fileAlign, noGrow, allowShrink);
+      sectionData.data = data.bin, sectionData.info.sizeOfRawData = data.bin.byteLength, sectionData.info.virtualSize = data.rawSize, exeDest.setSectionByEntry(ImageDirectoryEntry_default.Resource, sectionData);
+      for (var generatedSection = exeDest.getSectionByEntry(ImageDirectoryEntry_default.Resource), view = new DataView(generatedSection.data), o = data.descEntryOffset, va = generatedSection.info.virtualAddress + data.dataOffset, i = 0; i < data.descEntryCount; ++i) {
+        var len = view.getUint32(o + 4, !0);
+        va = roundUp(va, 8), view.setUint32(o, va, !0), va += len, o += 16;
+      }
+    }, NtExecutableResource2;
+  })()
+), NtExecutableResource_default = NtExecutableResource;
 
-// node_modules/pe-library/dist/version.js
-var init_version4 = __esm({
-  "node_modules/pe-library/dist/version.js"() {
-  }
-});
-
-// node_modules/pe-library/dist/index.js
-var init_dist = __esm({
-  "node_modules/pe-library/dist/index.js"() {
-    init_format();
-    init_NtExecutable();
-    init_NtExecutableResource();
-    init_functions();
-    init_version4();
-  }
+// node_modules/resedit/dist/data/index.js
+var data_exports = {};
+__export(data_exports, {
+  IconFile: () => IconFile_default,
+  IconItem: () => IconItem_default,
+  RawIconItem: () => RawIconItem_default
 });
 
 // node_modules/resedit/dist/util/functions.js
@@ -78158,120 +77895,110 @@ function readUint16WithLastOffset(view, offset, last) {
 function readUint32WithLastOffset(view, offset, last) {
   return offset + 4 <= last ? view.getUint32(offset, !0) : 0;
 }
-var init_functions2 = __esm({
-  "node_modules/resedit/dist/util/functions.js"() {
-  }
-});
 
 // node_modules/resedit/dist/data/IconItem.js
 function calcMaskSize(width, height) {
   var actualWidthBytes = roundUp2(Math.abs(width), 32) / 8;
   return actualWidthBytes * Math.abs(height);
 }
-var IconItem, IconItem_default, init_IconItem = __esm({
-  "node_modules/resedit/dist/data/IconItem.js"() {
-    init_functions2();
-    IconItem = /** @class */
-    (function() {
-      function IconItem2(width, height, bin, byteOffset, byteLength) {
-        var view = createDataView2(bin, byteOffset, byteLength), totalSize = view.byteLength, headerSize = view.getUint32(0, !0);
-        headerSize > totalSize && (headerSize = totalSize);
-        var sizeImage = readUint32WithLastOffset(view, 20, headerSize), bi = {
-          width: readInt32WithLastOffset(view, 4, headerSize),
-          height: readInt32WithLastOffset(view, 8, headerSize),
-          planes: readUint16WithLastOffset(view, 12, headerSize),
-          bitCount: readUint16WithLastOffset(view, 14, headerSize),
-          compression: readUint32WithLastOffset(view, 16, headerSize),
-          sizeImage,
-          xPelsPerMeter: readInt32WithLastOffset(view, 24, headerSize),
-          yPelsPerMeter: readInt32WithLastOffset(view, 28, headerSize),
-          colorUsed: readUint32WithLastOffset(view, 32, headerSize),
-          colorImportant: readUint32WithLastOffset(view, 36, headerSize),
-          colors: []
-        }, offset = 40, colors = bi.colorUsed;
-        if (!colors)
-          switch (bi.bitCount) {
-            case 1:
-              colors = 2;
-              break;
-            case 4:
-              colors = 16;
-              break;
-            case 8:
-              colors = 256;
-              break;
-          }
-        for (var i = 0; i < colors; ++i)
-          bi.colors.push({
-            b: readUint8WithLastOffset(view, offset, totalSize),
-            g: readUint8WithLastOffset(view, offset + 1, totalSize),
-            r: readUint8WithLastOffset(view, offset + 2, totalSize)
-          }), offset += 4;
-        this.width = width, this.height = height, this.bitmapInfo = bi;
-        var widthBytes = roundUp2(bi.bitCount * Math.abs(bi.width), 32) / 8, absActualHeight = Math.abs(bi.height) / 2, size = bi.compression !== 0 && sizeImage !== 0 ? sizeImage : widthBytes * absActualHeight;
-        if (size + offset > totalSize)
-          throw new Error("Unexpected bitmap data in icon: bitmap size ".concat(size, " is larger than ").concat(totalSize, " - ").concat(offset));
-        this._pixels = allocatePartialBinary2(view, offset, size), offset += size;
-        var maskSize = calcMaskSize(bi.width, absActualHeight);
-        maskSize + offset <= totalSize ? this.masks = allocatePartialBinary2(view, offset, maskSize) : this.masks = new ArrayBuffer(maskSize);
-      }
-      return Object.defineProperty(IconItem2.prototype, "pixels", {
-        /**
-         * Bitmap pixel data.
-         * @note
-         * On set, if `bitmapInfo.sizeImage` is non-zero, `bitmapInfo.sizeImage` will be updated.
-         */
-        get: function() {
-          return this._pixels;
-        },
-        /**
-         * Bitmap pixel data.
-         * @note
-         * On set, if `bitmapInfo.sizeImage` is non-zero, `bitmapInfo.sizeImage` will be updated.
-         */
-        set: function(newValue) {
-          this._pixels = newValue, this.bitmapInfo.sizeImage !== 0 && (this.bitmapInfo.sizeImage = newValue.byteLength);
-        },
-        enumerable: !1,
-        configurable: !0
-      }), IconItem2.from = function(arg1, arg2, arg3, byteOffset, byteLength) {
-        var width, height, bin;
-        return typeof arg3 == "object" ? (width = arg1, height = arg2, bin = arg3) : (width = null, height = null, bin = arg1, byteOffset = arg2, byteLength = arg3), new IconItem2(width, height, bin, byteOffset, byteLength);
-      }, IconItem2.prototype.isIcon = function() {
-        return !0;
-      }, IconItem2.prototype.isRaw = function() {
-        return !1;
-      }, IconItem2.prototype.generate = function() {
-        var bi = this.bitmapInfo, absWidth = Math.abs(bi.width), absWidthBytes = roundUp2(bi.bitCount * absWidth, 32) / 8, absActualHeight = Math.abs(bi.height) / 2, actualSizeImage = absWidthBytes * absActualHeight, sizeMask = calcMaskSize(bi.width, absActualHeight), colorCount = bi.colors.length, totalSize = 40 + 4 * colorCount + actualSizeImage + sizeMask, bin = new ArrayBuffer(totalSize), view = new DataView(bin);
-        view.setUint32(0, 40, !0), view.setInt32(4, bi.width, !0), view.setInt32(8, bi.height, !0), view.setUint16(12, bi.planes, !0), view.setUint16(14, bi.bitCount, !0), view.setUint32(16, bi.compression, !0), view.setUint32(20, bi.sizeImage, !0), view.setInt32(24, bi.xPelsPerMeter, !0), view.setInt32(28, bi.yPelsPerMeter, !0), view.setUint32(32, bi.colorUsed, !0), view.setUint32(36, bi.colorImportant > colorCount ? colorCount : bi.colorImportant, !0);
-        var offset = 40;
-        return bi.colors.forEach(function(c) {
-          view.setUint8(offset, c.b), view.setUint8(offset + 1, c.g), view.setUint8(offset + 2, c.r), offset += 4;
-        }), copyBuffer2(bin, offset, this.pixels, 0, actualSizeImage), copyBuffer2(bin, offset + actualSizeImage, this.masks, 0, sizeMask), bin;
-      }, IconItem2;
-    })(), IconItem_default = IconItem;
-  }
-});
+var IconItem = (
+  /** @class */
+  (function() {
+    function IconItem2(width, height, bin, byteOffset, byteLength) {
+      var view = createDataView2(bin, byteOffset, byteLength), totalSize = view.byteLength, headerSize = view.getUint32(0, !0);
+      headerSize > totalSize && (headerSize = totalSize);
+      var sizeImage = readUint32WithLastOffset(view, 20, headerSize), bi = {
+        width: readInt32WithLastOffset(view, 4, headerSize),
+        height: readInt32WithLastOffset(view, 8, headerSize),
+        planes: readUint16WithLastOffset(view, 12, headerSize),
+        bitCount: readUint16WithLastOffset(view, 14, headerSize),
+        compression: readUint32WithLastOffset(view, 16, headerSize),
+        sizeImage,
+        xPelsPerMeter: readInt32WithLastOffset(view, 24, headerSize),
+        yPelsPerMeter: readInt32WithLastOffset(view, 28, headerSize),
+        colorUsed: readUint32WithLastOffset(view, 32, headerSize),
+        colorImportant: readUint32WithLastOffset(view, 36, headerSize),
+        colors: []
+      }, offset = 40, colors = bi.colorUsed;
+      if (!colors)
+        switch (bi.bitCount) {
+          case 1:
+            colors = 2;
+            break;
+          case 4:
+            colors = 16;
+            break;
+          case 8:
+            colors = 256;
+            break;
+        }
+      for (var i = 0; i < colors; ++i)
+        bi.colors.push({
+          b: readUint8WithLastOffset(view, offset, totalSize),
+          g: readUint8WithLastOffset(view, offset + 1, totalSize),
+          r: readUint8WithLastOffset(view, offset + 2, totalSize)
+        }), offset += 4;
+      this.width = width, this.height = height, this.bitmapInfo = bi;
+      var widthBytes = roundUp2(bi.bitCount * Math.abs(bi.width), 32) / 8, absActualHeight = Math.abs(bi.height) / 2, size = bi.compression !== 0 && sizeImage !== 0 ? sizeImage : widthBytes * absActualHeight;
+      if (size + offset > totalSize)
+        throw new Error("Unexpected bitmap data in icon: bitmap size ".concat(size, " is larger than ").concat(totalSize, " - ").concat(offset));
+      this._pixels = allocatePartialBinary2(view, offset, size), offset += size;
+      var maskSize = calcMaskSize(bi.width, absActualHeight);
+      maskSize + offset <= totalSize ? this.masks = allocatePartialBinary2(view, offset, maskSize) : this.masks = new ArrayBuffer(maskSize);
+    }
+    return Object.defineProperty(IconItem2.prototype, "pixels", {
+      /**
+       * Bitmap pixel data.
+       * @note
+       * On set, if `bitmapInfo.sizeImage` is non-zero, `bitmapInfo.sizeImage` will be updated.
+       */
+      get: function() {
+        return this._pixels;
+      },
+      /**
+       * Bitmap pixel data.
+       * @note
+       * On set, if `bitmapInfo.sizeImage` is non-zero, `bitmapInfo.sizeImage` will be updated.
+       */
+      set: function(newValue) {
+        this._pixels = newValue, this.bitmapInfo.sizeImage !== 0 && (this.bitmapInfo.sizeImage = newValue.byteLength);
+      },
+      enumerable: !1,
+      configurable: !0
+    }), IconItem2.from = function(arg1, arg2, arg3, byteOffset, byteLength) {
+      var width, height, bin;
+      return typeof arg3 == "object" ? (width = arg1, height = arg2, bin = arg3) : (width = null, height = null, bin = arg1, byteOffset = arg2, byteLength = arg3), new IconItem2(width, height, bin, byteOffset, byteLength);
+    }, IconItem2.prototype.isIcon = function() {
+      return !0;
+    }, IconItem2.prototype.isRaw = function() {
+      return !1;
+    }, IconItem2.prototype.generate = function() {
+      var bi = this.bitmapInfo, absWidth = Math.abs(bi.width), absWidthBytes = roundUp2(bi.bitCount * absWidth, 32) / 8, absActualHeight = Math.abs(bi.height) / 2, actualSizeImage = absWidthBytes * absActualHeight, sizeMask = calcMaskSize(bi.width, absActualHeight), colorCount = bi.colors.length, totalSize = 40 + 4 * colorCount + actualSizeImage + sizeMask, bin = new ArrayBuffer(totalSize), view = new DataView(bin);
+      view.setUint32(0, 40, !0), view.setInt32(4, bi.width, !0), view.setInt32(8, bi.height, !0), view.setUint16(12, bi.planes, !0), view.setUint16(14, bi.bitCount, !0), view.setUint32(16, bi.compression, !0), view.setUint32(20, bi.sizeImage, !0), view.setInt32(24, bi.xPelsPerMeter, !0), view.setInt32(28, bi.yPelsPerMeter, !0), view.setUint32(32, bi.colorUsed, !0), view.setUint32(36, bi.colorImportant > colorCount ? colorCount : bi.colorImportant, !0);
+      var offset = 40;
+      return bi.colors.forEach(function(c) {
+        view.setUint8(offset, c.b), view.setUint8(offset + 1, c.g), view.setUint8(offset + 2, c.r), offset += 4;
+      }), copyBuffer2(bin, offset, this.pixels, 0, actualSizeImage), copyBuffer2(bin, offset + actualSizeImage, this.masks, 0, sizeMask), bin;
+    }, IconItem2;
+  })()
+), IconItem_default = IconItem;
 
 // node_modules/resedit/dist/data/RawIconItem.js
-var RawIconItem, RawIconItem_default, init_RawIconItem = __esm({
-  "node_modules/resedit/dist/data/RawIconItem.js"() {
-    init_functions2();
-    RawIconItem = /** @class */
-    (function() {
-      function RawIconItem2(bin, width, height, bitCount, byteOffset, byteLength) {
-        this.width = width, this.height = height, this.bitCount = bitCount, typeof byteOffset != "number" ? (byteOffset = 0, byteLength = bin.byteLength) : typeof byteLength != "number" && (byteLength = bin.byteLength - byteOffset), this.bin = allocatePartialBinary2(bin, byteOffset, byteLength);
-      }
-      return RawIconItem2.from = function(bin, width, height, bitCount, byteOffset, byteLength) {
-        return new RawIconItem2(bin, width, height, bitCount, byteOffset, byteLength);
-      }, RawIconItem2.prototype.isIcon = function() {
-        return !1;
-      }, RawIconItem2.prototype.isRaw = function() {
-        return !0;
-      }, RawIconItem2;
-    })(), RawIconItem_default = RawIconItem;
-  }
-});
+var RawIconItem = (
+  /** @class */
+  (function() {
+    function RawIconItem2(bin, width, height, bitCount, byteOffset, byteLength) {
+      this.width = width, this.height = height, this.bitCount = bitCount, typeof byteOffset != "number" ? (byteOffset = 0, byteLength = bin.byteLength) : typeof byteLength != "number" && (byteLength = bin.byteLength - byteOffset), this.bin = allocatePartialBinary2(bin, byteOffset, byteLength);
+    }
+    return RawIconItem2.from = function(bin, width, height, bitCount, byteOffset, byteLength) {
+      return new RawIconItem2(bin, width, height, bitCount, byteOffset, byteLength);
+    }, RawIconItem2.prototype.isIcon = function() {
+      return !1;
+    }, RawIconItem2.prototype.isRaw = function() {
+      return !0;
+    }, RawIconItem2;
+  })()
+), RawIconItem_default = RawIconItem;
 
 // node_modules/resedit/dist/data/IconFile.js
 function generateEntryBinary(icons) {
@@ -78303,55 +78030,48 @@ function generateEntryBinary(icons) {
     view.setUint8(offset, width >= 256 ? 0 : width), view.setUint8(offset + 1, height >= 256 ? 0 : height), view.setUint8(offset + 2, colors >= 256 ? 0 : colors), view.setUint8(offset + 3, 0), view.setUint16(offset + 4, planes, !0), view.setUint16(offset + 6, bitCount, !0), view.setUint32(offset + 8, dataSize, !0), view.setUint32(offset + 12, icon.offset, !0), offset += 16, copyBuffer2(bin, icon.offset, icon.bin, 0, dataSize);
   }), bin;
 }
-var IconFile, IconFile_default, init_IconFile = __esm({
-  "node_modules/resedit/dist/data/IconFile.js"() {
-    init_functions2();
-    init_IconItem();
-    init_RawIconItem();
-    IconFile = /** @class */
-    (function() {
-      function IconFile2(bin) {
-        if (!bin) {
-          this.icons = [];
-          return;
-        }
-        var view = createDataView2(bin), totalSize = view.byteLength, icons = [];
-        if (view.getUint16(2, !0) === 1)
-          for (var count = view.getUint16(4, !0), offset = 6, i = 0; i < count; ++i) {
-            var dataSize = readUint32WithLastOffset(view, offset + 8, totalSize), dataOffset = readUint32WithLastOffset(view, offset + 12, totalSize), width = readUint8WithLastOffset(view, offset, totalSize), height = readUint8WithLastOffset(view, offset + 1, totalSize), bitCount = readUint8WithLastOffset(view, offset + 6, totalSize), data = void 0;
-            view.getUint32(dataOffset, !0) === 40 ? data = IconItem_default.from(width, height, bin, dataOffset, dataSize) : data = RawIconItem_default.from(bin, width || 256, height || 256, bitCount, dataOffset, dataSize), icons.push({
-              width,
-              height,
-              colors: readUint8WithLastOffset(view, offset + 2, totalSize),
-              planes: readUint16WithLastOffset(view, offset + 4, totalSize),
-              bitCount,
-              data
-            }), offset += 16;
-          }
-        this.icons = icons;
+var IconFile = (
+  /** @class */
+  (function() {
+    function IconFile2(bin) {
+      if (!bin) {
+        this.icons = [];
+        return;
       }
-      return IconFile2.from = function(bin) {
-        return new IconFile2(bin);
-      }, IconFile2.prototype.generate = function() {
-        return generateEntryBinary(this.icons);
-      }, IconFile2;
-    })(), IconFile_default = IconFile;
-  }
-});
+      var view = createDataView2(bin), totalSize = view.byteLength, icons = [];
+      if (view.getUint16(2, !0) === 1)
+        for (var count = view.getUint16(4, !0), offset = 6, i = 0; i < count; ++i) {
+          var dataSize = readUint32WithLastOffset(view, offset + 8, totalSize), dataOffset = readUint32WithLastOffset(view, offset + 12, totalSize), width = readUint8WithLastOffset(view, offset, totalSize), height = readUint8WithLastOffset(view, offset + 1, totalSize), bitCount = readUint8WithLastOffset(view, offset + 6, totalSize), data = void 0;
+          view.getUint32(dataOffset, !0) === 40 ? data = IconItem_default.from(width, height, bin, dataOffset, dataSize) : data = RawIconItem_default.from(bin, width || 256, height || 256, bitCount, dataOffset, dataSize), icons.push({
+            width,
+            height,
+            colors: readUint8WithLastOffset(view, offset + 2, totalSize),
+            planes: readUint16WithLastOffset(view, offset + 4, totalSize),
+            bitCount,
+            data
+          }), offset += 16;
+        }
+      this.icons = icons;
+    }
+    return IconFile2.from = function(bin) {
+      return new IconFile2(bin);
+    }, IconFile2.prototype.generate = function() {
+      return generateEntryBinary(this.icons);
+    }, IconFile2;
+  })()
+), IconFile_default = IconFile;
 
-// node_modules/resedit/dist/data/index.js
-var data_exports = {};
-__export(data_exports, {
-  IconFile: () => IconFile_default,
-  IconItem: () => IconItem_default,
-  RawIconItem: () => RawIconItem_default
-});
-var init_data = __esm({
-  "node_modules/resedit/dist/data/index.js"() {
-    init_IconFile();
-    init_IconItem();
-    init_RawIconItem();
-  }
+// node_modules/resedit/dist/resource/index.js
+var resource_exports = {};
+__export(resource_exports, {
+  IconGroupEntry: () => IconGroupEntry_default,
+  StringTable: () => StringTable_default,
+  VersionFileDriverSubtype: () => VersionFileDriverSubtype,
+  VersionFileFlags: () => VersionFileFlags_default,
+  VersionFileFontSubtype: () => VersionFileFontSubtype,
+  VersionFileOS: () => VersionFileOS_default,
+  VersionFileType: () => VersionFileType_default,
+  VersionInfo: () => VersionInfo_default
 });
 
 // node_modules/resedit/dist/resource/IconGroupEntry.js
@@ -78386,369 +78106,344 @@ function findUnusedIconID(entries, lang, isCursor) {
     last: !0
   };
 }
-var IconGroupEntry, IconGroupEntry_default, init_IconGroupEntry = __esm({
-  "node_modules/resedit/dist/resource/IconGroupEntry.js"() {
-    init_IconItem();
-    init_RawIconItem();
-    init_functions2();
-    IconGroupEntry = /** @class */
-    (function() {
-      function IconGroupEntry2(groupEntry) {
-        var view = new DataView(groupEntry.bin), totalSize = view.byteLength, icons = [];
-        if (view.getUint16(2, !0) === 1)
-          for (var count = view.getUint16(4, !0), offset = 6, i = 0; i < count; ++i)
-            icons.push({
-              width: readUint8WithLastOffset(view, offset, totalSize),
-              height: readUint8WithLastOffset(view, offset + 1, totalSize),
-              colors: readUint8WithLastOffset(view, offset + 2, totalSize),
-              planes: readUint16WithLastOffset(view, offset + 4, totalSize),
-              bitCount: readUint16WithLastOffset(view, offset + 6, totalSize),
-              dataSize: readUint32WithLastOffset(view, offset + 8, totalSize),
-              iconID: readUint16WithLastOffset(view, offset + 12, totalSize)
-            }), offset += 14;
-        this.id = groupEntry.id, this.lang = groupEntry.lang, this.icons = icons;
-      }
-      return IconGroupEntry2.fromEntries = function(entries) {
-        return entries.filter(function(e) {
-          return e.type === 14;
-        }).map(function(e) {
-          return new IconGroupEntry2(e);
-        });
-      }, IconGroupEntry2.prototype.generateEntry = function() {
-        var bin = generateEntryBinary2(this.icons);
-        return {
-          type: 14,
-          id: this.id,
-          lang: this.lang,
-          codepage: 0,
-          bin
-        };
-      }, IconGroupEntry2.prototype.getIconItemsFromEntries = function(entries) {
-        var _this = this;
-        return entries.map(function(e) {
-          if (e.type !== 3 || e.lang !== _this.lang)
-            return null;
-          var c = _this.icons.filter(function(icon) {
-            return e.id === icon.iconID;
-          }).shift();
-          return c ? {
-            entry: e,
-            icon: c
-          } : null;
-        }).filter(function(item) {
-          return !!item;
-        }).map(function(item) {
-          var bin = item.entry.bin, view = new DataView(bin);
-          if (view.getUint32(0, !0) === 40)
-            return IconItem_default.from(bin);
-          var c = item.icon;
-          return RawIconItem_default.from(bin, c.width, c.height, c.bitCount);
-        });
-      }, IconGroupEntry2.replaceIconsForResource = function(destEntries, iconGroupID, lang, icons) {
-        var entry = destEntries.filter(function(e2) {
-          return e2.type === 14 && e2.id === iconGroupID && e2.lang === lang;
-        }).shift(), tmpIconArray = icons.map(function(icon) {
-          if (icon.isIcon()) {
-            var width = icon.width, height = icon.height;
-            return width === null && (width = icon.bitmapInfo.width), height === null && (height = icon.bitmapInfo.height, icon.masks !== null && (height = Math.floor(height / 2))), {
-              base: icon,
-              bm: {
-                width,
-                height,
-                planes: icon.bitmapInfo.planes,
-                bitCount: icon.bitmapInfo.bitCount
-              },
-              bin: icon.generate(),
-              id: 0
-            };
-          } else
-            return {
-              base: icon,
-              bm: {
-                width: icon.width,
-                height: icon.height,
-                planes: 1,
-                bitCount: icon.bitCount
-              },
-              bin: icon.bin,
-              id: 0
-            };
-        });
-        if (entry)
-          for (var i = destEntries.length - 1; i >= 0; --i) {
-            var e = destEntries[i];
-            e != null && e.type === 3 && (isIconUsed(e, destEntries, entry) || destEntries.splice(i, 1));
-          }
-        else
-          entry = {
-            type: 14,
-            id: iconGroupID,
-            lang,
-            codepage: 0,
-            // set later
-            bin: null
-          }, destEntries.push(entry);
-        var idInfo;
-        tmpIconArray.forEach(function(icon) {
-          idInfo?.last ? ++idInfo.id : idInfo = findUnusedIconID(destEntries, lang, !1), destEntries.push({
-            type: 3,
-            id: idInfo.id,
-            lang,
-            codepage: 0,
-            bin: icon.bin
-          }), icon.id = idInfo.id;
-        });
-        var binEntry = generateEntryBinary2(tmpIconArray.map(function(icon) {
-          var width = Math.abs(icon.bm.width);
-          width >= 256 && (width = 0);
-          var height = Math.abs(icon.bm.height);
-          height >= 256 && (height = 0);
-          var colors = 0;
-          if (icon.base.isIcon()) {
-            var bmBase = icon.base.bitmapInfo;
-            if (colors = bmBase.colorUsed || bmBase.colors.length, !colors)
-              switch (bmBase.bitCount) {
-                case 1:
-                  colors = 2;
-                  break;
-                case 4:
-                  colors = 16;
-                  break;
-              }
-            colors >= 256 && (colors = 0);
-          }
-          return {
-            width,
-            height,
-            colors,
-            planes: icon.bm.planes,
-            bitCount: icon.bm.bitCount,
-            dataSize: icon.bin.byteLength,
-            iconID: icon.id
+var IconGroupEntry = (
+  /** @class */
+  (function() {
+    function IconGroupEntry2(groupEntry) {
+      var view = new DataView(groupEntry.bin), totalSize = view.byteLength, icons = [];
+      if (view.getUint16(2, !0) === 1)
+        for (var count = view.getUint16(4, !0), offset = 6, i = 0; i < count; ++i)
+          icons.push({
+            width: readUint8WithLastOffset(view, offset, totalSize),
+            height: readUint8WithLastOffset(view, offset + 1, totalSize),
+            colors: readUint8WithLastOffset(view, offset + 2, totalSize),
+            planes: readUint16WithLastOffset(view, offset + 4, totalSize),
+            bitCount: readUint16WithLastOffset(view, offset + 6, totalSize),
+            dataSize: readUint32WithLastOffset(view, offset + 8, totalSize),
+            iconID: readUint16WithLastOffset(view, offset + 12, totalSize)
+          }), offset += 14;
+      this.id = groupEntry.id, this.lang = groupEntry.lang, this.icons = icons;
+    }
+    return IconGroupEntry2.fromEntries = function(entries) {
+      return entries.filter(function(e) {
+        return e.type === 14;
+      }).map(function(e) {
+        return new IconGroupEntry2(e);
+      });
+    }, IconGroupEntry2.prototype.generateEntry = function() {
+      var bin = generateEntryBinary2(this.icons);
+      return {
+        type: 14,
+        id: this.id,
+        lang: this.lang,
+        codepage: 0,
+        bin
+      };
+    }, IconGroupEntry2.prototype.getIconItemsFromEntries = function(entries) {
+      var _this = this;
+      return entries.map(function(e) {
+        if (e.type !== 3 || e.lang !== _this.lang)
+          return null;
+        var c = _this.icons.filter(function(icon) {
+          return e.id === icon.iconID;
+        }).shift();
+        return c ? {
+          entry: e,
+          icon: c
+        } : null;
+      }).filter(function(item) {
+        return !!item;
+      }).map(function(item) {
+        var bin = item.entry.bin, view = new DataView(bin);
+        if (view.getUint32(0, !0) === 40)
+          return IconItem_default.from(bin);
+        var c = item.icon;
+        return RawIconItem_default.from(bin, c.width, c.height, c.bitCount);
+      });
+    }, IconGroupEntry2.replaceIconsForResource = function(destEntries, iconGroupID, lang, icons) {
+      var entry = destEntries.filter(function(e2) {
+        return e2.type === 14 && e2.id === iconGroupID && e2.lang === lang;
+      }).shift(), tmpIconArray = icons.map(function(icon) {
+        if (icon.isIcon()) {
+          var width = icon.width, height = icon.height;
+          return width === null && (width = icon.bitmapInfo.width), height === null && (height = icon.bitmapInfo.height, icon.masks !== null && (height = Math.floor(height / 2))), {
+            base: icon,
+            bm: {
+              width,
+              height,
+              planes: icon.bitmapInfo.planes,
+              bitCount: icon.bitmapInfo.bitCount
+            },
+            bin: icon.generate(),
+            id: 0
           };
-        }));
-        entry.bin = binEntry;
-        function isIconUsed(icon, allEntries, excludeGroup) {
-          return allEntries.some(function(e2) {
-            if (e2.type !== 14 || e2.id === excludeGroup.id && e2.lang === excludeGroup.lang)
-              return !1;
-            var g = new IconGroupEntry2(e2);
-            return g.icons.some(function(c) {
-              return c.iconID === icon.id;
-            });
-          });
+        } else
+          return {
+            base: icon,
+            bm: {
+              width: icon.width,
+              height: icon.height,
+              planes: 1,
+              bitCount: icon.bitCount
+            },
+            bin: icon.bin,
+            id: 0
+          };
+      });
+      if (entry)
+        for (var i = destEntries.length - 1; i >= 0; --i) {
+          var e = destEntries[i];
+          e != null && e.type === 3 && (isIconUsed(e, destEntries, entry) || destEntries.splice(i, 1));
         }
-      }, IconGroupEntry2;
-    })(), IconGroupEntry_default = IconGroupEntry;
-  }
-});
+      else
+        entry = {
+          type: 14,
+          id: iconGroupID,
+          lang,
+          codepage: 0,
+          // set later
+          bin: null
+        }, destEntries.push(entry);
+      var idInfo;
+      tmpIconArray.forEach(function(icon) {
+        idInfo?.last ? ++idInfo.id : idInfo = findUnusedIconID(destEntries, lang, !1), destEntries.push({
+          type: 3,
+          id: idInfo.id,
+          lang,
+          codepage: 0,
+          bin: icon.bin
+        }), icon.id = idInfo.id;
+      });
+      var binEntry = generateEntryBinary2(tmpIconArray.map(function(icon) {
+        var width = Math.abs(icon.bm.width);
+        width >= 256 && (width = 0);
+        var height = Math.abs(icon.bm.height);
+        height >= 256 && (height = 0);
+        var colors = 0;
+        if (icon.base.isIcon()) {
+          var bmBase = icon.base.bitmapInfo;
+          if (colors = bmBase.colorUsed || bmBase.colors.length, !colors)
+            switch (bmBase.bitCount) {
+              case 1:
+                colors = 2;
+                break;
+              case 4:
+                colors = 16;
+                break;
+            }
+          colors >= 256 && (colors = 0);
+        }
+        return {
+          width,
+          height,
+          colors,
+          planes: icon.bm.planes,
+          bitCount: icon.bm.bitCount,
+          dataSize: icon.bin.byteLength,
+          iconID: icon.id
+        };
+      }));
+      entry.bin = binEntry;
+      function isIconUsed(icon, allEntries, excludeGroup) {
+        return allEntries.some(function(e2) {
+          if (e2.type !== 14 || e2.id === excludeGroup.id && e2.lang === excludeGroup.lang)
+            return !1;
+          var g = new IconGroupEntry2(e2);
+          return g.icons.some(function(c) {
+            return c.iconID === icon.id;
+          });
+        });
+      }
+    }, IconGroupEntry2;
+  })()
+), IconGroupEntry_default = IconGroupEntry;
 
 // node_modules/resedit/dist/resource/StringTableItem.js
-var StringTableItem, StringTableItem_default, init_StringTableItem = __esm({
-  "node_modules/resedit/dist/resource/StringTableItem.js"() {
-    StringTableItem = /** @class */
-    (function() {
-      function StringTableItem2() {
-        this.length = 16, this._a = [], this._a.length = 16;
-        for (var i = 0; i < 16; ++i)
-          this._a[i] = "";
+var StringTableItem = (
+  /** @class */
+  (function() {
+    function StringTableItem2() {
+      this.length = 16, this._a = [], this._a.length = 16;
+      for (var i = 0; i < 16; ++i)
+        this._a[i] = "";
+    }
+    return StringTableItem2.fromEntry = function(bin, offset, byteLength) {
+      for (var view = new DataView(bin, offset, byteLength), ret = new StringTableItem2(), o = 0, i = 0; i < 16; ++i) {
+        var len = view.getUint16(o, !0);
+        o += 2;
+        for (var s = "", j = 0; j < len; ++j)
+          s += String.fromCharCode(view.getUint16(o, !0)), o += 2;
+        ret._a[i] = s;
       }
-      return StringTableItem2.fromEntry = function(bin, offset, byteLength) {
-        for (var view = new DataView(bin, offset, byteLength), ret = new StringTableItem2(), o = 0, i = 0; i < 16; ++i) {
-          var len = view.getUint16(o, !0);
-          o += 2;
-          for (var s = "", j = 0; j < len; ++j)
-            s += String.fromCharCode(view.getUint16(o, !0)), o += 2;
-          ret._a[i] = s;
-        }
-        return ret;
-      }, StringTableItem2.prototype.get = function(index) {
-        var value = this._a[index];
-        return value != null && value !== "" ? value : null;
-      }, StringTableItem2.prototype.getAll = function() {
-        return this._a.map(function(s) {
-          return s || null;
-        });
-      }, StringTableItem2.prototype.set = function(index, val) {
-        this._a[index] = "".concat(val ?? "").substr(0, 4097);
-      }, StringTableItem2.prototype.calcByteLength = function() {
-        for (var len = 0, i = 0; i < 16; ++i) {
-          var item = this._a[i];
-          len += 2, item != null && (len += 2 * item.length);
-        }
-        return Math.floor((len + 15) / 16) * 16;
-      }, StringTableItem2.prototype.generate = function(bin, offset) {
-        for (var out = new DataView(bin, offset), len = 0, i = 0; i < 16; ++i) {
-          var s = this._a[i], l = s == null ? 0 : s.length > 4097 ? 4097 : s.length;
-          if (out.setUint16(len, l, !0), len += 2, s != null)
-            for (var j = 0; j < l; ++j)
-              out.setUint16(len, s.charCodeAt(j), !0), len += 2;
-        }
-        return Math.floor((len + 15) / 16) * 16;
-      }, StringTableItem2;
-    })(), StringTableItem_default = StringTableItem;
-  }
-});
+      return ret;
+    }, StringTableItem2.prototype.get = function(index) {
+      var value = this._a[index];
+      return value != null && value !== "" ? value : null;
+    }, StringTableItem2.prototype.getAll = function() {
+      return this._a.map(function(s) {
+        return s || null;
+      });
+    }, StringTableItem2.prototype.set = function(index, val) {
+      this._a[index] = "".concat(val ?? "").substr(0, 4097);
+    }, StringTableItem2.prototype.calcByteLength = function() {
+      for (var len = 0, i = 0; i < 16; ++i) {
+        var item = this._a[i];
+        len += 2, item != null && (len += 2 * item.length);
+      }
+      return Math.floor((len + 15) / 16) * 16;
+    }, StringTableItem2.prototype.generate = function(bin, offset) {
+      for (var out = new DataView(bin, offset), len = 0, i = 0; i < 16; ++i) {
+        var s = this._a[i], l = s == null ? 0 : s.length > 4097 ? 4097 : s.length;
+        if (out.setUint16(len, l, !0), len += 2, s != null)
+          for (var j = 0; j < l; ++j)
+            out.setUint16(len, s.charCodeAt(j), !0), len += 2;
+      }
+      return Math.floor((len + 15) / 16) * 16;
+    }, StringTableItem2;
+  })()
+), StringTableItem_default = StringTableItem;
 
 // node_modules/resedit/dist/resource/StringTable.js
-var StringTable, StringTable_default, init_StringTable = __esm({
-  "node_modules/resedit/dist/resource/StringTable.js"() {
-    init_StringTableItem();
-    StringTable = /** @class */
-    (function() {
-      function StringTable2() {
-        this.lang = 0, this.items = [];
-      }
-      return StringTable2.fromEntries = function(lang, entries) {
-        var r = new StringTable2();
-        return entries.forEach(function(e) {
-          e.type !== 6 || e.lang !== lang || typeof e.id != "number" || e.id <= 0 || (r.items[e.id - 1] = StringTableItem_default.fromEntry(e.bin, 0, e.bin.byteLength));
-        }), r.lang = lang, r;
-      }, StringTable2.prototype.getAllStrings = function() {
-        return this.items.map(function(e, i) {
-          return e.getAll().map(function(x, j) {
-            return x !== null && x !== "" ? { id: (i << 4) + j, text: x } : null;
-          }).filter(function(x) {
-            return !!x;
-          });
-        }).reduce(function(p, c) {
-          return p.concat(c);
-        }, []);
-      }, StringTable2.prototype.getById = function(id) {
-        var _a;
-        if (id < 0)
-          return null;
-        var entryIndex = id >> 4, entryPos = id & 15, e = this.items[entryIndex];
-        return (_a = e?.get(entryPos)) !== null && _a !== void 0 ? _a : null;
-      }, StringTable2.prototype.setById = function(id, text) {
-        if (!(id < 0)) {
-          var entryIndex = id >> 4, entryPos = id & 15, e = this.items[entryIndex];
-          e || (this.items[entryIndex] = e = new StringTableItem_default()), e.set(entryPos, text);
-        }
-      }, StringTable2.prototype.generateEntries = function() {
-        var _this = this;
-        return this.items.map(function(e, i) {
-          var len = e.calcByteLength(), bin = new ArrayBuffer(len);
-          return e.generate(bin, 0), {
-            type: 6,
-            id: i + 1,
-            lang: _this.lang,
-            codepage: 1200,
-            bin
-          };
-        }).filter(function(e) {
-          return !!e;
+var StringTable = (
+  /** @class */
+  (function() {
+    function StringTable2() {
+      this.lang = 0, this.items = [];
+    }
+    return StringTable2.fromEntries = function(lang, entries) {
+      var r = new StringTable2();
+      return entries.forEach(function(e) {
+        e.type !== 6 || e.lang !== lang || typeof e.id != "number" || e.id <= 0 || (r.items[e.id - 1] = StringTableItem_default.fromEntry(e.bin, 0, e.bin.byteLength));
+      }), r.lang = lang, r;
+    }, StringTable2.prototype.getAllStrings = function() {
+      return this.items.map(function(e, i) {
+        return e.getAll().map(function(x, j) {
+          return x !== null && x !== "" ? { id: (i << 4) + j, text: x } : null;
+        }).filter(function(x) {
+          return !!x;
         });
-      }, StringTable2.prototype.replaceStringEntriesForExecutable = function(res) {
-        for (var entries = this.generateEntries(), dest = res.entries, i = 0; i < dest.length; ++i) {
-          var e = dest[i];
-          if (e != null && e.type === 6 && e.lang === this.lang) {
-            for (var j = dest.length - 1; j >= i; --j) {
-              var e2 = dest[j];
-              e2 != null && e2.type === 6 && e2.lang === this.lang && dest.splice(j, 1);
-            }
-            var f = dest.splice.bind(dest, i, 0);
-            f.apply(void 0, entries);
-            return;
+      }).reduce(function(p, c) {
+        return p.concat(c);
+      }, []);
+    }, StringTable2.prototype.getById = function(id) {
+      var _a;
+      if (id < 0)
+        return null;
+      var entryIndex = id >> 4, entryPos = id & 15, e = this.items[entryIndex];
+      return (_a = e?.get(entryPos)) !== null && _a !== void 0 ? _a : null;
+    }, StringTable2.prototype.setById = function(id, text) {
+      if (!(id < 0)) {
+        var entryIndex = id >> 4, entryPos = id & 15, e = this.items[entryIndex];
+        e || (this.items[entryIndex] = e = new StringTableItem_default()), e.set(entryPos, text);
+      }
+    }, StringTable2.prototype.generateEntries = function() {
+      var _this = this;
+      return this.items.map(function(e, i) {
+        var len = e.calcByteLength(), bin = new ArrayBuffer(len);
+        return e.generate(bin, 0), {
+          type: 6,
+          id: i + 1,
+          lang: _this.lang,
+          codepage: 1200,
+          bin
+        };
+      }).filter(function(e) {
+        return !!e;
+      });
+    }, StringTable2.prototype.replaceStringEntriesForExecutable = function(res) {
+      for (var entries = this.generateEntries(), dest = res.entries, i = 0; i < dest.length; ++i) {
+        var e = dest[i];
+        if (e != null && e.type === 6 && e.lang === this.lang) {
+          for (var j = dest.length - 1; j >= i; --j) {
+            var e2 = dest[j];
+            e2 != null && e2.type === 6 && e2.lang === this.lang && dest.splice(j, 1);
           }
+          var f = dest.splice.bind(dest, i, 0);
+          f.apply(void 0, entries);
+          return;
         }
-        for (var i = 0; i < dest.length; ++i) {
-          var e = dest[i];
-          if (e != null && e.type === 6 && e.lang < this.lang) {
-            var f = dest.splice.bind(dest, i + 1, 0);
-            f.apply(void 0, entries);
-            return;
-          }
+      }
+      for (var i = 0; i < dest.length; ++i) {
+        var e = dest[i];
+        if (e != null && e.type === 6 && e.lang < this.lang) {
+          var f = dest.splice.bind(dest, i + 1, 0);
+          f.apply(void 0, entries);
+          return;
         }
-        for (var i = dest.length - 1; i >= 0; --i) {
-          var e = dest[i];
-          if (e != null && e.type === 6) {
-            var f = dest.splice.bind(dest, i + 1, 0);
-            f.apply(void 0, entries);
-            return;
-          }
+      }
+      for (var i = dest.length - 1; i >= 0; --i) {
+        var e = dest[i];
+        if (e != null && e.type === 6) {
+          var f = dest.splice.bind(dest, i + 1, 0);
+          f.apply(void 0, entries);
+          return;
         }
-        dest.push.apply(dest, entries);
-      }, StringTable2;
-    })(), StringTable_default = StringTable;
-  }
-});
+      }
+      dest.push.apply(dest, entries);
+    }, StringTable2;
+  })()
+), StringTable_default = StringTable;
 
 // node_modules/resedit/dist/resource/VersionFileFlags.js
-var VersionFileFlags, VersionFileFlags_default, init_VersionFileFlags = __esm({
-  "node_modules/resedit/dist/resource/VersionFileFlags.js"() {
-    VersionFileFlags = {
-      Debug: 1,
-      Prerelease: 2,
-      Patched: 4,
-      PrivateBuild: 8,
-      InfoInferred: 16,
-      SpecialBuild: 32
-    }, VersionFileFlags_default = VersionFileFlags;
-  }
-});
+var VersionFileFlags = {
+  Debug: 1,
+  Prerelease: 2,
+  Patched: 4,
+  PrivateBuild: 8,
+  InfoInferred: 16,
+  SpecialBuild: 32
+}, VersionFileFlags_default = VersionFileFlags;
 
 // node_modules/resedit/dist/resource/VersionFileOS.js
-var VersionFileOS, VersionFileOS_default, init_VersionFileOS = __esm({
-  "node_modules/resedit/dist/resource/VersionFileOS.js"() {
-    VersionFileOS = {
-      Unknown: 0,
-      _Windows16: 1,
-      _PM16: 2,
-      _PM32: 3,
-      _Windows32: 4,
-      DOS: 65536,
-      OS2_16: 131072,
-      OS2_32: 196608,
-      NT: 262144,
-      DOS_Windows16: 65537,
-      DOS_Windows32: 65540,
-      NT_Windows32: 262148,
-      OS2_16_PM16: 131074,
-      OS2_32_PM32: 196611
-    }, VersionFileOS_default = VersionFileOS;
-  }
-});
+var VersionFileOS = {
+  Unknown: 0,
+  _Windows16: 1,
+  _PM16: 2,
+  _PM32: 3,
+  _Windows32: 4,
+  DOS: 65536,
+  OS2_16: 131072,
+  OS2_32: 196608,
+  NT: 262144,
+  DOS_Windows16: 65537,
+  DOS_Windows32: 65540,
+  NT_Windows32: 262148,
+  OS2_16_PM16: 131074,
+  OS2_32_PM32: 196611
+}, VersionFileOS_default = VersionFileOS;
 
 // node_modules/resedit/dist/resource/VersionFileSubtypes.js
-var VersionFileDriverSubtype, VersionFileFontSubtype, init_VersionFileSubtypes = __esm({
-  "node_modules/resedit/dist/resource/VersionFileSubtypes.js"() {
-    VersionFileDriverSubtype = {
-      Unknown: 0,
-      Printer: 1,
-      Keyboard: 2,
-      Language: 3,
-      Display: 4,
-      Mouse: 5,
-      Network: 6,
-      System: 7,
-      Installable: 8,
-      Sound: 9,
-      Comm: 10,
-      VersionedPrinter: 12
-    }, VersionFileFontSubtype = {
-      Unknown: 0,
-      Raster: 1,
-      Vector: 2,
-      TrueType: 3
-    };
-  }
-});
+var VersionFileDriverSubtype = {
+  Unknown: 0,
+  Printer: 1,
+  Keyboard: 2,
+  Language: 3,
+  Display: 4,
+  Mouse: 5,
+  Network: 6,
+  System: 7,
+  Installable: 8,
+  Sound: 9,
+  Comm: 10,
+  VersionedPrinter: 12
+};
+var VersionFileFontSubtype = {
+  Unknown: 0,
+  Raster: 1,
+  Vector: 2,
+  TrueType: 3
+};
 
 // node_modules/resedit/dist/resource/VersionFileType.js
-var VersionFileType, VersionFileType_default, init_VersionFileType = __esm({
-  "node_modules/resedit/dist/resource/VersionFileType.js"() {
-    VersionFileType = {
-      Unknown: 0,
-      App: 1,
-      DLL: 2,
-      Driver: 3,
-      Font: 4,
-      VxD: 5,
-      StaticLibrary: 7
-    }, VersionFileType_default = VersionFileType;
-  }
-});
+var VersionFileType = {
+  Unknown: 0,
+  App: 1,
+  DLL: 2,
+  Driver: 3,
+  Font: 4,
+  VxD: 5,
+  StaticLibrary: 7
+}, VersionFileType_default = VersionFileType;
 
 // node_modules/resedit/dist/resource/VersionInfo.js
 function readStringToNullChar(view, offset, last) {
@@ -78989,238 +78684,209 @@ function parseVersionArguments(arg1, arg2, arg3, arg4, arg5) {
     return clampInt(Number(token), 0, 65535);
   }).concat(0, 0, 0), major = _a[0], minor = _a[1], micro = _a[2], revision = _a[3], lang = arg2) : (major = clampInt(Number(arg1), 0, 65535), minor = clampInt(Number(arg2), 0, 65535), micro = clampInt(typeof arg3 > "u" ? 0 : Number(arg3), 0, 65535), revision = clampInt(typeof arg4 > "u" ? 0 : Number(arg4), 0, 65535), lang = arg5), [major, minor, micro, revision, lang];
 }
-var VersionInfo, VersionInfo_default, init_VersionInfo = __esm({
-  "node_modules/resedit/dist/resource/VersionInfo.js"() {
-    init_functions2();
-    VersionInfo = /** @class */
-    (function() {
-      function VersionInfo2(entry) {
-        if (!entry)
-          this.data = {
-            lang: 0,
-            fixedInfo: createFixedInfo(),
-            strings: [],
-            translations: [],
-            unknowns: []
-          };
-        else {
-          var view = new DataView(entry.bin);
-          this.data = parseVersionEntry(view, entry);
+var VersionInfo = (
+  /** @class */
+  (function() {
+    function VersionInfo2(entry) {
+      if (!entry)
+        this.data = {
+          lang: 0,
+          fixedInfo: createFixedInfo(),
+          strings: [],
+          translations: [],
+          unknowns: []
+        };
+      else {
+        var view = new DataView(entry.bin);
+        this.data = parseVersionEntry(view, entry);
+      }
+    }
+    return VersionInfo2.createEmpty = function() {
+      return new VersionInfo2();
+    }, VersionInfo2.create = function(arg1, fixedInfo, strings) {
+      var lang;
+      typeof arg1 == "object" ? (lang = arg1.lang, fixedInfo = arg1.fixedInfo, strings = arg1.strings) : lang = arg1;
+      var vi = new VersionInfo2();
+      vi.data.lang = lang;
+      for (var _fixedInfoKey in fixedInfo) {
+        var fixedInfoKey = _fixedInfoKey;
+        if (fixedInfoKey in fixedInfo) {
+          var value = fixedInfo[fixedInfoKey];
+          value != null && (vi.data.fixedInfo[fixedInfoKey] = value);
         }
       }
-      return VersionInfo2.createEmpty = function() {
-        return new VersionInfo2();
-      }, VersionInfo2.create = function(arg1, fixedInfo, strings) {
-        var lang;
-        typeof arg1 == "object" ? (lang = arg1.lang, fixedInfo = arg1.fixedInfo, strings = arg1.strings) : lang = arg1;
-        var vi = new VersionInfo2();
-        vi.data.lang = lang;
-        for (var _fixedInfoKey in fixedInfo) {
-          var fixedInfoKey = _fixedInfoKey;
-          if (fixedInfoKey in fixedInfo) {
-            var value = fixedInfo[fixedInfoKey];
-            value != null && (vi.data.fixedInfo[fixedInfoKey] = value);
-          }
-        }
-        return vi.data.strings = strings.map(function(_a) {
-          var lang2 = _a.lang, codepage = _a.codepage, values = _a.values;
-          return {
-            lang: lang2,
-            codepage,
-            values: cloneObject2(values)
-          };
-        }), vi.data.translations = strings.map(function(_a) {
-          var lang2 = _a.lang, codepage = _a.codepage;
-          return { lang: lang2, codepage };
-        }), vi;
-      }, VersionInfo2.fromEntries = function(entries) {
-        return entries.filter(function(e) {
-          return e.type === 16;
-        }).map(function(e) {
-          return new VersionInfo2(e);
-        });
-      }, Object.defineProperty(VersionInfo2.prototype, "lang", {
-        /** A language value for this resource entry. */
-        get: function() {
-          return this.data.lang;
-        },
-        set: function(value) {
-          this.data.lang = value;
-        },
-        enumerable: !1,
-        configurable: !0
-      }), Object.defineProperty(VersionInfo2.prototype, "fixedInfo", {
-        /**
-         * The property of fixed version info, containing file version, product version, etc.
-         * (data: `VS_FIXEDFILEINFO`)
-         *
-         * Although this property is read-only, you can rewrite
-         * each child fields directly to apply data.
-         */
-        get: function() {
-          return this.data.fixedInfo;
-        },
-        enumerable: !1,
-        configurable: !0
-      }), VersionInfo2.prototype.getAvailableLanguages = function() {
-        return this.data.translations.slice(0);
-      }, VersionInfo2.prototype.replaceAvailableLanguages = function(languages) {
-        this.data.translations = languages.slice(0);
-      }, VersionInfo2.prototype.getStringValues = function(language) {
-        var a = this.data.strings.filter(function(e) {
-          return e.lang === language.lang && e.codepage === language.codepage;
-        }).map(function(e) {
-          return e.values;
-        });
-        return a.length > 0 ? a[0] : {};
-      }, VersionInfo2.prototype.getAllLanguagesForStringValues = function() {
-        return this.data.strings.map(function(_a) {
-          var codepage = _a.codepage, lang = _a.lang;
-          return { codepage, lang };
-        });
-      }, VersionInfo2.prototype.setStringValues = function(language, values, addToAvailableLanguage) {
-        addToAvailableLanguage === void 0 && (addToAvailableLanguage = !0);
-        var a = this.data.strings.filter(function(e) {
-          return e.lang === language.lang && e.codepage === language.codepage;
-        }), table;
-        a.length === 0 ? (table = {
-          lang: language.lang,
-          codepage: language.codepage,
-          values: {}
-        }, this.data.strings.push(table)) : table = a[0];
-        for (var key in values) {
-          var value = values[key];
-          value != null && (table.values[key] = value);
-        }
-        if (addToAvailableLanguage) {
-          var t = this.data.translations.filter(function(e) {
-            return e.lang === language.lang && e.codepage === language.codepage;
-          });
-          t.length === 0 && this.data.translations.push({
-            lang: language.lang,
-            codepage: language.codepage
-          });
-        }
-      }, VersionInfo2.prototype.setStringValue = function(language, key, value, addToAvailableLanguage) {
-        var _a;
-        addToAvailableLanguage === void 0 && (addToAvailableLanguage = !0), this.setStringValues(language, (_a = {}, _a[key] = value, _a), addToAvailableLanguage);
-      }, VersionInfo2.prototype.removeAllStringValues = function(language, removeFromAvailableLanguage) {
-        removeFromAvailableLanguage === void 0 && (removeFromAvailableLanguage = !0);
-        for (var strings = this.data.strings, len = strings.length, i = 0; i < len; ++i) {
-          var e = strings[i];
-          if (e != null && e.lang === language.lang && e.codepage === language.codepage) {
-            if (strings.splice(i, 1), removeFromAvailableLanguage)
-              for (var translations = this.data.translations, j = 0; j < translations.length; j++) {
-                var t = translations[j];
-                if (t != null && t.lang === language.lang && t.codepage === language.codepage) {
-                  translations.splice(j, 1);
-                  break;
-                }
-              }
-            break;
-          }
-        }
-      }, VersionInfo2.prototype.removeStringValue = function(language, key, removeFromAvailableLanguage) {
-        removeFromAvailableLanguage === void 0 && (removeFromAvailableLanguage = !0);
-        for (var strings = this.data.strings, len = strings.length, i = 0; i < len; ++i) {
-          var e = strings[i];
-          if (e != null && e.lang === language.lang && e.codepage === language.codepage) {
-            try {
-              delete e.values[key];
-            } catch {
-            }
-            if (removeFromAvailableLanguage && Object.keys(e.values).length === 0) {
-              strings.splice(i, 1);
-              for (var translations = this.data.translations, j = 0; j < translations.length; j++) {
-                var t = translations[j];
-                if (t != null && t.lang === language.lang && t.codepage === language.codepage) {
-                  translations.splice(j, 1);
-                  break;
-                }
-              }
-            }
-            break;
-          }
-        }
-      }, VersionInfo2.prototype.generateResource = function() {
-        var bin = generateVersionEntryBinary(this.data);
+      return vi.data.strings = strings.map(function(_a) {
+        var lang2 = _a.lang, codepage = _a.codepage, values = _a.values;
         return {
-          type: 16,
-          id: 1,
-          lang: this.lang,
-          codepage: 1200,
-          bin
+          lang: lang2,
+          codepage,
+          values: cloneObject2(values)
         };
-      }, VersionInfo2.prototype.outputToResourceEntries = function(entries) {
-        for (var res = this.generateResource(), len = entries.length, i = 0; i < len; ++i) {
-          var e = entries[i];
-          if (e != null && e.type === 16 && e.id === res.id && e.lang === res.lang) {
-            entries[i] = res;
-            return;
-          }
-        }
-        entries.push(res);
-      }, VersionInfo2.prototype.getDefaultVersionLang = function(propName3) {
-        var num = Number(this.lang);
-        if (this.lang !== "" && !isNaN(num))
-          return num;
-        var a = this.data.strings.filter(function(e) {
-          return propName3 in e.values && e.values[propName3] != null;
-        }).map(function(e) {
-          return e.lang;
+      }), vi.data.translations = strings.map(function(_a) {
+        var lang2 = _a.lang, codepage = _a.codepage;
+        return { lang: lang2, codepage };
+      }), vi;
+    }, VersionInfo2.fromEntries = function(entries) {
+      return entries.filter(function(e) {
+        return e.type === 16;
+      }).map(function(e) {
+        return new VersionInfo2(e);
+      });
+    }, Object.defineProperty(VersionInfo2.prototype, "lang", {
+      /** A language value for this resource entry. */
+      get: function() {
+        return this.data.lang;
+      },
+      set: function(value) {
+        this.data.lang = value;
+      },
+      enumerable: !1,
+      configurable: !0
+    }), Object.defineProperty(VersionInfo2.prototype, "fixedInfo", {
+      /**
+       * The property of fixed version info, containing file version, product version, etc.
+       * (data: `VS_FIXEDFILEINFO`)
+       *
+       * Although this property is read-only, you can rewrite
+       * each child fields directly to apply data.
+       */
+      get: function() {
+        return this.data.fixedInfo;
+      },
+      enumerable: !1,
+      configurable: !0
+    }), VersionInfo2.prototype.getAvailableLanguages = function() {
+      return this.data.translations.slice(0);
+    }, VersionInfo2.prototype.replaceAvailableLanguages = function(languages) {
+      this.data.translations = languages.slice(0);
+    }, VersionInfo2.prototype.getStringValues = function(language) {
+      var a = this.data.strings.filter(function(e) {
+        return e.lang === language.lang && e.codepage === language.codepage;
+      }).map(function(e) {
+        return e.values;
+      });
+      return a.length > 0 ? a[0] : {};
+    }, VersionInfo2.prototype.getAllLanguagesForStringValues = function() {
+      return this.data.strings.map(function(_a) {
+        var codepage = _a.codepage, lang = _a.lang;
+        return { codepage, lang };
+      });
+    }, VersionInfo2.prototype.setStringValues = function(language, values, addToAvailableLanguage) {
+      addToAvailableLanguage === void 0 && (addToAvailableLanguage = !0);
+      var a = this.data.strings.filter(function(e) {
+        return e.lang === language.lang && e.codepage === language.codepage;
+      }), table;
+      a.length === 0 ? (table = {
+        lang: language.lang,
+        codepage: language.codepage,
+        values: {}
+      }, this.data.strings.push(table)) : table = a[0];
+      for (var key in values) {
+        var value = values[key];
+        value != null && (table.values[key] = value);
+      }
+      if (addToAvailableLanguage) {
+        var t = this.data.translations.filter(function(e) {
+          return e.lang === language.lang && e.codepage === language.codepage;
         });
-        return a.length === 1 ? a[0] : 1033;
-      }, VersionInfo2.prototype.setFileVersion = function(arg1, arg2, arg3, arg4, arg5) {
-        this.setFileVersionImpl.apply(this, parseVersionArguments(arg1, arg2, arg3, arg4, arg5));
-      }, VersionInfo2.prototype.setFileVersionImpl = function(major, minor, micro, revision, lang) {
-        lang = typeof lang < "u" ? lang : this.getDefaultVersionLang("FileVersion"), this.fixedInfo.fileVersionMS = major << 16 | minor, this.fixedInfo.fileVersionLS = micro << 16 | revision, this.setStringValue({ lang, codepage: 1200 }, "FileVersion", "".concat(major, ".").concat(minor, ".").concat(micro, ".").concat(revision), !0);
-      }, VersionInfo2.prototype.setProductVersion = function(arg1, arg2, arg3, arg4, arg5) {
-        this.setProductVersionImpl.apply(this, parseVersionArguments(arg1, arg2, arg3, arg4, arg5));
-      }, VersionInfo2.prototype.setProductVersionImpl = function(major, minor, micro, revision, lang) {
-        lang = typeof lang < "u" ? lang : this.getDefaultVersionLang("ProductVersion"), this.fixedInfo.productVersionMS = major << 16 | minor, this.fixedInfo.productVersionLS = micro << 16 | revision, this.setStringValue({ lang, codepage: 1200 }, "ProductVersion", "".concat(major, ".").concat(minor, ".").concat(micro, ".").concat(revision), !0);
-      }, VersionInfo2;
-    })(), VersionInfo_default = VersionInfo;
-  }
-});
-
-// node_modules/resedit/dist/resource/index.js
-var resource_exports = {};
-__export(resource_exports, {
-  IconGroupEntry: () => IconGroupEntry_default,
-  StringTable: () => StringTable_default,
-  VersionFileDriverSubtype: () => VersionFileDriverSubtype,
-  VersionFileFlags: () => VersionFileFlags_default,
-  VersionFileFontSubtype: () => VersionFileFontSubtype,
-  VersionFileOS: () => VersionFileOS_default,
-  VersionFileType: () => VersionFileType_default,
-  VersionInfo: () => VersionInfo_default
-});
-var init_resource = __esm({
-  "node_modules/resedit/dist/resource/index.js"() {
-    init_IconGroupEntry();
-    init_StringTable();
-    init_VersionFileFlags();
-    init_VersionFileOS();
-    init_VersionFileSubtypes();
-    init_VersionFileType();
-    init_VersionInfo();
-  }
-});
+        t.length === 0 && this.data.translations.push({
+          lang: language.lang,
+          codepage: language.codepage
+        });
+      }
+    }, VersionInfo2.prototype.setStringValue = function(language, key, value, addToAvailableLanguage) {
+      var _a;
+      addToAvailableLanguage === void 0 && (addToAvailableLanguage = !0), this.setStringValues(language, (_a = {}, _a[key] = value, _a), addToAvailableLanguage);
+    }, VersionInfo2.prototype.removeAllStringValues = function(language, removeFromAvailableLanguage) {
+      removeFromAvailableLanguage === void 0 && (removeFromAvailableLanguage = !0);
+      for (var strings = this.data.strings, len = strings.length, i = 0; i < len; ++i) {
+        var e = strings[i];
+        if (e != null && e.lang === language.lang && e.codepage === language.codepage) {
+          if (strings.splice(i, 1), removeFromAvailableLanguage)
+            for (var translations = this.data.translations, j = 0; j < translations.length; j++) {
+              var t = translations[j];
+              if (t != null && t.lang === language.lang && t.codepage === language.codepage) {
+                translations.splice(j, 1);
+                break;
+              }
+            }
+          break;
+        }
+      }
+    }, VersionInfo2.prototype.removeStringValue = function(language, key, removeFromAvailableLanguage) {
+      removeFromAvailableLanguage === void 0 && (removeFromAvailableLanguage = !0);
+      for (var strings = this.data.strings, len = strings.length, i = 0; i < len; ++i) {
+        var e = strings[i];
+        if (e != null && e.lang === language.lang && e.codepage === language.codepage) {
+          try {
+            delete e.values[key];
+          } catch {
+          }
+          if (removeFromAvailableLanguage && Object.keys(e.values).length === 0) {
+            strings.splice(i, 1);
+            for (var translations = this.data.translations, j = 0; j < translations.length; j++) {
+              var t = translations[j];
+              if (t != null && t.lang === language.lang && t.codepage === language.codepage) {
+                translations.splice(j, 1);
+                break;
+              }
+            }
+          }
+          break;
+        }
+      }
+    }, VersionInfo2.prototype.generateResource = function() {
+      var bin = generateVersionEntryBinary(this.data);
+      return {
+        type: 16,
+        id: 1,
+        lang: this.lang,
+        codepage: 1200,
+        bin
+      };
+    }, VersionInfo2.prototype.outputToResourceEntries = function(entries) {
+      for (var res = this.generateResource(), len = entries.length, i = 0; i < len; ++i) {
+        var e = entries[i];
+        if (e != null && e.type === 16 && e.id === res.id && e.lang === res.lang) {
+          entries[i] = res;
+          return;
+        }
+      }
+      entries.push(res);
+    }, VersionInfo2.prototype.getDefaultVersionLang = function(propName3) {
+      var num = Number(this.lang);
+      if (this.lang !== "" && !isNaN(num))
+        return num;
+      var a = this.data.strings.filter(function(e) {
+        return propName3 in e.values && e.values[propName3] != null;
+      }).map(function(e) {
+        return e.lang;
+      });
+      return a.length === 1 ? a[0] : 1033;
+    }, VersionInfo2.prototype.setFileVersion = function(arg1, arg2, arg3, arg4, arg5) {
+      this.setFileVersionImpl.apply(this, parseVersionArguments(arg1, arg2, arg3, arg4, arg5));
+    }, VersionInfo2.prototype.setFileVersionImpl = function(major, minor, micro, revision, lang) {
+      lang = typeof lang < "u" ? lang : this.getDefaultVersionLang("FileVersion"), this.fixedInfo.fileVersionMS = major << 16 | minor, this.fixedInfo.fileVersionLS = micro << 16 | revision, this.setStringValue({ lang, codepage: 1200 }, "FileVersion", "".concat(major, ".").concat(minor, ".").concat(micro, ".").concat(revision), !0);
+    }, VersionInfo2.prototype.setProductVersion = function(arg1, arg2, arg3, arg4, arg5) {
+      this.setProductVersionImpl.apply(this, parseVersionArguments(arg1, arg2, arg3, arg4, arg5));
+    }, VersionInfo2.prototype.setProductVersionImpl = function(major, minor, micro, revision, lang) {
+      lang = typeof lang < "u" ? lang : this.getDefaultVersionLang("ProductVersion"), this.fixedInfo.productVersionMS = major << 16 | minor, this.fixedInfo.productVersionLS = micro << 16 | revision, this.setStringValue({ lang, codepage: 1200 }, "ProductVersion", "".concat(major, ".").concat(minor, ".").concat(micro, ".").concat(revision), !0);
+    }, VersionInfo2;
+  })()
+), VersionInfo_default = VersionInfo;
 
 // node_modules/resedit/dist/sign/data/DERObject.js
-var RawDERObject, init_DERObject = __esm({
-  "node_modules/resedit/dist/sign/data/DERObject.js"() {
-    RawDERObject = /** @class */
-    (function() {
-      function RawDERObject2(data) {
-        this.data = data;
-      }
-      return RawDERObject2.prototype.toDER = function() {
-        return [].slice.call(this.data);
-      }, RawDERObject2;
-    })();
-  }
-});
+var RawDERObject = (
+  /** @class */
+  (function() {
+    function RawDERObject2(data) {
+      this.data = data;
+    }
+    return RawDERObject2.prototype.toDER = function() {
+      return [].slice.call(this.data);
+    }, RawDERObject2;
+  })()
+);
 
 // node_modules/resedit/dist/sign/data/derUtil.js
 function makeDERLength(length) {
@@ -79264,421 +78930,337 @@ function arrayToDERSet(items) {
   }, []);
   return [49].concat(makeDERLength(r.length)).concat(r);
 }
-var init_derUtil = __esm({
-  "node_modules/resedit/dist/sign/data/derUtil.js"() {
-  }
-});
 
 // node_modules/resedit/dist/sign/data/ObjectIdentifier.js
-var ObjectIdentifier, ObjectIdentifier_default, init_ObjectIdentifier = __esm({
-  "node_modules/resedit/dist/sign/data/ObjectIdentifier.js"() {
-    init_derUtil();
-    ObjectIdentifier = /** @class */
-    (function() {
-      function ObjectIdentifier2(value) {
-        typeof value == "string" ? this.value = value.split(/\./g).map(function(s) {
-          return Number(s);
-        }) : this.value = value;
-      }
-      return ObjectIdentifier2.prototype.toDER = function() {
-        var id = this.value, r = [];
-        if (id.length < 2)
-          throw new Error("Unexpected 'value' field");
-        r.push(id[0] * 40 + id[1]);
-        for (var i = 2; i < id.length; ++i)
-          for (var val = id[i], isFirst = !0, insertPos = r.length; ; ) {
-            var v = val & 127;
-            if (isFirst || (v += 128), r.splice(insertPos, 0, v), val < 128)
-              break;
-            isFirst = !1, val = Math.floor(val / 128);
-          }
-        return [6].concat(makeDERLength(r.length)).concat(r);
-      }, ObjectIdentifier2;
-    })(), ObjectIdentifier_default = ObjectIdentifier;
-  }
-});
+var ObjectIdentifier = (
+  /** @class */
+  (function() {
+    function ObjectIdentifier2(value) {
+      typeof value == "string" ? this.value = value.split(/\./g).map(function(s) {
+        return Number(s);
+      }) : this.value = value;
+    }
+    return ObjectIdentifier2.prototype.toDER = function() {
+      var id = this.value, r = [];
+      if (id.length < 2)
+        throw new Error("Unexpected 'value' field");
+      r.push(id[0] * 40 + id[1]);
+      for (var i = 2; i < id.length; ++i)
+        for (var val = id[i], isFirst = !0, insertPos = r.length; ; ) {
+          var v = val & 127;
+          if (isFirst || (v += 128), r.splice(insertPos, 0, v), val < 128)
+            break;
+          isFirst = !1, val = Math.floor(val / 128);
+        }
+      return [6].concat(makeDERLength(r.length)).concat(r);
+    }, ObjectIdentifier2;
+  })()
+), ObjectIdentifier_default = ObjectIdentifier;
 
 // node_modules/resedit/dist/sign/data/KnownOids.js
-var OID_SHA1_NO_SIGN, OID_SHA256_NO_SIGN, OID_SHA384_NO_SIGN, OID_SHA512_NO_SIGN, OID_SHA224_NO_SIGN, OID_SHA512_224_NO_SIGN, OID_SHA512_256_NO_SIGN, OID_SHA3_224_NO_SIGN, OID_SHA3_256_NO_SIGN, OID_SHA3_384_NO_SIGN, OID_SHA3_512_NO_SIGN, OID_SHAKE128_NO_SIGN, OID_SHAKE256_NO_SIGN, OID_RSA, OID_DSA, OID_SIGNED_DATA, OID_CONTENT_TYPE, OID_MESSAGE_DIGEST, OID_SPC_STATEMENT_TYPE_OBJID, OID_SPC_SP_OPUS_INFO_OBJID, OID_SPC_INDIVIDUAL_SP_KEY_PURPOSE_OBJID, OID_RFC3161_COUNTER_SIGNATURE, init_KnownOids = __esm({
-  "node_modules/resedit/dist/sign/data/KnownOids.js"() {
-    init_ObjectIdentifier();
-    OID_SHA1_NO_SIGN = new ObjectIdentifier_default([1, 3, 14, 3, 2, 26]), OID_SHA256_NO_SIGN = new ObjectIdentifier_default([2, 16, 840, 1, 101, 3, 4, 2, 1]), OID_SHA384_NO_SIGN = new ObjectIdentifier_default([2, 16, 840, 1, 101, 3, 4, 2, 2]), OID_SHA512_NO_SIGN = new ObjectIdentifier_default([2, 16, 840, 1, 101, 3, 4, 2, 3]), OID_SHA224_NO_SIGN = new ObjectIdentifier_default([2, 16, 840, 1, 101, 3, 4, 2, 4]), OID_SHA512_224_NO_SIGN = new ObjectIdentifier_default([2, 16, 840, 1, 101, 3, 4, 2, 5]), OID_SHA512_256_NO_SIGN = new ObjectIdentifier_default([2, 16, 840, 1, 101, 3, 4, 2, 6]), OID_SHA3_224_NO_SIGN = new ObjectIdentifier_default([2, 16, 840, 1, 101, 3, 4, 2, 7]), OID_SHA3_256_NO_SIGN = new ObjectIdentifier_default([2, 16, 840, 1, 101, 3, 4, 2, 8]), OID_SHA3_384_NO_SIGN = new ObjectIdentifier_default([2, 16, 840, 1, 101, 3, 4, 2, 9]), OID_SHA3_512_NO_SIGN = new ObjectIdentifier_default([2, 16, 840, 1, 101, 3, 4, 2, 10]), OID_SHAKE128_NO_SIGN = new ObjectIdentifier_default([2, 16, 840, 1, 101, 3, 4, 2, 11]), OID_SHAKE256_NO_SIGN = new ObjectIdentifier_default([2, 16, 840, 1, 101, 3, 4, 2, 12]), OID_RSA = new ObjectIdentifier_default([1, 2, 840, 113549, 1, 1, 1]), OID_DSA = new ObjectIdentifier_default([1, 2, 840, 10040, 4, 1]), OID_SIGNED_DATA = new ObjectIdentifier_default([1, 2, 840, 113549, 1, 7, 2]), OID_CONTENT_TYPE = new ObjectIdentifier_default([1, 2, 840, 113549, 1, 9, 3]), OID_MESSAGE_DIGEST = new ObjectIdentifier_default([1, 2, 840, 113549, 1, 9, 4]), OID_SPC_STATEMENT_TYPE_OBJID = new ObjectIdentifier_default([1, 3, 6, 1, 4, 1, 311, 2, 1, 11]), OID_SPC_SP_OPUS_INFO_OBJID = new ObjectIdentifier_default([1, 3, 6, 1, 4, 1, 311, 2, 1, 12]), OID_SPC_INDIVIDUAL_SP_KEY_PURPOSE_OBJID = new ObjectIdentifier_default([1, 3, 6, 1, 4, 1, 311, 2, 1, 21]), OID_RFC3161_COUNTER_SIGNATURE = new ObjectIdentifier_default([1, 3, 6, 1, 4, 1, 311, 3, 3, 1]);
-  }
-});
-
-// node_modules/resedit/dist/sign/certUtil.js
-var init_certUtil = __esm({
-  "node_modules/resedit/dist/sign/certUtil.js"() {
-    init_DERObject();
-    init_KnownOids();
-  }
-});
+var OID_SHA1_NO_SIGN = new ObjectIdentifier_default([1, 3, 14, 3, 2, 26]), OID_SHA256_NO_SIGN = new ObjectIdentifier_default([2, 16, 840, 1, 101, 3, 4, 2, 1]), OID_SHA384_NO_SIGN = new ObjectIdentifier_default([2, 16, 840, 1, 101, 3, 4, 2, 2]), OID_SHA512_NO_SIGN = new ObjectIdentifier_default([2, 16, 840, 1, 101, 3, 4, 2, 3]), OID_SHA224_NO_SIGN = new ObjectIdentifier_default([2, 16, 840, 1, 101, 3, 4, 2, 4]), OID_SHA512_224_NO_SIGN = new ObjectIdentifier_default([2, 16, 840, 1, 101, 3, 4, 2, 5]), OID_SHA512_256_NO_SIGN = new ObjectIdentifier_default([2, 16, 840, 1, 101, 3, 4, 2, 6]), OID_SHA3_224_NO_SIGN = new ObjectIdentifier_default([2, 16, 840, 1, 101, 3, 4, 2, 7]), OID_SHA3_256_NO_SIGN = new ObjectIdentifier_default([2, 16, 840, 1, 101, 3, 4, 2, 8]), OID_SHA3_384_NO_SIGN = new ObjectIdentifier_default([2, 16, 840, 1, 101, 3, 4, 2, 9]), OID_SHA3_512_NO_SIGN = new ObjectIdentifier_default([2, 16, 840, 1, 101, 3, 4, 2, 10]), OID_SHAKE128_NO_SIGN = new ObjectIdentifier_default([2, 16, 840, 1, 101, 3, 4, 2, 11]), OID_SHAKE256_NO_SIGN = new ObjectIdentifier_default([2, 16, 840, 1, 101, 3, 4, 2, 12]), OID_RSA = new ObjectIdentifier_default([1, 2, 840, 113549, 1, 1, 1]), OID_DSA = new ObjectIdentifier_default([1, 2, 840, 10040, 4, 1]), OID_SIGNED_DATA = new ObjectIdentifier_default([1, 2, 840, 113549, 1, 7, 2]), OID_CONTENT_TYPE = new ObjectIdentifier_default([1, 2, 840, 113549, 1, 9, 3]), OID_MESSAGE_DIGEST = new ObjectIdentifier_default([1, 2, 840, 113549, 1, 9, 4]), OID_SPC_STATEMENT_TYPE_OBJID = new ObjectIdentifier_default([1, 3, 6, 1, 4, 1, 311, 2, 1, 11]), OID_SPC_SP_OPUS_INFO_OBJID = new ObjectIdentifier_default([1, 3, 6, 1, 4, 1, 311, 2, 1, 12]), OID_SPC_INDIVIDUAL_SP_KEY_PURPOSE_OBJID = new ObjectIdentifier_default([1, 3, 6, 1, 4, 1, 311, 2, 1, 21]), OID_RFC3161_COUNTER_SIGNATURE = new ObjectIdentifier_default([1, 3, 6, 1, 4, 1, 311, 3, 3, 1]);
 
 // node_modules/resedit/dist/sign/data/AlgorithmIdentifier.js
-var AlgorithmIdentifier, init_AlgorithmIdentifier = __esm({
-  "node_modules/resedit/dist/sign/data/AlgorithmIdentifier.js"() {
-    init_derUtil();
-    AlgorithmIdentifier = /** @class */
-    (function() {
-      function AlgorithmIdentifier2(algorithm) {
-        this.algorithm = algorithm;
-      }
-      return AlgorithmIdentifier2.prototype.toDER = function() {
-        var r = this.algorithm.toDER();
-        return makeDERSequence(r.concat(
-          // parameters is not used now
-          [5, 0]
-        ));
-      }, AlgorithmIdentifier2;
-    })();
-  }
-});
+var AlgorithmIdentifier = (
+  /** @class */
+  (function() {
+    function AlgorithmIdentifier2(algorithm) {
+      this.algorithm = algorithm;
+    }
+    return AlgorithmIdentifier2.prototype.toDER = function() {
+      var r = this.algorithm.toDER();
+      return makeDERSequence(r.concat(
+        // parameters is not used now
+        [5, 0]
+      ));
+    }, AlgorithmIdentifier2;
+  })()
+);
 
 // node_modules/resedit/dist/sign/data/Attribute.js
-var Attribute, init_Attribute = __esm({
-  "node_modules/resedit/dist/sign/data/Attribute.js"() {
-    init_derUtil();
-    Attribute = /** @class */
-    (function() {
-      function Attribute2(attrType, attrValues) {
-        this.attrType = attrType, this.attrValues = attrValues;
-      }
-      return Attribute2.prototype.toDER = function() {
-        return makeDERSequence(this.attrType.toDER().concat(arrayToDERSet(this.attrValues)));
-      }, Attribute2;
-    })();
-  }
-});
+var Attribute = (
+  /** @class */
+  (function() {
+    function Attribute2(attrType, attrValues) {
+      this.attrType = attrType, this.attrValues = attrValues;
+    }
+    return Attribute2.prototype.toDER = function() {
+      return makeDERSequence(this.attrType.toDER().concat(arrayToDERSet(this.attrValues)));
+    }, Attribute2;
+  })()
+);
 
 // node_modules/resedit/dist/sign/data/ContentInfo.js
-var ContentInfo, ContentInfo_default, init_ContentInfo = __esm({
-  "node_modules/resedit/dist/sign/data/ContentInfo.js"() {
-    init_derUtil();
-    ContentInfo = /** @class */
-    (function() {
-      function ContentInfo2(contentType2, content) {
-        this.contentType = contentType2, this.content = content;
-      }
-      return ContentInfo2.prototype.toDER = function() {
-        return makeDERSequence(this.contentType.toDER().concat(makeDERTaggedData(0, this.content.toDER())));
-      }, ContentInfo2;
-    })(), ContentInfo_default = ContentInfo;
-  }
-});
+var ContentInfo = (
+  /** @class */
+  (function() {
+    function ContentInfo2(contentType2, content) {
+      this.contentType = contentType2, this.content = content;
+    }
+    return ContentInfo2.prototype.toDER = function() {
+      return makeDERSequence(this.contentType.toDER().concat(makeDERTaggedData(0, this.content.toDER())));
+    }, ContentInfo2;
+  })()
+), ContentInfo_default = ContentInfo;
 
 // node_modules/resedit/dist/sign/data/CertificateDataRoot.js
-var __extends9, CertificateDataRoot, init_CertificateDataRoot = __esm({
-  "node_modules/resedit/dist/sign/data/CertificateDataRoot.js"() {
-    init_ContentInfo();
-    __extends9 = /* @__PURE__ */ (function() {
-      var extendStatics = function(d, b) {
-        return extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
-          d2.__proto__ = b2;
-        } || function(d2, b2) {
-          for (var p in b2) Object.prototype.hasOwnProperty.call(b2, p) && (d2[p] = b2[p]);
-        }, extendStatics(d, b);
-      };
-      return function(d, b) {
-        if (typeof b != "function" && b !== null)
-          throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
-        extendStatics(d, b);
-        function __() {
-          this.constructor = d;
-        }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-      };
-    })(), CertificateDataRoot = /** @class */
-    (function(_super) {
-      __extends9(CertificateDataRoot2, _super);
-      function CertificateDataRoot2() {
-        return _super !== null && _super.apply(this, arguments) || this;
-      }
-      return CertificateDataRoot2;
-    })(ContentInfo_default);
-  }
-});
+var __extends9 = /* @__PURE__ */ (function() {
+  var extendStatics = function(d, b) {
+    return extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
+      d2.__proto__ = b2;
+    } || function(d2, b2) {
+      for (var p in b2) Object.prototype.hasOwnProperty.call(b2, p) && (d2[p] = b2[p]);
+    }, extendStatics(d, b);
+  };
+  return function(d, b) {
+    if (typeof b != "function" && b !== null)
+      throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+    extendStatics(d, b);
+    function __() {
+      this.constructor = d;
+    }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+  };
+})(), CertificateDataRoot = (
+  /** @class */
+  (function(_super) {
+    __extends9(CertificateDataRoot2, _super);
+    function CertificateDataRoot2() {
+      return _super !== null && _super.apply(this, arguments) || this;
+    }
+    return CertificateDataRoot2;
+  })(ContentInfo_default)
+);
 
 // node_modules/resedit/dist/sign/data/DigestInfo.js
-var DigestInfo, init_DigestInfo = __esm({
-  "node_modules/resedit/dist/sign/data/DigestInfo.js"() {
-    init_derUtil();
-    DigestInfo = /** @class */
-    (function() {
-      function DigestInfo2(digestAlgorithm, digest) {
-        this.digestAlgorithm = digestAlgorithm, this.digest = digest;
-      }
-      return DigestInfo2.prototype.toDER = function() {
-        var digest = this.digest, digestArray;
-        "buffer" in digest ? digestArray = new Uint8Array(digest.buffer, digest.byteOffset, digest.byteLength) : digestArray = new Uint8Array(digest);
-        var derData = this.digestAlgorithm.toDER().concat(makeDEROctetString(digestArray));
-        return makeDERSequence(derData);
-      }, DigestInfo2;
-    })();
-  }
-});
+var DigestInfo = (
+  /** @class */
+  (function() {
+    function DigestInfo2(digestAlgorithm, digest) {
+      this.digestAlgorithm = digestAlgorithm, this.digest = digest;
+    }
+    return DigestInfo2.prototype.toDER = function() {
+      var digest = this.digest, digestArray;
+      "buffer" in digest ? digestArray = new Uint8Array(digest.buffer, digest.byteOffset, digest.byteLength) : digestArray = new Uint8Array(digest);
+      var derData = this.digestAlgorithm.toDER().concat(makeDEROctetString(digestArray));
+      return makeDERSequence(derData);
+    }, DigestInfo2;
+  })()
+);
 
 // node_modules/resedit/dist/sign/data/IssuerAndSerialNumber.js
-var IssuerAndSerialNumber, init_IssuerAndSerialNumber = __esm({
-  "node_modules/resedit/dist/sign/data/IssuerAndSerialNumber.js"() {
-    init_derUtil();
-    IssuerAndSerialNumber = /** @class */
-    (function() {
-      function IssuerAndSerialNumber2(issuer, serialNumber) {
-        this.issuer = issuer, this.serialNumber = serialNumber;
-      }
-      return IssuerAndSerialNumber2.prototype.toDER = function() {
-        return makeDERSequence(this.issuer.toDER().concat(this.serialNumber.toDER()));
-      }, IssuerAndSerialNumber2;
-    })();
-  }
-});
+var IssuerAndSerialNumber = (
+  /** @class */
+  (function() {
+    function IssuerAndSerialNumber2(issuer, serialNumber) {
+      this.issuer = issuer, this.serialNumber = serialNumber;
+    }
+    return IssuerAndSerialNumber2.prototype.toDER = function() {
+      return makeDERSequence(this.issuer.toDER().concat(this.serialNumber.toDER()));
+    }, IssuerAndSerialNumber2;
+  })()
+);
 
 // node_modules/resedit/dist/sign/data/SignedData.js
-var SignedData, init_SignedData = __esm({
-  "node_modules/resedit/dist/sign/data/SignedData.js"() {
-    init_derUtil();
-    SignedData = /** @class */
-    (function() {
-      function SignedData2(version3, digestAlgorithms, contentInfo, signerInfos, certificates, crls) {
-        this.version = version3, this.digestAlgorithms = digestAlgorithms, this.contentInfo = contentInfo, this.signerInfos = signerInfos, this.certificates = certificates, this.crls = crls;
+var SignedData = (
+  /** @class */
+  (function() {
+    function SignedData2(version3, digestAlgorithms, contentInfo, signerInfos, certificates, crls) {
+      this.version = version3, this.digestAlgorithms = digestAlgorithms, this.contentInfo = contentInfo, this.signerInfos = signerInfos, this.certificates = certificates, this.crls = crls;
+    }
+    return SignedData2.prototype.toDER = function() {
+      var r = [2, 1, this.version & 255].concat(arrayToDERSet(this.digestAlgorithms)).concat(this.contentInfo.toDER());
+      if (this.certificates && this.certificates.length > 0) {
+        var allCertsDER = arrayToDERSet(this.certificates);
+        allCertsDER[0] = 160, r = r.concat(allCertsDER);
       }
-      return SignedData2.prototype.toDER = function() {
-        var r = [2, 1, this.version & 255].concat(arrayToDERSet(this.digestAlgorithms)).concat(this.contentInfo.toDER());
-        if (this.certificates && this.certificates.length > 0) {
-          var allCertsDER = arrayToDERSet(this.certificates);
-          allCertsDER[0] = 160, r = r.concat(allCertsDER);
-        }
-        return this.crls && (r = r.concat(makeDERTaggedData(1, arrayToDERSet(this.crls)))), r = r.concat(arrayToDERSet(this.signerInfos)), makeDERSequence(r);
-      }, SignedData2;
-    })();
-  }
-});
+      return this.crls && (r = r.concat(makeDERTaggedData(1, arrayToDERSet(this.crls)))), r = r.concat(arrayToDERSet(this.signerInfos)), makeDERSequence(r);
+    }, SignedData2;
+  })()
+);
 
 // node_modules/resedit/dist/sign/data/SignerInfo.js
-var SignerInfo, init_SignerInfo = __esm({
-  "node_modules/resedit/dist/sign/data/SignerInfo.js"() {
-    init_derUtil();
-    SignerInfo = /** @class */
-    (function() {
-      function SignerInfo2(version3, issuerAndSerialNumber, digestAlgorithm, digestEncryptionAlgorithm, encryptedDigest, authenticatedAttributes, unauthenticatedAttributes) {
-        this.version = version3, this.issuerAndSerialNumber = issuerAndSerialNumber, this.digestAlgorithm = digestAlgorithm, this.digestEncryptionAlgorithm = digestEncryptionAlgorithm, this.encryptedDigest = encryptedDigest, this.authenticatedAttributes = authenticatedAttributes, this.unauthenticatedAttributes = unauthenticatedAttributes;
+var SignerInfo = (
+  /** @class */
+  (function() {
+    function SignerInfo2(version3, issuerAndSerialNumber, digestAlgorithm, digestEncryptionAlgorithm, encryptedDigest, authenticatedAttributes, unauthenticatedAttributes) {
+      this.version = version3, this.issuerAndSerialNumber = issuerAndSerialNumber, this.digestAlgorithm = digestAlgorithm, this.digestEncryptionAlgorithm = digestEncryptionAlgorithm, this.encryptedDigest = encryptedDigest, this.authenticatedAttributes = authenticatedAttributes, this.unauthenticatedAttributes = unauthenticatedAttributes;
+    }
+    return SignerInfo2.prototype.toDER = function() {
+      var r = [2, 1, this.version & 255].concat(this.issuerAndSerialNumber.toDER()).concat(this.digestAlgorithm.toDER());
+      if (this.authenticatedAttributes && this.authenticatedAttributes.length > 0) {
+        var a = arrayToDERSet(this.authenticatedAttributes);
+        a[0] = 160, r = r.concat(a);
       }
-      return SignerInfo2.prototype.toDER = function() {
-        var r = [2, 1, this.version & 255].concat(this.issuerAndSerialNumber.toDER()).concat(this.digestAlgorithm.toDER());
-        if (this.authenticatedAttributes && this.authenticatedAttributes.length > 0) {
-          var a = arrayToDERSet(this.authenticatedAttributes);
-          a[0] = 160, r = r.concat(a);
-        }
-        if (r = r.concat(this.digestEncryptionAlgorithm.toDER()).concat(makeDEROctetString(this.encryptedDigest)), this.unauthenticatedAttributes && this.unauthenticatedAttributes.length > 0) {
-          var u = arrayToDERSet(this.unauthenticatedAttributes);
-          u[0] = 161, r = r.concat(u);
-        }
-        return makeDERSequence(r);
-      }, SignerInfo2;
-    })();
-  }
-});
+      if (r = r.concat(this.digestEncryptionAlgorithm.toDER()).concat(makeDEROctetString(this.encryptedDigest)), this.unauthenticatedAttributes && this.unauthenticatedAttributes.length > 0) {
+        var u = arrayToDERSet(this.unauthenticatedAttributes);
+        u[0] = 161, r = r.concat(u);
+      }
+      return makeDERSequence(r);
+    }, SignerInfo2;
+  })()
+);
 
 // node_modules/resedit/dist/sign/data/SpcIndirectDataContent.js
-var __extends10, SPC_INDIRECT_DATA_OBJID, SpcAttributeTypeAndOptionalValue, SpcIndirectDataContent, SpcIndirectDataContentInfo, init_SpcIndirectDataContent = __esm({
-  "node_modules/resedit/dist/sign/data/SpcIndirectDataContent.js"() {
-    init_ContentInfo();
-    init_derUtil();
-    init_ObjectIdentifier();
-    __extends10 = /* @__PURE__ */ (function() {
-      var extendStatics = function(d, b) {
-        return extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
-          d2.__proto__ = b2;
-        } || function(d2, b2) {
-          for (var p in b2) Object.prototype.hasOwnProperty.call(b2, p) && (d2[p] = b2[p]);
-        }, extendStatics(d, b);
-      };
-      return function(d, b) {
-        if (typeof b != "function" && b !== null)
-          throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
-        extendStatics(d, b);
-        function __() {
-          this.constructor = d;
-        }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-      };
-    })(), SPC_INDIRECT_DATA_OBJID = new ObjectIdentifier_default([1, 3, 6, 1, 4, 1, 311, 2, 1, 4]), SpcAttributeTypeAndOptionalValue = /** @class */
-    (function() {
-      function SpcAttributeTypeAndOptionalValue2(type, value) {
-        this.type = type, this.value = value;
-      }
-      return SpcAttributeTypeAndOptionalValue2.prototype.toDER = function() {
-        return makeDERSequence(this.type.toDER().concat(this.value.toDER()));
-      }, SpcAttributeTypeAndOptionalValue2;
-    })(), SpcIndirectDataContent = /** @class */
-    (function() {
-      function SpcIndirectDataContent2(data, messageDigest) {
-        this.data = data, this.messageDigest = messageDigest;
-      }
-      return SpcIndirectDataContent2.prototype.toDER = function() {
-        return makeDERSequence(this.toDERWithoutHeader());
-      }, SpcIndirectDataContent2.prototype.toDERWithoutHeader = function() {
-        return this.data.toDER().concat(this.messageDigest.toDER());
-      }, SpcIndirectDataContent2;
-    })(), SpcIndirectDataContentInfo = /** @class */
-    (function(_super) {
-      __extends10(SpcIndirectDataContentInfo2, _super);
-      function SpcIndirectDataContentInfo2(content) {
-        return _super.call(this, SPC_INDIRECT_DATA_OBJID, content) || this;
-      }
-      return SpcIndirectDataContentInfo2;
-    })(ContentInfo_default);
-  }
-});
+var __extends10 = /* @__PURE__ */ (function() {
+  var extendStatics = function(d, b) {
+    return extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
+      d2.__proto__ = b2;
+    } || function(d2, b2) {
+      for (var p in b2) Object.prototype.hasOwnProperty.call(b2, p) && (d2[p] = b2[p]);
+    }, extendStatics(d, b);
+  };
+  return function(d, b) {
+    if (typeof b != "function" && b !== null)
+      throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+    extendStatics(d, b);
+    function __() {
+      this.constructor = d;
+    }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+  };
+})(), SPC_INDIRECT_DATA_OBJID = new ObjectIdentifier_default([1, 3, 6, 1, 4, 1, 311, 2, 1, 4]), SpcAttributeTypeAndOptionalValue = (
+  /** @class */
+  (function() {
+    function SpcAttributeTypeAndOptionalValue2(type, value) {
+      this.type = type, this.value = value;
+    }
+    return SpcAttributeTypeAndOptionalValue2.prototype.toDER = function() {
+      return makeDERSequence(this.type.toDER().concat(this.value.toDER()));
+    }, SpcAttributeTypeAndOptionalValue2;
+  })()
+);
+var SpcIndirectDataContent = (
+  /** @class */
+  (function() {
+    function SpcIndirectDataContent2(data, messageDigest) {
+      this.data = data, this.messageDigest = messageDigest;
+    }
+    return SpcIndirectDataContent2.prototype.toDER = function() {
+      return makeDERSequence(this.toDERWithoutHeader());
+    }, SpcIndirectDataContent2.prototype.toDERWithoutHeader = function() {
+      return this.data.toDER().concat(this.messageDigest.toDER());
+    }, SpcIndirectDataContent2;
+  })()
+);
+var SpcIndirectDataContentInfo = (
+  /** @class */
+  (function(_super) {
+    __extends10(SpcIndirectDataContentInfo2, _super);
+    function SpcIndirectDataContentInfo2(content) {
+      return _super.call(this, SPC_INDIRECT_DATA_OBJID, content) || this;
+    }
+    return SpcIndirectDataContentInfo2;
+  })(ContentInfo_default)
+);
 
 // node_modules/resedit/dist/sign/data/SpcLink.js
-var __extends11, SpcLink, SpcLinkUrl, SpcLinkFile, init_SpcLink = __esm({
-  "node_modules/resedit/dist/sign/data/SpcLink.js"() {
-    init_DERObject();
-    init_derUtil();
-    __extends11 = /* @__PURE__ */ (function() {
-      var extendStatics = function(d, b) {
-        return extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
-          d2.__proto__ = b2;
-        } || function(d2, b2) {
-          for (var p in b2) Object.prototype.hasOwnProperty.call(b2, p) && (d2[p] = b2[p]);
-        }, extendStatics(d, b);
-      };
-      return function(d, b) {
-        if (typeof b != "function" && b !== null)
-          throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
-        extendStatics(d, b);
-        function __() {
-          this.constructor = d;
-        }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-      };
-    })(), SpcLink = /** @class */
-    (function() {
-      function SpcLink2(tag, value) {
-        this.tag = tag, this.value = value;
-      }
-      return SpcLink2.prototype.toDER = function() {
-        var v = this.value.toDER();
-        return this.tag === 2 ? makeDERTaggedData(this.tag, v) : (v[0] = 128 + this.tag, v);
-      }, SpcLink2;
-    })(), SpcLinkUrl = /** @class */
-    (function(_super) {
-      __extends11(SpcLinkUrl2, _super);
-      function SpcLinkUrl2(url2) {
-        return _super.call(this, 0, new RawDERObject(makeDERIA5String(url2))) || this;
-      }
-      return SpcLinkUrl2;
-    })(SpcLink), SpcLinkFile = /** @class */
-    (function(_super) {
-      __extends11(SpcLinkFile2, _super);
-      function SpcLinkFile2(file) {
-        var v = makeDERBMPString(file);
-        return v[0] = 128, _super.call(this, 2, new RawDERObject(v)) || this;
-      }
-      return SpcLinkFile2;
-    })(SpcLink);
-  }
-});
+var __extends11 = /* @__PURE__ */ (function() {
+  var extendStatics = function(d, b) {
+    return extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
+      d2.__proto__ = b2;
+    } || function(d2, b2) {
+      for (var p in b2) Object.prototype.hasOwnProperty.call(b2, p) && (d2[p] = b2[p]);
+    }, extendStatics(d, b);
+  };
+  return function(d, b) {
+    if (typeof b != "function" && b !== null)
+      throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+    extendStatics(d, b);
+    function __() {
+      this.constructor = d;
+    }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+  };
+})(), SpcLink = (
+  /** @class */
+  (function() {
+    function SpcLink2(tag, value) {
+      this.tag = tag, this.value = value;
+    }
+    return SpcLink2.prototype.toDER = function() {
+      var v = this.value.toDER();
+      return this.tag === 2 ? makeDERTaggedData(this.tag, v) : (v[0] = 128 + this.tag, v);
+    }, SpcLink2;
+  })()
+);
+var SpcLinkUrl = (
+  /** @class */
+  (function(_super) {
+    __extends11(SpcLinkUrl2, _super);
+    function SpcLinkUrl2(url2) {
+      return _super.call(this, 0, new RawDERObject(makeDERIA5String(url2))) || this;
+    }
+    return SpcLinkUrl2;
+  })(SpcLink)
+);
+var SpcLinkFile = (
+  /** @class */
+  (function(_super) {
+    __extends11(SpcLinkFile2, _super);
+    function SpcLinkFile2(file) {
+      var v = makeDERBMPString(file);
+      return v[0] = 128, _super.call(this, 2, new RawDERObject(v)) || this;
+    }
+    return SpcLinkFile2;
+  })(SpcLink)
+);
 
 // node_modules/resedit/dist/sign/data/SpcPeImageData.js
-var __extends12, SPC_PE_IMAGE_DATA_OBJID, SpcPeImageData, SpcPeImageAttributeTypeAndOptionalValue, init_SpcPeImageData = __esm({
-  "node_modules/resedit/dist/sign/data/SpcPeImageData.js"() {
-    init_derUtil();
-    init_ObjectIdentifier();
-    init_SpcIndirectDataContent();
-    __extends12 = /* @__PURE__ */ (function() {
-      var extendStatics = function(d, b) {
-        return extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
-          d2.__proto__ = b2;
-        } || function(d2, b2) {
-          for (var p in b2) Object.prototype.hasOwnProperty.call(b2, p) && (d2[p] = b2[p]);
-        }, extendStatics(d, b);
-      };
-      return function(d, b) {
-        if (typeof b != "function" && b !== null)
-          throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
-        extendStatics(d, b);
-        function __() {
-          this.constructor = d;
-        }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-      };
-    })(), SPC_PE_IMAGE_DATA_OBJID = new ObjectIdentifier_default([1, 3, 6, 1, 4, 1, 311, 2, 1, 15]), SpcPeImageData = /** @class */
-    (function() {
-      function SpcPeImageData2(flags, file) {
-        this.flags = flags, this.file = file;
-      }
-      return SpcPeImageData2.prototype.toDER = function() {
-        return makeDERSequence([3, 1, this.flags & 255].concat(
-          // undocumented -- SpcLink must be tagged
-          makeDERTaggedData(0, this.file.toDER())
-        ));
-      }, SpcPeImageData2;
-    })(), SpcPeImageAttributeTypeAndOptionalValue = /** @class */
-    (function(_super) {
-      __extends12(SpcPeImageAttributeTypeAndOptionalValue2, _super);
-      function SpcPeImageAttributeTypeAndOptionalValue2(value) {
-        return _super.call(this, SPC_PE_IMAGE_DATA_OBJID, value) || this;
-      }
-      return SpcPeImageAttributeTypeAndOptionalValue2;
-    })(SpcAttributeTypeAndOptionalValue);
-  }
-});
-
-// node_modules/resedit/dist/sign/timestamp.js
-var init_timestamp2 = __esm({
-  "node_modules/resedit/dist/sign/timestamp.js"() {
-    init_functions2();
-    init_certUtil();
-    init_derUtil();
-    init_KnownOids();
-  }
-});
-
-// node_modules/resedit/dist/sign/index.js
-var init_sign = __esm({
-  "node_modules/resedit/dist/sign/index.js"() {
-    init_dist();
-    init_functions2();
-    init_certUtil();
-    init_AlgorithmIdentifier();
-    init_Attribute();
-    init_CertificateDataRoot();
-    init_ContentInfo();
-    init_DERObject();
-    init_derUtil();
-    init_DigestInfo();
-    init_IssuerAndSerialNumber();
-    init_KnownOids();
-    init_ObjectIdentifier();
-    init_SignedData();
-    init_SignerInfo();
-    init_SpcIndirectDataContent();
-    init_SpcLink();
-    init_SpcPeImageData();
-    init_timestamp2();
-  }
-});
-
-// node_modules/resedit/dist/version.js
-var init_version5 = __esm({
-  "node_modules/resedit/dist/version.js"() {
-  }
-});
-
-// node_modules/resedit/dist/index.js
-var init_dist2 = __esm({
-  "node_modules/resedit/dist/index.js"() {
-    init_dist();
-    init_data();
-    init_resource();
-    init_sign();
-    init_version5();
-  }
-});
+var __extends12 = /* @__PURE__ */ (function() {
+  var extendStatics = function(d, b) {
+    return extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
+      d2.__proto__ = b2;
+    } || function(d2, b2) {
+      for (var p in b2) Object.prototype.hasOwnProperty.call(b2, p) && (d2[p] = b2[p]);
+    }, extendStatics(d, b);
+  };
+  return function(d, b) {
+    if (typeof b != "function" && b !== null)
+      throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+    extendStatics(d, b);
+    function __() {
+      this.constructor = d;
+    }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+  };
+})(), SPC_PE_IMAGE_DATA_OBJID = new ObjectIdentifier_default([1, 3, 6, 1, 4, 1, 311, 2, 1, 15]);
+var SpcPeImageData = (
+  /** @class */
+  (function() {
+    function SpcPeImageData2(flags, file) {
+      this.flags = flags, this.file = file;
+    }
+    return SpcPeImageData2.prototype.toDER = function() {
+      return makeDERSequence([3, 1, this.flags & 255].concat(
+        // undocumented -- SpcLink must be tagged
+        makeDERTaggedData(0, this.file.toDER())
+      ));
+    }, SpcPeImageData2;
+  })()
+);
+var SpcPeImageAttributeTypeAndOptionalValue = (
+  /** @class */
+  (function(_super) {
+    __extends12(SpcPeImageAttributeTypeAndOptionalValue2, _super);
+    function SpcPeImageAttributeTypeAndOptionalValue2(value) {
+      return _super.call(this, SPC_PE_IMAGE_DATA_OBJID, value) || this;
+    }
+    return SpcPeImageAttributeTypeAndOptionalValue2;
+  })(SpcAttributeTypeAndOptionalValue)
+);
 
 // packages/core/src/windows-metadata-apply.ts
+var RT_MANIFEST = 24, defaultDeps = {
+  readFile: async (p) => {
+    let { readFile: readFile3 } = await import("node:fs/promises");
+    return readFile3(p);
+  },
+  writeFile: async (p, d) => {
+    let { writeFile: writeFile5 } = await import("node:fs/promises");
+    await writeFile5(p, d);
+  }
+};
 function toArrayBuffer(u) {
   return u.buffer.slice(u.byteOffset, u.byteOffset + u.byteLength);
 }
@@ -79744,24 +79326,6 @@ async function writeManifest(res, meta, deps) {
     bin: toArrayBuffer(raw)
   });
 }
-var RT_MANIFEST, defaultDeps, init_windows_metadata_apply = __esm({
-  "packages/core/src/windows-metadata-apply.ts"() {
-    "use strict";
-    init_dist2();
-    init_errors();
-    init_windows_metadata();
-    RT_MANIFEST = 24, defaultDeps = {
-      readFile: async (p) => {
-        let { readFile: readFile3 } = await import("node:fs/promises");
-        return readFile3(p);
-      },
-      writeFile: async (p, d) => {
-        let { writeFile: writeFile5 } = await import("node:fs/promises");
-        await writeFile5(p, d);
-      }
-    };
-  }
-});
 
 // packages/core/src/signing.ts
 import { writeFile as writeFile3 } from "node:fs/promises";
@@ -79972,13 +79536,6 @@ async function signWindowsTrustedSigning(binaryPath, cfg, deps) {
   ];
   cfg.description !== void 0 && args.push("-d", cfg.description), args.push(binaryPath), await runCheckedTool(deps, "azuresigntool", args, "azuresigntool sign", { env });
 }
-var init_signing = __esm({
-  "packages/core/src/signing.ts"() {
-    "use strict";
-    init_errors();
-    init_inputs();
-  }
-});
 
 // packages/core/src/release-body.ts
 function buildReleaseBody(input) {
@@ -80014,11 +79571,6 @@ function humanSize(bytes) {
 function shortenDigest(hex) {
   return hex.length <= 64 ? hex : `${hex.slice(0, 8)}\u2026${hex.slice(-4)}`;
 }
-var init_release_body = __esm({
-  "packages/core/src/release-body.ts"() {
-    "use strict";
-  }
-});
 
 // packages/core/src/distribution.ts
 function renderHomebrewFormula(input) {
@@ -80071,8 +79623,8 @@ function toPascalCase(s) {
 function escapeRuby(s) {
   return s.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/#\{/g, "\\#{");
 }
-async function createDefaultDistributionPublisher(githubToken) {
-  let octokit = (await Promise.resolve().then(() => (init_github(), github_exports))).getOctokit(githubToken);
+async function createDefaultDistributionPublisher(deps) {
+  let octokit = (await Promise.resolve().then(() => (init_github(), github_exports))).getOctokit(deps.token);
   return {
     async publish(req) {
       let defaultBranch = (await octokit.rest.repos.get({ owner: req.owner, repo: req.repo })).data.default_branch, headSha;
@@ -80147,12 +79699,6 @@ function isNotFound2(err) {
 function buildReleaseAssetUrl(owner, repo, tag, assetName) {
   return `https://github.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/releases/download/${encodeURIComponent(tag)}/${encodeURIComponent(assetName)}`;
 }
-var init_distribution = __esm({
-  "packages/core/src/distribution.ts"() {
-    "use strict";
-    init_errors();
-  }
-});
 
 // packages/core/src/docker.ts
 import { mkdir as mkdir3, writeFile as writeFile4 } from "node:fs/promises";
@@ -80273,135 +79819,12 @@ async function runExec(deps, command, args, options = {}) {
       `${command} ${args.join(" ")} exited ${String(result.exitCode)}: ${result.stderr || result.stdout}`
     );
 }
-var init_docker = __esm({
-  "packages/core/src/docker.ts"() {
-    "use strict";
-    init_errors();
-  }
-});
 
-// packages/core/src/index.ts
-var src_exports = {};
-__export(src_exports, {
-  ArchiveError: () => ArchiveError,
-  CHECKSUM_ALGORITHMS: () => CHECKSUM_ALGORITHMS,
-  ChecksumError: () => ChecksumError,
-  DEFAULT_RUNNER_LABELS: () => DEFAULT_RUNNER_LABELS,
-  INPUT_SPECS: () => INPUT_SPECS,
-  PkgActionError: () => PkgActionError,
-  PkgRunError: () => PkgRunError,
-  ResEditError: () => ResEditError,
-  SBOM_FORMATS: () => SBOM_FORMATS,
-  SignError: () => SignError,
-  TEMPLATE_TOKEN_NAMES: () => TEMPLATE_TOKEN_NAMES,
-  ToolError: () => ToolError,
-  UploadError: () => UploadError,
-  VERSION: () => VERSION9,
-  ValidationError: () => ValidationError,
-  actionsLogger: () => actionsLogger,
-  applyWindowsMetadata: () => applyWindowsMetadata,
-  archTag: () => archTag,
-  archive: () => archive,
-  artifactBasename: () => artifactBasename,
-  atomicWriteFile: () => atomicWriteFile,
-  buildDockerAuthsConfig: () => buildDockerAuthsConfig,
-  buildPkgArgs: () => buildPkgArgs,
-  buildReleaseAssetUrl: () => buildReleaseAssetUrl,
-  buildReleaseBody: () => buildReleaseBody,
-  buildTokens: () => buildTokens,
-  closestInputName: () => closestInputName,
-  closestToken: () => closestToken,
-  collectDependencyTree: () => collectDependencyTree,
-  computeAllChecksums: () => computeAllChecksums,
-  computeChecksum: () => computeChecksum,
-  createDefaultArtifactUploader: () => createDefaultArtifactUploader,
-  createDefaultDistributionPublisher: () => createDefaultDistributionPublisher,
-  createDefaultDockerPublisher: () => createDefaultDockerPublisher,
-  createDefaultReleaseAttacher: () => createDefaultReleaseAttacher,
-  createInvocationTemp: () => createInvocationTemp,
-  createTestLogger: () => createTestLogger,
-  crossCompileRisk: () => crossCompileRisk,
-  exists: () => exists2,
-  expandMatrix: () => expandMatrix,
-  extractRegistry: () => extractRegistry,
-  extractTagFromRef: () => extractTagFromRef,
-  formatErrorChain: () => formatErrorChain,
-  formatTarget: () => formatTarget,
-  hostTarget: () => hostTarget,
-  humanSize: () => humanSize,
-  isChecksumAlgorithm: () => isChecksumAlgorithm,
-  isSbomFormat: () => isSbomFormat,
-  mapPkgOutputs: () => mapPkgOutputs,
-  mergeMetadataFile: () => mergeMetadataFile,
-  newSbomSerialNumber: () => newSbomSerialNumber,
-  nowTimestamp: () => nowTimestamp,
-  padVersionQuad: () => padVersionQuad,
-  parseIconSpec: () => parseIconSpec,
-  parseInputs: () => parseInputs,
-  parseSigningInputs: () => parseSigningInputs,
-  parseTarget: () => parseTarget,
-  parseTargetList: () => parseTargetList,
-  parseWindowsMetadataInputs: () => parseWindowsMetadataInputs,
-  predictOutputNames: () => predictOutputNames,
-  readInputRaw: () => readInputRaw,
-  readProjectInfo: () => readProjectInfo,
-  render: () => render,
-  renderCycloneDx: () => renderCycloneDx,
-  renderDockerfile: () => renderDockerfile,
-  renderHomebrewFormula: () => renderHomebrewFormula,
-  renderScoopManifest: () => renderScoopManifest,
-  renderSpdx: () => renderSpdx,
-  renderSummary: () => renderSummary,
-  resolveRepoFromEnv: () => resolveRepoFromEnv,
-  runPkg: () => runPkg,
-  runnerFor: () => runnerFor,
-  shortenDigest: () => shortenDigest,
-  signMacos: () => signMacos,
-  signWindowsSigntool: () => signWindowsSigntool,
-  signWindowsTrustedSigning: () => signWindowsTrustedSigning,
-  specFor: () => specFor,
-  targetToDockerPlatform: () => targetToDockerPlatform,
-  tokensForTarget: () => tokensForTarget,
-  uploadArtifacts: () => uploadArtifacts,
-  writeSbom: () => writeSbom,
-  writeShasumsFile: () => writeShasumsFile,
-  writeSidecar: () => writeSidecar,
-  writeSummary: () => writeSummary,
-  zeroFillAndRemove: () => zeroFillAndRemove
-});
-var VERSION9, init_src4 = __esm({
-  "packages/core/src/index.ts"() {
-    "use strict";
-    init_errors();
-    init_logger();
-    init_fs_utils();
-    init_targets();
-    init_templates();
-    init_checksum();
-    init_inputs();
-    init_pkg_runner();
-    init_pkg_output_map();
-    init_archive();
-    init_summary2();
-    init_uploader();
-    init_project_info();
-    init_windows_metadata();
-    init_windows_metadata_apply();
-    init_signing();
-    init_release_body();
-    init_sbom();
-    init_distribution();
-    init_docker();
-    VERSION9 = "0.0.0";
-  }
-});
+// packages/core/src/version.ts
+var VERSION9 = "0.0.0";
 
 // packages/build/src/main.ts
-init_core();
-init_src4();
 init_exec();
-import { mkdir as mkdir4, rename as rename3, stat as stat5 } from "node:fs/promises";
-import { basename as pathBasename, dirname as dirname4, join as join10, resolve as pathResolve } from "node:path";
 var execBridge = async (command, args, options) => {
   let opts = {};
   if (options.ignoreReturnCode !== void 0 && (opts.ignoreReturnCode = options.ignoreReturnCode), options.cwd !== void 0 && (opts.cwd = options.cwd), options.env !== void 0) {
@@ -80544,7 +79967,7 @@ async function main() {
     }), logger7.info(`[pkg-action] SBOM (${inputs.performance.sbom}) written: ${sbomPath}`);
   }
   if (inputs.publishing.uploadArtifact && finalizedArtifacts.length > 0) {
-    let uploader = await (await Promise.resolve().then(() => (init_src4(), src_exports))).createDefaultArtifactUploader(), uploadRequests = pkgOutputs.map((out, i) => {
+    let uploader = await createDefaultArtifactUploader(), uploadRequests = pkgOutputs.map((out, i) => {
       let tokens = tokensForTarget(out.target, project, process.env), name = render(inputs.publishing.artifactName, tokens), sidecarFiles = shasumEntries.filter(
         (e) => finalizedArtifacts[i] !== void 0 && e.path.startsWith(finalizedArtifacts[i])
       ).map((e) => e.path), files = [finalizedArtifacts[i], ...sidecarFiles];
@@ -80661,7 +80084,9 @@ async function publishHomebrew(inputs, deps) {
     license: inputs.formulaLicense,
     assets: [...macAssets, ...linuxAssets],
     ...inputs.formulaBinary !== void 0 ? { binary: inputs.formulaBinary } : {}
-  }), branch = inputs.tapBranch ?? `pkg-action/${deps.project.name}-${deps.project.version}`, result = await (await createDefaultDistributionPublisher(inputs.tapToken ?? deps.defaultToken)).publish({
+  }), branch = inputs.tapBranch ?? `pkg-action/${deps.project.name}-${deps.project.version}`, result = await (await createDefaultDistributionPublisher({
+    token: inputs.tapToken ?? deps.defaultToken
+  })).publish({
     owner: target.owner,
     repo: target.repo,
     branch,
@@ -80725,9 +80150,9 @@ async function publishScoop(inputs, deps) {
     license: inputs.manifestLicense,
     assets: winAssets,
     ...inputs.manifestBinary !== void 0 ? { binary: inputs.manifestBinary } : {}
-  }), branch = inputs.bucketBranch ?? `pkg-action/${deps.project.name}-${deps.project.version}`, result = await (await createDefaultDistributionPublisher(
-    inputs.bucketToken ?? deps.defaultToken
-  )).publish({
+  }), branch = inputs.bucketBranch ?? `pkg-action/${deps.project.name}-${deps.project.version}`, result = await (await createDefaultDistributionPublisher({
+    token: inputs.bucketToken ?? deps.defaultToken
+  })).publish({
     owner: target.owner,
     repo: target.repo,
     branch,

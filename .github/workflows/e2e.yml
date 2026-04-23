@@ -11,6 +11,17 @@ on:
   push:
     branches: [main]
   pull_request:
+    paths:
+      - 'packages/**'
+      - 'scripts/**'
+      - 'action.yml'
+      - 'matrix/action.yml'
+      - 'windows-metadata/action.yml'
+      - 'test-fixtures/**'
+      - '.github/workflows/e2e.yml'
+      - '.github/scripts/**'
+      - 'package.json'
+      - 'yarn.lock'
   workflow_dispatch:
 
 permissions:
