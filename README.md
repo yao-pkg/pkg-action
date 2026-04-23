@@ -41,15 +41,14 @@ the `pkg` field of `package.json`). See
 [yao-pkg/pkg's README](https://github.com/yao-pkg/pkg#config) for the full
 schema.
 
-Example — SEA mode with Brotli-compressed Node + fallback:
+Example — SEA mode with Brotli-compressed Node + fallback, saved as `.pkgrc.json`:
 
-```jsonc
-// .pkgrc.json
+```json
 {
   "bin": "src/main.js",
   "mode": "sea",
   "compressNode": "Brotli",
-  "fallbackToSource": true,
+  "fallbackToSource": true
 }
 ```
 
