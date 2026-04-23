@@ -332,8 +332,12 @@ jobs:
             const p = './package.json';
             const pkg = JSON.parse(fs.readFileSync(p, 'utf8'));
             pkg.bin = './' + process.argv[1];
+            // pkg-layer knobs (mode, compressNode) live in the pkg config now
+            // that the action stopped mirroring pkg's CLI flags as inputs.
             pkg.pkg = {
-              assets: ['node_modules/@anthropic-ai/claude-code/**/*']
+              assets: ['node_modules/@anthropic-ai/claude-code/**/*'],
+              mode: 'sea',
+              compressNode: 'Zstd',
             };
             fs.writeFileSync(p, JSON.stringify(pkg, null, 2));
           " "$entry"
@@ -350,10 +354,10 @@ jobs:
         with:
           config: ${{ steps.fix.outputs.fixture }}/package.json
           targets: ${{ matrix.target }}
-          mode: sea
-          compress-node: Zstd
           # Zstd landed in @yao-pkg/pkg 6.17. The action's default
           # (~6.16.0) predates it, so pin a Zstd-capable version.
+          # pkg-layer knobs (mode: sea, compressNode: Zstd) are set in the
+          # package.json#pkg field, not as action inputs.
           pkg-version: ~6.18.0
           compress: tar.gz
           checksum: sha256
