@@ -211,10 +211,10 @@ export interface SigningDeps {
 }
 
 async function runCheckedTool(
-  deps: SigningDeps,
   command: string,
   args: readonly string[],
   label: string,
+  deps: SigningDeps,
   opts: { env?: Readonly<Record<string, string>> } = {},
 ): Promise<void> {
   deps.logger.info(`[pkg-action] ${label}: ${command} ${args.join(' ')}`);
@@ -231,12 +231,11 @@ async function runCheckedTool(
  *  delete the path after use — we return it so the caller can plug into
  *  saveState for post.ts cleanup. */
 async function writeSecretBase64(
-  deps: SigningDeps,
-  tempDir: string,
   base64: string,
   extension: string,
+  deps: SigningDeps,
 ): Promise<string> {
-  const path = join(tempDir, `${randomBytes(8).toString('hex')}.${extension}`);
+  const path = join(deps.tempDir, `${randomBytes(8).toString('hex')}.${extension}`);
   const bytes = Buffer.from(base64, 'base64');
   const writer = deps.writeFile ?? ((p: string, d: Uint8Array) => writeFile(p, d, { mode: 0o600 }));
   await writer(path, bytes);
@@ -260,29 +259,28 @@ export async function signMacos(
     deps.tempDir,
     `pkg-action-${randomBytes(6).toString('hex')}.keychain-db`,
   );
-  const p12Path = await writeSecretBase64(deps, deps.tempDir, cfg.certificate, 'p12');
+  const p12Path = await writeSecretBase64(cfg.certificate, 'p12', deps);
 
   // Create + unlock ephemeral keychain, import cert, allow codesign access.
   await runCheckedTool(
-    deps,
     'security',
     ['create-keychain', '-p', cfg.keychainPassword, keychainPath],
     'security create-keychain',
+    deps,
   );
   await runCheckedTool(
-    deps,
     'security',
     ['set-keychain-settings', '-lut', '21600', keychainPath],
     'security set-keychain-settings',
+    deps,
   );
   await runCheckedTool(
-    deps,
     'security',
     ['unlock-keychain', '-p', cfg.keychainPassword, keychainPath],
     'security unlock-keychain',
+    deps,
   );
   await runCheckedTool(
-    deps,
     'security',
     [
       'import',
@@ -297,9 +295,9 @@ export async function signMacos(
       '/usr/bin/security',
     ],
     'security import',
+    deps,
   );
   await runCheckedTool(
-    deps,
     'security',
     [
       'set-key-partition-list',
@@ -311,6 +309,7 @@ export async function signMacos(
       keychainPath,
     ],
     'security set-key-partition-list',
+    deps,
   );
 
   // codesign. --force replaces existing sigs (pkg ships unsigned);
@@ -329,23 +328,22 @@ export async function signMacos(
     codesignArgs.push('--entitlements', cfg.entitlements);
   }
   codesignArgs.push(binaryPath);
-  await runCheckedTool(deps, 'codesign', codesignArgs, 'codesign');
+  await runCheckedTool('codesign', codesignArgs, 'codesign', deps);
 
   // Post-sign sanity: re-invoke codesign in verify mode to confirm the
   // signature actually landed. Catches bad identities, revoked certs, and
   // silent signtool/codesign failures that still exit 0.
   await runCheckedTool(
-    deps,
     'codesign',
     ['--verify', '--strict', '--verbose=2', binaryPath],
     'codesign --verify',
+    deps,
   );
 
   if (cfg.notarize) {
     // notarytool only needs the three secrets — appleId/teamId/appPassword.
     // Validated up front in parseSigningInputs.
     await runCheckedTool(
-      deps,
       'xcrun',
       [
         'notarytool',
@@ -360,6 +358,7 @@ export async function signMacos(
         '--wait',
       ],
       'xcrun notarytool submit',
+      deps,
     );
     // Binaries (unlike .app bundles) cannot be stapled — only container
     // formats accept the notarization ticket. We still submit, which
@@ -380,7 +379,7 @@ export async function signWindowsSigntool(
   cfg: WindowsSigntoolInputs,
   deps: SigningDeps,
 ): Promise<void> {
-  const pfxPath = await writeSecretBase64(deps, deps.tempDir, cfg.certificate, 'pfx');
+  const pfxPath = await writeSecretBase64(cfg.certificate, 'pfx', deps);
   const args = [
     'sign',
     '/fd',
@@ -396,10 +395,10 @@ export async function signWindowsSigntool(
   ];
   if (cfg.description !== undefined) args.push('/d', cfg.description);
   args.push(binaryPath);
-  await runCheckedTool(deps, 'signtool', args, 'signtool sign');
+  await runCheckedTool('signtool', args, 'signtool sign', deps);
   // Post-sign sanity: verify the signature embedded in the PE. `/pa` uses
   // the default Authenticode chain policy; `/v` is verbose.
-  await runCheckedTool(deps, 'signtool', ['verify', '/pa', '/v', binaryPath], 'signtool verify');
+  await runCheckedTool('signtool', ['verify', '/pa', '/v', binaryPath], 'signtool verify', deps);
 }
 
 // ─── Azure Trusted Signing ────────────────────────────────────────────────
@@ -433,8 +432,8 @@ export async function signWindowsTrustedSigning(
   ];
   if (cfg.description !== undefined) args.push('-d', cfg.description);
   args.push(binaryPath);
-  await runCheckedTool(deps, 'azuresigntool', args, 'azuresigntool sign', { env });
+  await runCheckedTool('azuresigntool', args, 'azuresigntool sign', deps, { env });
   // azuresigntool produces a standard Authenticode signature, so the same
   // signtool verify path applies. No azure creds required to verify.
-  await runCheckedTool(deps, 'signtool', ['verify', '/pa', '/v', binaryPath], 'signtool verify');
+  await runCheckedTool('signtool', ['verify', '/pa', '/v', binaryPath], 'signtool verify', deps);
 }

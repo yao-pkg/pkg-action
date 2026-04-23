@@ -19124,7 +19124,7 @@ function parseWindowsSignMode(raw) {
     `windows-sign-mode must be one of: none | signtool | trusted-signing. Got "${raw}".`
   );
 }
-async function runCheckedTool(deps, command, args, label, opts = {}) {
+async function runCheckedTool(command, args, label, deps, opts = {}) {
   deps.logger.info(`[pkg-action] ${label}: ${command} ${args.join(" ")}`);
   let result = await deps.exec(command, args, {
     ignoreReturnCode: !0,
@@ -19133,32 +19133,31 @@ async function runCheckedTool(deps, command, args, label, opts = {}) {
   if (result.exitCode !== 0)
     throw new SignError(`${label} failed (exit ${String(result.exitCode)}). See stderr above.`);
 }
-async function writeSecretBase64(deps, tempDir, base64, extension) {
-  let path4 = join6(tempDir, `${randomBytes(8).toString("hex")}.${extension}`), bytes = Buffer.from(base64, "base64");
+async function writeSecretBase64(base64, extension, deps) {
+  let path4 = join6(deps.tempDir, `${randomBytes(8).toString("hex")}.${extension}`), bytes = Buffer.from(base64, "base64");
   return await (deps.writeFile ?? ((p, d) => writeFile4(p, d, { mode: 384 })))(path4, bytes), path4;
 }
 async function signMacos(binaryPath, cfg, deps) {
   let keychainPath = join6(
     deps.tempDir,
     `pkg-action-${randomBytes(6).toString("hex")}.keychain-db`
-  ), p12Path = await writeSecretBase64(deps, deps.tempDir, cfg.certificate, "p12");
+  ), p12Path = await writeSecretBase64(cfg.certificate, "p12", deps);
   await runCheckedTool(
-    deps,
     "security",
     ["create-keychain", "-p", cfg.keychainPassword, keychainPath],
-    "security create-keychain"
+    "security create-keychain",
+    deps
   ), await runCheckedTool(
-    deps,
     "security",
     ["set-keychain-settings", "-lut", "21600", keychainPath],
-    "security set-keychain-settings"
+    "security set-keychain-settings",
+    deps
   ), await runCheckedTool(
-    deps,
     "security",
     ["unlock-keychain", "-p", cfg.keychainPassword, keychainPath],
-    "security unlock-keychain"
+    "security unlock-keychain",
+    deps
   ), await runCheckedTool(
-    deps,
     "security",
     [
       "import",
@@ -19172,9 +19171,9 @@ async function signMacos(binaryPath, cfg, deps) {
       "-T",
       "/usr/bin/security"
     ],
-    "security import"
+    "security import",
+    deps
   ), await runCheckedTool(
-    deps,
     "security",
     [
       "set-key-partition-list",
@@ -19185,7 +19184,8 @@ async function signMacos(binaryPath, cfg, deps) {
       cfg.keychainPassword,
       keychainPath
     ],
-    "security set-key-partition-list"
+    "security set-key-partition-list",
+    deps
   );
   let codesignArgs = [
     "--force",
@@ -19197,13 +19197,12 @@ async function signMacos(binaryPath, cfg, deps) {
     "--sign",
     cfg.identity
   ];
-  return cfg.entitlements !== void 0 && codesignArgs.push("--entitlements", cfg.entitlements), codesignArgs.push(binaryPath), await runCheckedTool(deps, "codesign", codesignArgs, "codesign"), await runCheckedTool(
-    deps,
+  return cfg.entitlements !== void 0 && codesignArgs.push("--entitlements", cfg.entitlements), codesignArgs.push(binaryPath), await runCheckedTool("codesign", codesignArgs, "codesign", deps), await runCheckedTool(
     "codesign",
     ["--verify", "--strict", "--verbose=2", binaryPath],
-    "codesign --verify"
+    "codesign --verify",
+    deps
   ), cfg.notarize && (await runCheckedTool(
-    deps,
     "xcrun",
     [
       "notarytool",
@@ -19217,13 +19216,14 @@ async function signMacos(binaryPath, cfg, deps) {
       cfg.appPassword,
       "--wait"
     ],
-    "xcrun notarytool submit"
+    "xcrun notarytool submit",
+    deps
   ), deps.logger.info(
     "[pkg-action] notarytool submit succeeded. Note: bare binaries cannot be stapled; Gatekeeper queries Apple at first launch."
   )), { keychainPath };
 }
 async function signWindowsSigntool(binaryPath, cfg, deps) {
-  let pfxPath = await writeSecretBase64(deps, deps.tempDir, cfg.certificate, "pfx"), args = [
+  let pfxPath = await writeSecretBase64(cfg.certificate, "pfx", deps), args = [
     "sign",
     "/fd",
     "sha256",
@@ -19236,7 +19236,7 @@ async function signWindowsSigntool(binaryPath, cfg, deps) {
     "/p",
     cfg.password
   ];
-  cfg.description !== void 0 && args.push("/d", cfg.description), args.push(binaryPath), await runCheckedTool(deps, "signtool", args, "signtool sign"), await runCheckedTool(deps, "signtool", ["verify", "/pa", "/v", binaryPath], "signtool verify");
+  cfg.description !== void 0 && args.push("/d", cfg.description), args.push(binaryPath), await runCheckedTool("signtool", args, "signtool sign", deps), await runCheckedTool("signtool", ["verify", "/pa", "/v", binaryPath], "signtool verify", deps);
 }
 async function signWindowsTrustedSigning(binaryPath, cfg, deps) {
   let env = {
@@ -19256,7 +19256,7 @@ async function signWindowsTrustedSigning(binaryPath, cfg, deps) {
     "-fd",
     "sha256"
   ];
-  cfg.description !== void 0 && args.push("-d", cfg.description), args.push(binaryPath), await runCheckedTool(deps, "azuresigntool", args, "azuresigntool sign", { env }), await runCheckedTool(deps, "signtool", ["verify", "/pa", "/v", binaryPath], "signtool verify");
+  cfg.description !== void 0 && args.push("-d", cfg.description), args.push(binaryPath), await runCheckedTool("azuresigntool", args, "azuresigntool sign", deps, { env }), await runCheckedTool("signtool", ["verify", "/pa", "/v", binaryPath], "signtool verify", deps);
 }
 
 // packages/core/src/version.ts
