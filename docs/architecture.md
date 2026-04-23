@@ -26,7 +26,7 @@ pkg-action/
 │   ├── gen-action-yml.ts       # codegen — writes action.yml + packages/build/action.yml + docs/inputs.md
 │   └── check-coverage.ts       # CI gate — parses coverage.lcov, enforces minimum
 ├── test-fixtures/              # apps the e2e workflow builds end-to-end
-├── .github/workflows/          # ci.yml + e2e.yml + codeql.yml + spike-node24.yml
+├── .github/workflows/          # ci.yml + e2e.yml + codeql.yml
 ├── docs/                       # authored + (inputs.md) generated reference
 └── STATUS.yaml                 # transient pre-v1.0 tracker (retired at release)
 ```
@@ -216,8 +216,6 @@ workflow_dispatch. Jobs:
 - `windows-metadata` round-trip (`.github/scripts/assert-windows-metadata.ts`)
 
 ### `codeql.yml` — GitHub CodeQL SAST
-
-### `spike-node24.yml` — isolated Node 24 runtime probe
 
 ## 9. Testing
 
