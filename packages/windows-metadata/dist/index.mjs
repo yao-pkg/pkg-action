@@ -13846,8 +13846,8 @@ var INPUT_SPECS = [
   {
     name: "docker-base-image",
     category: "publishing",
-    description: "Base image the generated Dockerfile FROMs.",
-    default: "gcr.io/distroless/base-debian12:latest"
+    description: "Base image the generated Dockerfile FROMs. Defaults to distroless/cc \u2014 the cc variant bundles libc/libstdc++/libgcc that the pkg-packaged Node binary links against.",
+    default: "gcr.io/distroless/cc-debian12:latest"
   },
   {
     name: "docker-dockerfile",

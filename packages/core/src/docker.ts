@@ -30,7 +30,7 @@ export interface DockerInputs {
   readonly username: string | undefined;
   /** Secret. Registered via core.setSecret by the parser. */
   readonly password: string | undefined;
-  /** Base image the generated Dockerfile FROMs. Defaults to distroless/base. */
+  /** Base image the generated Dockerfile FROMs. Defaults to distroless/cc (ships libc + libstdc++ + libgcc — needed by pkg's Node binary). */
   readonly baseImage: string;
   /** When set, skip the generated Dockerfile and point buildx at this one. */
   readonly dockerfile: string | undefined;

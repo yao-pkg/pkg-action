@@ -462,8 +462,9 @@ export const INPUT_SPECS: readonly InputSpec[] = [
   {
     name: 'docker-base-image',
     category: 'publishing',
-    description: 'Base image the generated Dockerfile FROMs.',
-    default: 'gcr.io/distroless/base-debian12:latest',
+    description:
+      'Base image the generated Dockerfile FROMs. Defaults to distroless/cc — the cc variant bundles libc/libstdc++/libgcc that the pkg-packaged Node binary links against.',
+    default: 'gcr.io/distroless/cc-debian12:latest',
   },
   {
     name: 'docker-dockerfile',
@@ -869,8 +870,7 @@ export function parseInputs(opts: ParseInputsOptions = {}): ActionInputs {
           registry: readInput(env, 'docker-registry'),
           username: readInput(env, 'docker-username'),
           password: readInput(env, 'docker-password'),
-          baseImage:
-            readInput(env, 'docker-base-image') ?? 'gcr.io/distroless/base-debian12:latest',
+          baseImage: readInput(env, 'docker-base-image') ?? 'gcr.io/distroless/cc-debian12:latest',
           dockerfile: readInput(env, 'docker-dockerfile'),
         }
       : undefined;

@@ -15095,7 +15095,7 @@ function parseInputs(opts = {}) {
     registry: readInput(env, "docker-registry"),
     username: readInput(env, "docker-username"),
     password: readInput(env, "docker-password"),
-    baseImage: readInput(env, "docker-base-image") ?? "gcr.io/distroless/base-debian12:latest",
+    baseImage: readInput(env, "docker-base-image") ?? "gcr.io/distroless/cc-debian12:latest",
     dockerfile: readInput(env, "docker-dockerfile")
   } : void 0;
   if ((homebrew !== void 0 || scoop !== void 0) && !attachToRelease)
@@ -15571,8 +15571,8 @@ var INPUT_SPECS, SPEC_BY_NAME, init_inputs = __esm({
       {
         name: "docker-base-image",
         category: "publishing",
-        description: "Base image the generated Dockerfile FROMs.",
-        default: "gcr.io/distroless/base-debian12:latest"
+        description: "Base image the generated Dockerfile FROMs. Defaults to distroless/cc \u2014 the cc variant bundles libc/libstdc++/libgcc that the pkg-packaged Node binary links against.",
+        default: "gcr.io/distroless/cc-debian12:latest"
       },
       {
         name: "docker-dockerfile",

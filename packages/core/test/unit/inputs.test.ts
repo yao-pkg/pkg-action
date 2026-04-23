@@ -258,7 +258,7 @@ test('parseInputs: docker-image captures the docker bag + defaults base image', 
   strictEqual(inputs.publishing.docker.image, 'ghcr.io/org/app:{version}');
   strictEqual(inputs.publishing.docker.username, 'bot');
   strictEqual(inputs.publishing.docker.password, 'secret');
-  strictEqual(inputs.publishing.docker.baseImage, 'gcr.io/distroless/base-debian12:latest');
+  strictEqual(inputs.publishing.docker.baseImage, 'gcr.io/distroless/cc-debian12:latest');
 });
 
 test('parseInputs: docker-username without docker-password is a hard error', () => {

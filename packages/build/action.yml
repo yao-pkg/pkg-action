@@ -176,8 +176,8 @@ inputs:
   docker-password:
     description: 'Registry password or token.'
   docker-base-image:
-    description: 'Base image the generated Dockerfile FROMs.'
-    default: 'gcr.io/distroless/base-debian12:latest'
+    description: 'Base image the generated Dockerfile FROMs. Defaults to distroless/cc — the cc variant bundles libc/libstdc++/libgcc that the pkg-packaged Node binary links against.'
+    default: 'gcr.io/distroless/cc-debian12:latest'
   docker-dockerfile:
     description: 'Path to a user-supplied Dockerfile. Skips the generated minimal layout.'
   scoop-bucket-repo:

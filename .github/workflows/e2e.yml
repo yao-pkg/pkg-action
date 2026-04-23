@@ -346,7 +346,9 @@ jobs:
           docker-image: ghcr.io/${{ github.repository }}-e2e:{version}-{sha}
           docker-username: ${{ github.actor }}
           docker-password: ${{ secrets.GITHUB_TOKEN }}
-          docker-base-image: gcr.io/distroless/base-debian12:latest
+          # cc variant bundles libc + libstdc++ + libgcc, required by the
+          # pkg-packaged Node binary (base-debian12 lacks libstdc++.so.6).
+          docker-base-image: gcr.io/distroless/cc-debian12:latest
 
       - name: Log in to ghcr.io for pull
         # The action pushes via a private DOCKER_CONFIG dir to keep the

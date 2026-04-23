@@ -101,7 +101,7 @@ Every `pkg-action` input, grouped by category.
 | `docker-registry` | — | no | no | Registry host for auth. Derived from docker-image when unset. |
 | `docker-username` | — | no | yes | Registry username. Paired with docker-password. |
 | `docker-password` | — | no | yes | Registry password or token. |
-| `docker-base-image` | `gcr.io/distroless/base-debian12:latest` | no | no | Base image the generated Dockerfile FROMs. |
+| `docker-base-image` | `gcr.io/distroless/cc-debian12:latest` | no | no | Base image the generated Dockerfile FROMs. Defaults to distroless/cc — the cc variant bundles libc/libstdc++/libgcc that the pkg-packaged Node binary links against. |
 | `docker-dockerfile` | — | no | no | Path to a user-supplied Dockerfile. Skips the generated minimal layout. |
 | `scoop-bucket-repo` | — | no | no | owner/repo of a scoop bucket. When set, opens a PR with an updated manifest. |
 | `scoop-bucket-token` | — | no | yes | PAT with contents:write on the bucket repo. Falls back to GITHUB_TOKEN. |
