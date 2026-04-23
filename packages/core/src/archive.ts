@@ -76,6 +76,14 @@ export async function archive(req: ArchiveRequest, deps: ArchiveDeps): Promise<s
   }
 }
 
+/**
+ * Pinned mtime used for every byte-stable archive entry — tar headers and
+ * the zip writer below both reference this. 2020-01-01T00:00:00Z is far
+ * enough in the past that no extractor rejects it and stable across runs.
+ */
+const REPRO_MTIME = new Date(Date.UTC(2020, 0, 1, 0, 0, 0));
+const REPRO_MTIME_TAR = '2020-01-01 00:00:00 UTC';
+
 async function shellTar(
   inputPath: string,
   outputPath: string,
@@ -89,7 +97,7 @@ async function shellTar(
   // For the common case (entry === basename(inputPath)) we just tar the file
   // as-is. For renames we stage a symlink with the desired name.
   const { dirname } = await import('node:path');
-  const { mkdtemp, symlink, rm } = await import('node:fs/promises');
+  const { mkdtemp, symlink, utimes, rm } = await import('node:fs/promises');
   const { tmpdir } = await import('node:os');
 
   const compressFlag = compression === 'gz' ? '-z' : '-J';
@@ -105,10 +113,35 @@ async function shellTar(
     fileName = entry;
   }
 
+  // Normalize the on-disk mtime in addition to passing --mtime to tar. Both
+  // GNU tar and bsdtar honor --mtime, but pinning the source file is the
+  // belt-and-suspenders guarantee (bsdtar before libarchive 3.3 used to
+  // ignore --mtime in some modes). Also defends zero-byte-delta across OSes
+  // when tar's flag handling diverges on edge cases.
+  await utimes(inputPath, REPRO_MTIME, REPRO_MTIME);
+
   try {
     const result = await deps.exec(
       'tar',
-      ['-c', compressFlag, '-f', outputPath, '-C', workDir, fileName],
+      [
+        '-c',
+        compressFlag,
+        '-f',
+        outputPath,
+        // Pin header metadata for byte-stable output. Flags understood by
+        // both GNU tar (ubuntu) and bsdtar/libarchive (macos + windows):
+        //   --mtime <date>       pin entry mtime in the archive header
+        //   --uid=0 --gid=0      zero numeric owner (runner uid is nondeterministic)
+        //   --numeric-owner      write numeric ids, skip passwd/group lookup
+        '--mtime',
+        REPRO_MTIME_TAR,
+        '--uid=0',
+        '--gid=0',
+        '--numeric-owner',
+        '-C',
+        workDir,
+        fileName,
+      ],
       { ignoreReturnCode: true },
     );
     if (result.exitCode !== 0) {
@@ -128,10 +161,7 @@ async function writeZip(
   mode: number,
 ): Promise<void> {
   const zipfile = new yazl.ZipFile();
-  // Use a pinned mtime for byte-stable output. 2020-01-01T00:00:00Z is far enough
-  // in the past to not confuse extractors yet stable across runs.
-  const mtime = new Date(Date.UTC(2020, 0, 1, 0, 0, 0));
-  zipfile.addFile(inputPath, entry, { mode, mtime, compress: true });
+  zipfile.addFile(inputPath, entry, { mode, mtime: REPRO_MTIME, compress: true });
   zipfile.end();
 
   try {

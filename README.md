@@ -33,12 +33,13 @@ Tracking issue: [yao-pkg/pkg#248](https://github.com/yao-pkg/pkg/issues/248).
 
 ## Outputs
 
-| Output      | Shape                                                         |
-| ----------- | ------------------------------------------------------------- |
-| `binaries`  | JSON array of absolute paths (bare binaries)                  |
-| `artifacts` | JSON array — archive when `compress != none`, else the binary |
-| `checksums` | JSON array of SHASUMS file paths (one per algorithm)          |
-| `version`   | Project version from `package.json#version`                   |
+| Output      | Shape                                                                     |
+| ----------- | ------------------------------------------------------------------------- |
+| `binaries`  | JSON array of absolute paths (bare binaries)                              |
+| `artifacts` | JSON array — archive when `compress != none`, else the binary             |
+| `checksums` | JSON array of SHASUMS file paths (one per algorithm)                      |
+| `digests`   | JSON object `{ "<artifact basename>": { "sha256": "…", "sha512": "…" } }` |
+| `version`   | Project version from `package.json#version`                               |
 
 ## Matrix helper
 

@@ -26,6 +26,11 @@ const OUTPUTS = [
   { id: 'binaries', description: 'JSON array of pre-archive binary absolute paths.' },
   { id: 'artifacts', description: 'JSON array of post-archive artifact absolute paths.' },
   { id: 'checksums', description: 'JSON array of absolute paths to SHASUMS*.txt files.' },
+  {
+    id: 'digests',
+    description:
+      'JSON object mapping each artifact basename to its {algo: hex} digest map, e.g. {"app-1.0.0-linux-x64.tar.gz": {"sha256": "…"}}.',
+  },
   { id: 'version', description: 'Resolved package.json version used in filename templates.' },
 ] as const;
 

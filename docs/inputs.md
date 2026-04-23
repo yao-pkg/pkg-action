@@ -91,4 +91,5 @@ Every `pkg-action` input, grouped by category.
 | `binaries` | JSON array of pre-archive binary absolute paths. |
 | `artifacts` | JSON array of post-archive artifact absolute paths. |
 | `checksums` | JSON array of absolute paths to SHASUMS*.txt files. |
+| `digests` | JSON object mapping each artifact basename to its {algo: hex} digest map, e.g. {"app-1.0.0-linux-x64.tar.gz": {"sha256": "…"}}. |
 | `version` | Resolved package.json version used in filename templates. |

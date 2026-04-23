@@ -112,6 +112,42 @@ test('archive: tar.gz shells out with correct args', async () => {
   });
 });
 
+test('archive: tar passes reproducibility flags (--mtime, --uid, --gid, --numeric-owner)', async () => {
+  await withTempPair(async (inputPath, outputPath) => {
+    const calls: Array<{ cmd: string; args: readonly string[] }> = [];
+    const exec: ExecFn = async (cmd, args) => {
+      calls.push({ cmd, args });
+      return { exitCode: 0, stdout: '', stderr: '' };
+    };
+    const tarOut = outputPath.replace('.zip', '.tar.gz');
+    await archive({ inputPath, outputPath: tarOut, format: 'tar.gz' }, { exec });
+    const args = calls[0]?.args ?? [];
+    ok(args.includes('--mtime'));
+    const mtimeIdx = args.indexOf('--mtime');
+    strictEqual(args[mtimeIdx + 1], '2020-01-01 00:00:00 UTC');
+    ok(args.includes('--uid=0'));
+    ok(args.includes('--gid=0'));
+    ok(args.includes('--numeric-owner'));
+  });
+});
+
+test('archive: tar normalizes the source mtime in addition to --mtime', async () => {
+  await withTempPair(async (inputPath, outputPath) => {
+    // Pre-bump the input mtime to a recent timestamp; archive() must overwrite it.
+    const bumped = new Date(Date.UTC(2025, 5, 15, 12, 0, 0));
+    const { utimes } = await import('node:fs/promises');
+    await utimes(inputPath, bumped, bumped);
+
+    const exec: ExecFn = async () => ({ exitCode: 0, stdout: '', stderr: '' });
+    const tarOut = outputPath.replace('.zip', '.tar.gz');
+    await archive({ inputPath, outputPath: tarOut, format: 'tar.gz' }, { exec });
+
+    const st = await stat(inputPath);
+    // mtime must have been pinned to 2020-01-01T00:00:00Z (1577836800 epoch).
+    strictEqual(Math.floor(st.mtimeMs / 1000), 1577836800);
+  });
+});
+
 test('archive: tar.xz shells out with -J', async () => {
   await withTempPair(async (inputPath, outputPath) => {
     const calls: Array<{ cmd: string; args: readonly string[] }> = [];

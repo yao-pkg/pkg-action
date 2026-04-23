@@ -207,6 +207,9 @@ async function main(): Promise<void> {
   const finalizedArtifacts: string[] = [];
   const shasumEntries: Array<{ algo: ChecksumAlgorithm; path: string; digest: string }> = [];
   const summaryRows: SummaryRow[] = [];
+  // Per-artifact digest map keyed by basename — consumed by the `digests`
+  // output so callers can verify without reading SHASUMS files off disk.
+  const digestsByArtifact: Record<string, Partial<Record<ChecksumAlgorithm, string>>> = {};
 
   for (const out of pkgOutputs) {
     const tokens = tokensForTarget(out.target, project, process.env);
@@ -256,6 +259,12 @@ async function main(): Promise<void> {
     // Checksums.
     const rowDigest = await finalizeChecksums(finalPath, inputs.postBuild.checksum);
     for (const entry of rowDigest.entries) shasumEntries.push(entry);
+    if (rowDigest.entries.length > 0) {
+      const key = pathBasename(finalPath);
+      const byAlgo: Partial<Record<ChecksumAlgorithm, string>> = {};
+      for (const entry of rowDigest.entries) byAlgo[entry.algo] = entry.digest;
+      digestsByArtifact[key] = byAlgo;
+    }
 
     const { size } = await stat(finalPath);
     const row: SummaryRow = {
@@ -300,6 +309,7 @@ async function main(): Promise<void> {
   core.setOutput('binaries', JSON.stringify(finalizedBinaries));
   core.setOutput('artifacts', JSON.stringify(finalizedArtifacts));
   core.setOutput('checksums', JSON.stringify(shasumsFiles));
+  core.setOutput('digests', JSON.stringify(digestsByArtifact));
   core.setOutput('version', project.version);
 
   logger.info(`pkg-action build — done (${String(pkgOutputs.length)} binary/binaries produced)`);

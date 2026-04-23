@@ -195,8 +195,9 @@ test('signMacos: emits the expected security + codesign command sequence', async
     deps,
   );
   // Expect: create-keychain, set-keychain-settings, unlock-keychain, import,
-  // set-key-partition-list, codesign. No notarytool because notarize=false.
-  strictEqual(calls.length, 6);
+  // set-key-partition-list, codesign, codesign --verify. No notarytool
+  // because notarize=false.
+  strictEqual(calls.length, 7);
   strictEqual(calls[0]?.command, 'security');
   strictEqual(calls[0]?.args[0], 'create-keychain');
   strictEqual(calls[1]?.args[0], 'set-keychain-settings');
@@ -206,6 +207,11 @@ test('signMacos: emits the expected security + codesign command sequence', async
   strictEqual(calls[5]?.command, 'codesign');
   ok(calls[5]?.args.includes('--options'));
   ok(calls[5]?.args.includes('runtime'));
+  // Verify call chained after sign; same binaryPath as the last positional.
+  strictEqual(calls[6]?.command, 'codesign');
+  ok(calls[6]?.args.includes('--verify'));
+  ok(calls[6]?.args.includes('--strict'));
+  strictEqual(calls[6]?.args[calls[6].args.length - 1], '/tmp/app');
   // .p12 should have been written to disk.
   strictEqual(deps.writtenFiles.size, 1);
 });
@@ -296,7 +302,8 @@ test('signWindowsSigntool: emits the expected /fd /td /tr /f /p argv', async () 
     },
     deps,
   );
-  strictEqual(calls.length, 1);
+  // Expect: signtool sign + signtool verify.
+  strictEqual(calls.length, 2);
   const call = calls[0];
   ok(call !== undefined);
   strictEqual(call.command, 'signtool');
@@ -322,6 +329,13 @@ test('signWindowsSigntool: emits the expected /fd /td /tr /f /p argv', async () 
   );
   // Binary path is the last positional.
   strictEqual(call.args[call.args.length - 1], 'C:\\out\\app.exe');
+  // Verify call chained — Authenticode chain policy (/pa) against the same binary.
+  const verify = calls[1];
+  ok(verify !== undefined);
+  strictEqual(verify.command, 'signtool');
+  strictEqual(verify.args[0], 'verify');
+  ok(verify.args.includes('/pa'));
+  strictEqual(verify.args[verify.args.length - 1], 'C:\\out\\app.exe');
 });
 
 test('signWindowsSigntool: omits /d when description is unset', async () => {
@@ -359,7 +373,8 @@ test('signWindowsTrustedSigning: surfaces creds via env, never argv', async () =
     },
     deps,
   );
-  strictEqual(calls.length, 1);
+  // Expect: azuresigntool sign + signtool verify.
+  strictEqual(calls.length, 2);
   const call = calls[0];
   ok(call !== undefined);
   strictEqual(call.command, 'azuresigntool');
@@ -376,6 +391,15 @@ test('signWindowsTrustedSigning: surfaces creds via env, never argv', async () =
   ok(call.args.includes('-kvc'));
   ok(call.args.includes('profile-1'));
   strictEqual(call.args[call.args.length - 1], 'C:\\app.exe');
+  // Verify call uses signtool (same Authenticode chain) — no azure creds required.
+  const verify = calls[1];
+  ok(verify !== undefined);
+  strictEqual(verify.command, 'signtool');
+  strictEqual(verify.args[0], 'verify');
+  ok(verify.args.includes('/pa'));
+  strictEqual(verify.args[verify.args.length - 1], 'C:\\app.exe');
+  // The verify call must not inherit the azure credential env leak.
+  ok(verify.env === undefined || verify.env['AZURE_CLIENT_SECRET'] === undefined);
 });
 
 test('signWindowsTrustedSigning: non-zero exit → SignError', async () => {

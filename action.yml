@@ -149,6 +149,9 @@ outputs:
   checksums:
     description: 'JSON array of absolute paths to SHASUMS*.txt files.'
     value: ${{ steps.pkg-action-build.outputs.checksums }}
+  digests:
+    description: 'JSON object mapping each artifact basename to its {algo: hex} digest map, e.g. {"app-1.0.0-linux-x64.tar.gz": {"sha256": "…"}}.'
+    value: ${{ steps.pkg-action-build.outputs.digests }}
   version:
     description: 'Resolved package.json version used in filename templates.'
     value: ${{ steps.pkg-action-build.outputs.version }}

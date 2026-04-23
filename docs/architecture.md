@@ -118,7 +118,7 @@ per Target:
 
 writeShasumsFile          → SHASUMS{256,512,MD5}.txt per algo
 writeSummary              → GITHUB_STEP_SUMMARY markdown
-setOutputs                → binaries / artifacts / checksums / version
+setOutputs                → binaries / artifacts / checksums / digests / version
 ```
 
 All heavy lifting lives in `@pkg-action/core`; the orchestrator is a wiring

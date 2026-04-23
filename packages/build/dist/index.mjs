@@ -15298,17 +15298,37 @@ async function archive(req, deps) {
       return await shell7z(req.inputPath, req.outputPath, entry, deps), req.outputPath;
   }
 }
+var REPRO_MTIME = new Date(Date.UTC(2020, 0, 1, 0, 0, 0)), REPRO_MTIME_TAR = "2020-01-01 00:00:00 UTC";
 async function shellTar(inputPath, outputPath, compression, entry, deps) {
-  let { dirname: dirname5 } = await import("node:path"), { mkdtemp, symlink: symlink2, rm: rm3 } = await import("node:fs/promises"), { tmpdir } = await import("node:os"), compressFlag = compression === "gz" ? "-z" : "-J", stageDir, workDir = dirname5(inputPath), fileName = basename4(inputPath);
+  let { dirname: dirname5 } = await import("node:path"), { mkdtemp, symlink: symlink2, utimes, rm: rm3 } = await import("node:fs/promises"), { tmpdir } = await import("node:os"), compressFlag = compression === "gz" ? "-z" : "-J", stageDir, workDir = dirname5(inputPath), fileName = basename4(inputPath);
   if (entry !== basename4(inputPath)) {
     stageDir = await mkdtemp(`${tmpdir()}/pkgaction-tar-`);
     let linkPath = `${stageDir}/${entry}`;
     await symlink2(inputPath, linkPath), workDir = stageDir, fileName = entry;
   }
+  await utimes(inputPath, REPRO_MTIME, REPRO_MTIME);
   try {
     let result = await deps.exec(
       "tar",
-      ["-c", compressFlag, "-f", outputPath, "-C", workDir, fileName],
+      [
+        "-c",
+        compressFlag,
+        "-f",
+        outputPath,
+        // Pin header metadata for byte-stable output. Flags understood by
+        // both GNU tar (ubuntu) and bsdtar/libarchive (macos + windows):
+        //   --mtime <date>       pin entry mtime in the archive header
+        //   --uid=0 --gid=0      zero numeric owner (runner uid is nondeterministic)
+        //   --numeric-owner      write numeric ids, skip passwd/group lookup
+        "--mtime",
+        REPRO_MTIME_TAR,
+        "--uid=0",
+        "--gid=0",
+        "--numeric-owner",
+        "-C",
+        workDir,
+        fileName
+      ],
       { ignoreReturnCode: !0 }
     );
     if (result.exitCode !== 0)
@@ -15320,8 +15340,8 @@ async function shellTar(inputPath, outputPath, compression, entry, deps) {
   }
 }
 async function writeZip(inputPath, outputPath, entry, mode) {
-  let zipfile = new import_yazl.default.ZipFile(), mtime = new Date(Date.UTC(2020, 0, 1, 0, 0, 0));
-  zipfile.addFile(inputPath, entry, { mode, mtime, compress: !0 }), zipfile.end();
+  let zipfile = new import_yazl.default.ZipFile();
+  zipfile.addFile(inputPath, entry, { mode, mtime: REPRO_MTIME, compress: !0 }), zipfile.end();
   try {
     await pipeline2(zipfile.outputStream, createWriteStream(outputPath));
   } catch (err) {
@@ -19181,7 +19201,12 @@ async function signMacos(binaryPath, cfg, deps) {
     "--sign",
     cfg.identity
   ];
-  return cfg.entitlements !== void 0 && codesignArgs.push("--entitlements", cfg.entitlements), codesignArgs.push(binaryPath), await runCheckedTool(deps, "codesign", codesignArgs, "codesign"), cfg.notarize && (await runCheckedTool(
+  return cfg.entitlements !== void 0 && codesignArgs.push("--entitlements", cfg.entitlements), codesignArgs.push(binaryPath), await runCheckedTool(deps, "codesign", codesignArgs, "codesign"), await runCheckedTool(
+    deps,
+    "codesign",
+    ["--verify", "--strict", "--verbose=2", binaryPath],
+    "codesign --verify"
+  ), cfg.notarize && (await runCheckedTool(
     deps,
     "xcrun",
     [
@@ -19215,7 +19240,7 @@ async function signWindowsSigntool(binaryPath, cfg, deps) {
     "/p",
     cfg.password
   ];
-  cfg.description !== void 0 && args.push("/d", cfg.description), args.push(binaryPath), await runCheckedTool(deps, "signtool", args, "signtool sign");
+  cfg.description !== void 0 && args.push("/d", cfg.description), args.push(binaryPath), await runCheckedTool(deps, "signtool", args, "signtool sign"), await runCheckedTool(deps, "signtool", ["verify", "/pa", "/v", binaryPath], "signtool verify");
 }
 async function signWindowsTrustedSigning(binaryPath, cfg, deps) {
   let env = {
@@ -19235,7 +19260,7 @@ async function signWindowsTrustedSigning(binaryPath, cfg, deps) {
     "-fd",
     "sha256"
   ];
-  cfg.description !== void 0 && args.push("-d", cfg.description), args.push(binaryPath), await runCheckedTool(deps, "azuresigntool", args, "azuresigntool sign", { env });
+  cfg.description !== void 0 && args.push("-d", cfg.description), args.push(binaryPath), await runCheckedTool(deps, "azuresigntool", args, "azuresigntool sign", { env }), await runCheckedTool(deps, "signtool", ["verify", "/pa", "/v", binaryPath], "signtool verify");
 }
 
 // packages/core/src/version.ts
@@ -19314,7 +19339,7 @@ async function main() {
   );
   let finalDir = join7(invocationDir, "final");
   await mkdir3(finalDir, { recursive: !0 });
-  let finalizedBinaries = [], finalizedArtifacts = [], shasumEntries = [], summaryRows = [];
+  let finalizedBinaries = [], finalizedArtifacts = [], shasumEntries = [], summaryRows = [], digestsByArtifact = {};
   for (let out of pkgOutputs) {
     let tokens = tokensForTarget(out.target, project, process.env), renamedBase = render(inputs.postBuild.filename, tokens), renamed = out.target.os === "win" && !renamedBase.toLowerCase().endsWith(".exe") ? `${renamedBase}.exe` : renamedBase, renamedPath = join7(finalDir, renamed);
     if (await rename3(out.path, renamedPath), windowsMeta !== null && out.target.os === "win") {
@@ -19338,6 +19363,11 @@ async function main() {
     finalizedArtifacts.push(finalPath);
     let rowDigest = await finalizeChecksums(finalPath, inputs.postBuild.checksum);
     for (let entry of rowDigest.entries) shasumEntries.push(entry);
+    if (rowDigest.entries.length > 0) {
+      let key = pathBasename(finalPath), byAlgo = {};
+      for (let entry of rowDigest.entries) byAlgo[entry.algo] = entry.digest;
+      digestsByArtifact[key] = byAlgo;
+    }
     let { size } = await stat4(finalPath), row = {
       target: formatTarget(out.target),
       filename: finalPath,
@@ -19363,7 +19393,7 @@ async function main() {
       pkgVersion: inputs.build.pkgVersion
     });
   }
-  setOutput("binaries", JSON.stringify(finalizedBinaries)), setOutput("artifacts", JSON.stringify(finalizedArtifacts)), setOutput("checksums", JSON.stringify(shasumsFiles)), setOutput("version", project.version), logger.info(`pkg-action build \u2014 done (${String(pkgOutputs.length)} binary/binaries produced)`);
+  setOutput("binaries", JSON.stringify(finalizedBinaries)), setOutput("artifacts", JSON.stringify(finalizedArtifacts)), setOutput("checksums", JSON.stringify(shasumsFiles)), setOutput("digests", JSON.stringify(digestsByArtifact)), setOutput("version", project.version), logger.info(`pkg-action build \u2014 done (${String(pkgOutputs.length)} binary/binaries produced)`);
 }
 async function signOneTarget(spec, signing, deps) {
   if (spec.targetOs === "macos" && signing.macos !== void 0) {
