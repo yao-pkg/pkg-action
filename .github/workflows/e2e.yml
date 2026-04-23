@@ -12,6 +12,9 @@ on:
     branches: [main]
   pull_request:
     paths:
+      # `packages/**` covers packages/build/action.yml + every source, test, and
+      # dist/ under packages/. The action.yml entries below are the top-level
+      # composite and the two sub-actions whose directories are not under packages/.
       - 'packages/**'
       - 'scripts/**'
       - 'action.yml'

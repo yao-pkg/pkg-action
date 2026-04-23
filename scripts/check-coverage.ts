@@ -32,11 +32,23 @@ interface Totals {
 
 function parseLcov(body: string): Totals {
   const totals: Totals = { found: 0, hit: 0 };
+  let lineNo = 0;
   for (const line of body.split(/\r?\n/)) {
-    if (line.startsWith('LF:')) totals.found += Number(line.slice(3));
-    else if (line.startsWith('LH:')) totals.hit += Number(line.slice(3));
+    lineNo += 1;
+    if (line.startsWith('LF:')) totals.found += parseCount(line, lineNo);
+    else if (line.startsWith('LH:')) totals.hit += parseCount(line, lineNo);
   }
   return totals;
+}
+
+function parseCount(line: string, lineNo: number): number {
+  const n = Number(line.slice(3));
+  if (!Number.isFinite(n) || n < 0) {
+    throw new Error(
+      `lcov: malformed ${line.slice(0, 2)} record at line ${String(lineNo)}: ${line}`,
+    );
+  }
+  return n;
 }
 
 async function main(): Promise<void> {
