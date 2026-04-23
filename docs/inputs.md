@@ -13,7 +13,7 @@ Every `pkg-action` input, grouped by category.
 | `targets` | — | no | no | Comma- or newline-separated pkg target triples, e.g. node22-linux-x64,node22-macos-arm64. Defaults to the host target. |
 | `mode` | `standard` | no | no | standard \| sea — selects pkg Standard or SEA mode. |
 | `node-version` | `22` | no | no | pkg's bundled Node.js major (e.g. 22, 24). Does not affect the action's own Node runtime. |
-| `compress-node` | `None` | no | no | pkg's bundled-binary compression: Brotli \| GZip \| None. |
+| `compress-node` | `None` | no | no | pkg's bundled-binary compression: Brotli \| GZip \| Zstd \| None. Zstd requires Node.js >= 22.15 on the build host. |
 | `fallback-to-source` | `false` | no | no | Pass pkg --fallback-to-source for bytecode-fabricator failures. |
 | `public` | `false` | no | no | Pass pkg --public (ships sources as plaintext). |
 | `public-packages` | — | no | no | Comma-separated package names to mark public (pkg --public-packages). |

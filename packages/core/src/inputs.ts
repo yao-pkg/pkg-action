@@ -65,7 +65,8 @@ export const INPUT_SPECS: readonly InputSpec[] = [
   {
     name: 'compress-node',
     category: 'build',
-    description: "pkg's bundled-binary compression: Brotli | GZip | None.",
+    description:
+      "pkg's bundled-binary compression: Brotli | GZip | Zstd | None. Zstd requires Node.js >= 22.15 on the build host.",
     default: 'None',
   },
   {
@@ -354,7 +355,7 @@ export function specFor(name: string): InputSpec | undefined {
 
 // ─── Typed parsed inputs ──────────────────────────────────────────────────
 
-export type CompressionMode = 'Brotli' | 'GZip' | 'None';
+export type CompressionMode = 'Brotli' | 'GZip' | 'Zstd' | 'None';
 /** Archive format as seen by the input layer — extends archive.ts's set with 'none' (skip archiving). */
 export type ArchiveFormatInput = 'tar.gz' | 'tar.xz' | 'zip' | '7z' | 'none';
 export type PkgMode = 'standard' | 'sea';
@@ -531,6 +532,7 @@ export function parseInputs(opts: ParseInputsOptions = {}): ActionInputs {
     compressNode: parseEnum(readInput(env, 'compress-node'), 'compress-node', [
       'Brotli',
       'GZip',
+      'Zstd',
       'None',
     ] as const),
     fallbackToSource: parseBoolean(readInput(env, 'fallback-to-source'), 'fallback-to-source'),

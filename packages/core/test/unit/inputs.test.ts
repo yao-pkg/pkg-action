@@ -121,7 +121,14 @@ test('parseInputs rejects invalid boolean', () => {
 test('parseInputs rejects invalid enum value', () => {
   throws(() => parseInputs({ env: env(['mode', 'fast']) }), ValidationError);
   throws(() => parseInputs({ env: env(['compress', 'rar']) }), ValidationError);
+  // Case-sensitive: only the canonical 'Zstd' (and 'Brotli' / 'GZip' / 'None')
+  // is accepted. Lowercase 'zstd' still fails.
   throws(() => parseInputs({ env: env(['compress-node', 'zstd']) }), ValidationError);
+});
+
+test('parseInputs accepts Zstd compress-node', () => {
+  const inputs = parseInputs({ env: env(['compress-node', 'Zstd']) });
+  strictEqual(inputs.build.compressNode, 'Zstd');
 });
 
 test('parseInputs checksum accepts "none" and drops to empty list', () => {

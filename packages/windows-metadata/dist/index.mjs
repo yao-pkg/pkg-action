@@ -13390,7 +13390,7 @@ var INPUT_SPECS = [
   {
     name: "compress-node",
     category: "build",
-    description: "pkg's bundled-binary compression: Brotli | GZip | None.",
+    description: "pkg's bundled-binary compression: Brotli | GZip | Zstd | None. Zstd requires Node.js >= 22.15 on the build host.",
     default: "None"
   },
   {

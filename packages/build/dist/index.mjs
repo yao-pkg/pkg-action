@@ -14791,7 +14791,7 @@ var INPUT_SPECS = [
   {
     name: "compress-node",
     category: "build",
-    description: "pkg's bundled-binary compression: Brotli | GZip | None.",
+    description: "pkg's bundled-binary compression: Brotli | GZip | Zstd | None. Zstd requires Node.js >= 22.15 on the build host.",
     default: "None"
   },
   {
@@ -15129,6 +15129,7 @@ function parseInputs(opts = {}) {
     compressNode: parseEnum(readInput(env, "compress-node"), "compress-node", [
       "Brotli",
       "GZip",
+      "Zstd",
       "None"
     ]),
     fallbackToSource: parseBoolean(readInput(env, "fallback-to-source"), "fallback-to-source"),

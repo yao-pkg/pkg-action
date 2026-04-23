@@ -250,3 +250,153 @@ jobs:
           [ -f "$bin" ] || { echo "::error::binary missing: $bin"; exit 1; }
           echo "Checking $bin"
           node --experimental-strip-types .github/scripts/assert-windows-metadata.ts "$bin"
+
+  # ──────────────────────────────────────────────────────────────────────
+  # Real-world smoke: pull @anthropic-ai/claude-code from npm, build a
+  # native binary per runner OS/arch with Zstd-compressed pkg payload +
+  # tar.gz archive, execute the binary with --version, then verify the
+  # archive round-trips and the sha256 sidecar matches the archive bytes.
+  #
+  # claude-code is ESM, so mode: sea (standard pkg can't bytecode-compile
+  # ESM). Each matrix entry builds for the runner's native target so the
+  # produced binary can be launched in-place for the smoke assertion,
+  # giving real cross-OS + cross-arch coverage (x64 and arm64 on Linux,
+  # arm64 on macOS, x64 on Windows). Zstd bundled-binary compression
+  # requires Node.js >= 22.15 on the build host; .node-version is 22.22.
+  claude-code-smoke:
+    name: claude-code-smoke / ${{ matrix.os }} / ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: node22-linux-x64
+          - os: ubuntu-24.04-arm
+            target: node22-linux-arm64
+          - os: macos-latest
+            target: node22-macos-arm64
+          - os: windows-latest
+            target: node22-win-x64
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+
+      - name: Prepare claude-code fixture
+        id: fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          fix="${RUNNER_TEMP}/claude-code-fixture"
+          mkdir -p "$fix"
+          cd "$fix"
+          npm init -y >/dev/null
+          # --omit=dev + --ignore-scripts: we want the package contents on
+          # disk; postinstall fetches native helpers we don't need for a
+          # `claude --version` smoke.
+          npm install --omit=dev --ignore-scripts @anthropic-ai/claude-code
+          # Resolve the package's own `bin` entry to pin the exact path
+          # regardless of future layout changes.
+          entry=$(node -e "
+            const path = require('path');
+            const pkgPath = require.resolve('@anthropic-ai/claude-code/package.json', { paths: [process.cwd()] });
+            const pkgDir = path.dirname(pkgPath);
+            const pkg = require(pkgPath);
+            const bin = typeof pkg.bin === 'string' ? pkg.bin : Object.values(pkg.bin)[0];
+            console.log(path.relative(process.cwd(), path.resolve(pkgDir, bin)).split(path.sep).join('/'));
+          ")
+          echo "entry=$entry"
+          node -e "
+            const fs = require('fs');
+            const p = './package.json';
+            const pkg = JSON.parse(fs.readFileSync(p, 'utf8'));
+            pkg.bin = './' + process.argv[1];
+            pkg.pkg = {
+              assets: ['node_modules/@anthropic-ai/claude-code/**/*']
+            };
+            fs.writeFileSync(p, JSON.stringify(pkg, null, 2));
+          " "$entry"
+          cat ./package.json
+          # Forward to GITHUB_OUTPUT with forward-slash separators so the
+          # composite receives a consistent path on Windows bash.
+          echo "fixture=${fix//\\//}" >> "$GITHUB_OUTPUT"
+
+      - name: Build claude binary
+        id: build
+        uses: ./
+        with:
+          config: ${{ steps.fix.outputs.fixture }}/package.json
+          targets: ${{ matrix.target }}
+          mode: sea
+          compress-node: Zstd
+          compress: tar.gz
+          checksum: sha256
+          filename: 'claude-{version}-{os}-{arch}'
+
+      - name: Run claude --version
+        shell: bash
+        run: |
+          set -euo pipefail
+          bin=$(echo '${{ steps.build.outputs.binaries }}' | jq -r '.[0]')
+          [ -f "$bin" ] || { echo "::error::binary missing: $bin"; exit 1; }
+          chmod +x "$bin" || true
+          out=$("$bin" --version 2>&1)
+          echo "$out"
+          # claude --version prints a semver-shaped string. Enforce the
+          # shape to catch silent regressions where the binary boots but
+          # spits an unrelated banner.
+          echo "$out" | grep -qE '[0-9]+\.[0-9]+\.[0-9]+' || {
+            echo "::error::unexpected --version output: $out"; exit 1;
+          }
+
+      - name: Verify tar.gz archive + sha256 sidecar
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive=$(echo '${{ steps.build.outputs.artifacts }}' | jq -r '.[0]')
+          [ -f "$archive" ] || { echo "::error::archive missing: $archive"; exit 1; }
+          case "$archive" in
+            *.tar.gz) ;;
+            *) echo "::error::expected .tar.gz archive, got: $archive"; exit 1 ;;
+          esac
+
+          # Sidecar must exist and carry a 64-hex-char sha256 + the archive
+          # basename. Recompute the digest locally and compare byte-for-byte
+          # against the sidecar so we catch any post-build tampering.
+          sidecar="${archive}.sha256"
+          [ -f "$sidecar" ] || { echo "::error::missing checksum sidecar: $sidecar"; exit 1; }
+          recorded=$(awk 'NR==1 { print $1 }' "$sidecar")
+          [ "${#recorded}" -eq 64 ] || { echo "::error::malformed sha256 in sidecar: $recorded"; exit 1; }
+          if command -v sha256sum >/dev/null 2>&1; then
+            actual=$(sha256sum "$archive" | awk '{print $1}')
+          else
+            actual=$(shasum -a 256 "$archive" | awk '{print $1}')
+          fi
+          if [ "$recorded" != "$actual" ]; then
+            echo "::error::sha256 mismatch — sidecar=$recorded actual=$actual"; exit 1
+          fi
+          echo "sidecar sha256 OK: $recorded"
+
+          # Tar round-trip: extract into a scratch dir, confirm the binary
+          # lands inside, then run --version on the extracted copy so we
+          # know the archive itself — not just the pre-archive binary — is
+          # usable.
+          extract="${RUNNER_TEMP}/claude-extract"
+          rm -rf "$extract"
+          mkdir -p "$extract"
+          tar -tzf "$archive" >/dev/null
+          tar -xzf "$archive" -C "$extract"
+
+          bin_basename=$(basename "$(echo '${{ steps.build.outputs.binaries }}' | jq -r '.[0]')")
+          extracted_bin=$(find "$extract" -type f -name "$bin_basename" | head -n 1)
+          [ -n "$extracted_bin" ] || { echo "::error::extracted tar missing $bin_basename"; exit 1; }
+          chmod +x "$extracted_bin" || true
+          out=$("$extracted_bin" --version 2>&1)
+          echo "extracted $extracted_bin --version: $out"
+          echo "$out" | grep -qE '[0-9]+\.[0-9]+\.[0-9]+' || {
+            echo "::error::extracted binary produced unexpected output: $out"; exit 1;
+          }
