@@ -12,7 +12,7 @@ Every `pkg-action` input, grouped by category.
 | `config-inline` | — | no | no | Pkg config as a JSON string. Written to a temp file and passed to pkg via --config. Mutually exclusive with config. Do not embed secrets — this input is not masked. |
 | `entry` | — | no | no | Entry script when not specified in the config. |
 | `targets` | — | no | no | Comma- or newline-separated pkg target triples, e.g. node22-linux-x64,node22-macos-arm64. Defaults to the host target. |
-| `pkg-version` | `~6.16.0` | no | no | npm version specifier for @yao-pkg/pkg (e.g. ~6.16.0). Bypassed when pkg-path is set. |
+| `pkg-version` | `~6.19.0` | no | no | npm version specifier for @yao-pkg/pkg (e.g. ~6.19.0). 6.19.0+ is required for the full build-flag surface in pkg config (compress, fallbackToSource, public, publicPackages, options, bytecode, nativeBuild, noDictionary, debug, signature). Bypassed when pkg-path is set. |
 | `pkg-path` | — | no | no | Absolute path to a pre-installed pkg binary. Skips the implicit npm i -g. |
 
 ## Post-build

@@ -59,8 +59,8 @@ export const INPUT_SPECS: readonly InputSpec[] = [
     name: 'pkg-version',
     category: 'build',
     description:
-      'npm version specifier for @yao-pkg/pkg (e.g. ~6.16.0). Bypassed when pkg-path is set.',
-    default: '~6.16.0',
+      'npm version specifier for @yao-pkg/pkg (e.g. ~6.19.0). 6.19.0+ is required for the full build-flag surface in pkg config (compress, fallbackToSource, public, publicPackages, options, bytecode, nativeBuild, noDictionary, debug, signature). Bypassed when pkg-path is set.',
+    default: '~6.19.0',
   },
   {
     name: 'pkg-path',
@@ -494,7 +494,7 @@ export function parseInputs(opts: ParseInputsOptions = {}): ActionInputs {
     configInline,
     entry: readInput(env, 'entry'),
     targets,
-    pkgVersion: readInput(env, 'pkg-version') ?? '~6.16.0',
+    pkgVersion: readInput(env, 'pkg-version') ?? '~6.19.0',
     pkgPath: readInput(env, 'pkg-path'),
   };
 

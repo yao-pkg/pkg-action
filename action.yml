@@ -18,8 +18,8 @@ inputs:
   targets:
     description: 'Comma- or newline-separated pkg target triples, e.g. node22-linux-x64,node22-macos-arm64. Defaults to the host target.'
   pkg-version:
-    description: 'npm version specifier for @yao-pkg/pkg (e.g. ~6.16.0). Bypassed when pkg-path is set.'
-    default: '~6.16.0'
+    description: 'npm version specifier for @yao-pkg/pkg (e.g. ~6.19.0). 6.19.0+ is required for the full build-flag surface in pkg config (compress, fallbackToSource, public, publicPackages, options, bytecode, nativeBuild, noDictionary, debug, signature). Bypassed when pkg-path is set.'
+    default: '~6.19.0'
   pkg-path:
     description: 'Absolute path to a pre-installed pkg binary. Skips the implicit npm i -g.'
   strip:

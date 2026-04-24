@@ -64,7 +64,7 @@ test('parseInputs with no env uses defaults', () => {
   strictEqual(inputs.build.config, undefined);
   strictEqual(inputs.build.configInline, undefined);
   strictEqual(inputs.build.entry, undefined);
-  strictEqual(inputs.build.pkgVersion, '~6.16.0');
+  strictEqual(inputs.build.pkgVersion, '~6.19.0');
   strictEqual(inputs.build.pkgPath, undefined);
 
   strictEqual(inputs.postBuild.compress, 'none');
