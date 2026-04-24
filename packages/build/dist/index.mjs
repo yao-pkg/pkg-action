@@ -14552,6 +14552,12 @@ async function createInvocationTemp(parent) {
   let id = randomUUID2(), dir = join3(parent, `pkg-action-${id}`);
   return await mkdir2(dir, { recursive: !0, mode: 448 }), await chmod2(dir, 448), dir;
 }
+var PKG_CONFIG_INLINE_FILENAME = "pkg-config.inline.json";
+async function materializePkgConfigInline(opts) {
+  if (opts.configInline === void 0) return opts.config;
+  let path4 = join3(opts.invocationDir, PKG_CONFIG_INLINE_FILENAME);
+  return await writeFile2(path4, opts.configInline, "utf8"), path4;
+}
 async function atomicWriteFile(path4, data) {
   await mkdir2(dirname3(path4), { recursive: !0 });
   let tmp = `${path4}.tmp-${randomUUID2()}`;
@@ -14764,7 +14770,13 @@ var INPUT_SPECS = [
   {
     name: "config",
     category: "build",
-    description: "Path to a pkg config (.pkgrc, pkg.config.{js,ts,json}, or package.json). Auto-detected when omitted."
+    description: "Path to a pkg config (.pkgrc, pkg.config.{js,ts,json}, or package.json). Auto-detected when omitted. Mutually exclusive with config-inline."
+  },
+  {
+    name: "config-inline",
+    category: "build",
+    description: "Pkg config as a JSON string. Written to a temp file and passed to pkg via --config. Mutually exclusive with config. Registered with core.setSecret so exact matches are redacted from logs; still written to a temp file on the runner, so prefer config for anything beyond trivial knobs.",
+    secret: !0
   },
   {
     name: "entry",
@@ -14777,67 +14789,10 @@ var INPUT_SPECS = [
     description: "Comma- or newline-separated pkg target triples, e.g. node22-linux-x64,node22-macos-arm64. Defaults to the host target."
   },
   {
-    name: "mode",
-    category: "build",
-    description: "standard | sea \u2014 selects pkg Standard or SEA mode.",
-    default: "standard"
-  },
-  {
-    name: "node-version",
-    category: "build",
-    description: "pkg's bundled Node.js major (e.g. 22, 24). Does not affect the action's own Node runtime.",
-    default: "22"
-  },
-  {
-    name: "compress-node",
-    category: "build",
-    description: "pkg's bundled-binary compression: Brotli | GZip | Zstd | None. Zstd requires Node.js >= 22.15 on the build host.",
-    default: "None"
-  },
-  {
-    name: "fallback-to-source",
-    category: "build",
-    description: "Pass pkg --fallback-to-source for bytecode-fabricator failures.",
-    default: "false"
-  },
-  {
-    name: "public",
-    category: "build",
-    description: "Pass pkg --public (ships sources as plaintext).",
-    default: "false"
-  },
-  {
-    name: "public-packages",
-    category: "build",
-    description: "Comma-separated package names to mark public (pkg --public-packages)."
-  },
-  {
-    name: "options",
-    category: "build",
-    description: "Comma-separated V8 options baked into the binary (pkg --options)."
-  },
-  {
-    name: "no-bytecode",
-    category: "build",
-    description: "Pass pkg --no-bytecode.",
-    default: "false"
-  },
-  {
-    name: "no-dict",
-    category: "build",
-    description: "Comma-separated list of packages for pkg --no-dict (or * for all)."
-  },
-  { name: "debug", category: "build", description: "Pass pkg --debug.", default: "false" },
-  {
-    name: "extra-args",
-    category: "build",
-    description: "Raw extra flags appended to the pkg CLI invocation."
-  },
-  {
     name: "pkg-version",
     category: "build",
-    description: "npm version specifier for @yao-pkg/pkg (e.g. ~6.16.0). Bypassed when pkg-path is set.",
-    default: "~6.16.0"
+    description: "npm version specifier for @yao-pkg/pkg (e.g. ~6.19.0). 6.19.0+ is required for the full build-flag surface in pkg config (compress, fallbackToSource, public, publicPackages, options, bytecode, nativeBuild, noDictionary, debug, signature). Bypassed when pkg-path is set.",
+    default: "~6.19.0"
   },
   {
     name: "pkg-path",
@@ -15120,27 +15075,29 @@ function parseInputs(opts = {}) {
   let targetsRaw = readInput(env, "targets"), targets = targetsRaw === void 0 ? "host" : parseTargetList(targetsRaw);
   if (Array.isArray(targets) && targets.length === 0)
     throw new ValidationError('Input "targets" was set but resolved to an empty list.');
+  let configPath = readInput(env, "config"), configInline = readInput(env, "config-inline");
+  if (configPath !== void 0 && configInline !== void 0)
+    throw new ValidationError(
+      'Inputs "config" and "config-inline" are mutually exclusive \u2014 pick one.'
+    );
+  if (configInline !== void 0)
+    try {
+      let parsed = JSON.parse(configInline);
+      if (parsed === null || typeof parsed != "object" || Array.isArray(parsed))
+        throw new ValidationError(
+          'Input "config-inline" must parse to a JSON object (got ' + (parsed === null ? "null" : Array.isArray(parsed) ? "array" : typeof parsed) + ")."
+        );
+    } catch (err) {
+      throw err instanceof ValidationError ? err : new ValidationError(
+        `Input "config-inline" is not valid JSON: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
   let build = {
-    config: readInput(env, "config"),
+    config: configPath,
+    configInline,
     entry: readInput(env, "entry"),
     targets,
-    mode: parseEnum(readInput(env, "mode"), "mode", ["standard", "sea"]),
-    nodeVersion: readInput(env, "node-version") ?? "22",
-    compressNode: parseEnum(readInput(env, "compress-node"), "compress-node", [
-      "Brotli",
-      "GZip",
-      "Zstd",
-      "None"
-    ]),
-    fallbackToSource: parseBoolean(readInput(env, "fallback-to-source"), "fallback-to-source"),
-    public: parseBoolean(readInput(env, "public"), "public"),
-    publicPackages: parseList(readInput(env, "public-packages")),
-    options: parseList(readInput(env, "options")),
-    noBytecode: parseBoolean(readInput(env, "no-bytecode"), "no-bytecode"),
-    noDict: parseList(readInput(env, "no-dict")),
-    debug: parseBoolean(readInput(env, "debug"), "debug"),
-    extraArgs: readInput(env, "extra-args"),
-    pkgVersion: readInput(env, "pkg-version") ?? "~6.16.0",
+    pkgVersion: readInput(env, "pkg-version") ?? "~6.19.0",
     pkgPath: readInput(env, "pkg-path")
   }, postBuild = {
     strip: parseBoolean(readInput(env, "strip"), "strip"),
@@ -15194,9 +15151,7 @@ function levenshtein2(a, b) {
 // packages/core/src/pkg-runner.ts
 function buildPkgArgs(inv) {
   let args = [];
-  if (inv.targets.length > 0 && args.push("--targets", inv.targets.map(formatTarget).join(",")), inv.build.config !== void 0 && args.push("--config", inv.build.config), inv.build.mode === "sea" && args.push("--sea"), inv.build.compressNode !== "None" && args.push("--compress", inv.build.compressNode), inv.build.fallbackToSource && args.push("--fallback-to-source"), inv.build.public && args.push("--public"), inv.build.publicPackages.length > 0 && args.push("--public-packages", inv.build.publicPackages.join(",")), inv.build.options.length > 0 && args.push("--options", inv.build.options.join(",")), inv.build.noBytecode && args.push("--no-bytecode"), inv.build.noDict.length > 0 && args.push("--no-dict", inv.build.noDict.join(",")), inv.build.debug && args.push("--debug"), args.push("--out-path", inv.outputDir), inv.build.extraArgs !== void 0 && inv.build.extraArgs.trim() !== "")
-    for (let tok of inv.build.extraArgs.split(/\s+/).filter((s) => s.length > 0))
-      args.push(tok);
+  inv.targets.length > 0 && args.push("--targets", inv.targets.map(formatTarget).join(",")), inv.build.config !== void 0 && args.push("--config", inv.build.config), args.push("--out-path", inv.outputDir);
   let entry = inv.build.entry ?? ".";
   return args.push(entry), args;
 }
@@ -19311,7 +19266,16 @@ async function main() {
   saveState("invocationDir", invocationDir);
   let pkgOutputDir = join7(invocationDir, "pkg-out");
   await mkdir3(pkgOutputDir, { recursive: !0 });
-  let pkgCommand = inputs.build.pkgPath ?? "pkg", pkgBuildInputs = inputs.build.config !== void 0 && pathBasename(inputs.build.config).toLowerCase() === "package.json" ? { ...inputs.build, config: void 0 } : inputs.build, pkgTargetsLabel = resolvedTargets.map(formatTarget).join(", ");
+  let effectiveConfig = await materializePkgConfigInline({
+    config: inputs.build.config,
+    configInline: inputs.build.configInline,
+    invocationDir
+  });
+  inputs.build.configInline !== void 0 && effectiveConfig !== void 0 && logger.info(`[pkg-action] materialized config-inline \u2192 ${effectiveConfig}`);
+  let pkgCommand = inputs.build.pkgPath ?? "pkg", cfgIsPackageJson = effectiveConfig !== void 0 && pathBasename(effectiveConfig).toLowerCase() === "package.json", pkgBuildInputs = {
+    ...inputs.build,
+    config: cfgIsPackageJson ? void 0 : effectiveConfig
+  }, pkgTargetsLabel = resolvedTargets.map(formatTarget).join(", ");
   logger.startGroup(`[pkg-action] pkg build (targets=${pkgTargetsLabel})`);
   let runStart = Date.now();
   try {

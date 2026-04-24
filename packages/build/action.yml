@@ -7,43 +7,16 @@ author: 'yao-pkg contributors'
 
 inputs:
   config:
-    description: 'Path to a pkg config (.pkgrc, pkg.config.{js,ts,json}, or package.json). Auto-detected when omitted.'
+    description: 'Path to a pkg config (.pkgrc, pkg.config.{js,ts,json}, or package.json). Auto-detected when omitted. Mutually exclusive with config-inline.'
+  config-inline:
+    description: 'Pkg config as a JSON string. Written to a temp file and passed to pkg via --config. Mutually exclusive with config. Registered with core.setSecret so exact matches are redacted from logs; still written to a temp file on the runner, so prefer config for anything beyond trivial knobs.'
   entry:
     description: 'Entry script when not specified in the config.'
   targets:
     description: 'Comma- or newline-separated pkg target triples, e.g. node22-linux-x64,node22-macos-arm64. Defaults to the host target.'
-  mode:
-    description: 'standard | sea — selects pkg Standard or SEA mode.'
-    default: 'standard'
-  node-version:
-    description: 'pkg''s bundled Node.js major (e.g. 22, 24). Does not affect the action''s own Node runtime.'
-    default: '22'
-  compress-node:
-    description: 'pkg''s bundled-binary compression: Brotli | GZip | Zstd | None. Zstd requires Node.js >= 22.15 on the build host.'
-    default: 'None'
-  fallback-to-source:
-    description: 'Pass pkg --fallback-to-source for bytecode-fabricator failures.'
-    default: 'false'
-  public:
-    description: 'Pass pkg --public (ships sources as plaintext).'
-    default: 'false'
-  public-packages:
-    description: 'Comma-separated package names to mark public (pkg --public-packages).'
-  options:
-    description: 'Comma-separated V8 options baked into the binary (pkg --options).'
-  no-bytecode:
-    description: 'Pass pkg --no-bytecode.'
-    default: 'false'
-  no-dict:
-    description: 'Comma-separated list of packages for pkg --no-dict (or * for all).'
-  debug:
-    description: 'Pass pkg --debug.'
-    default: 'false'
-  extra-args:
-    description: 'Raw extra flags appended to the pkg CLI invocation.'
   pkg-version:
-    description: 'npm version specifier for @yao-pkg/pkg (e.g. ~6.16.0). Bypassed when pkg-path is set.'
-    default: '~6.16.0'
+    description: 'npm version specifier for @yao-pkg/pkg (e.g. ~6.19.0). 6.19.0+ is required for the full build-flag surface in pkg config (compress, fallbackToSource, public, publicPackages, options, bytecode, nativeBuild, noDictionary, debug, signature). Bypassed when pkg-path is set.'
+    default: '~6.19.0'
   pkg-path:
     description: 'Absolute path to a pre-installed pkg binary. Skips the implicit npm i -g.'
   strip:

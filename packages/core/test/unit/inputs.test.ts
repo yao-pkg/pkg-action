@@ -61,12 +61,11 @@ test('readInputRaw preserves dashes in env keys — matches @actions/core', () =
 test('parseInputs with no env uses defaults', () => {
   const inputs = parseInputs({ env: {} });
   strictEqual(inputs.build.targets, 'host');
-  strictEqual(inputs.build.mode, 'standard');
-  strictEqual(inputs.build.nodeVersion, '22');
-  strictEqual(inputs.build.compressNode, 'None');
-  strictEqual(inputs.build.fallbackToSource, false);
-  strictEqual(inputs.build.public, false);
-  strictEqual(inputs.build.pkgVersion, '~6.16.0');
+  strictEqual(inputs.build.config, undefined);
+  strictEqual(inputs.build.configInline, undefined);
+  strictEqual(inputs.build.entry, undefined);
+  strictEqual(inputs.build.pkgVersion, '~6.19.0');
+  strictEqual(inputs.build.pkgPath, undefined);
 
   strictEqual(inputs.postBuild.compress, 'none');
   strictEqual(inputs.postBuild.strip, false);
@@ -77,32 +76,89 @@ test('parseInputs with no env uses defaults', () => {
   strictEqual(inputs.performance.stepSummary, true);
 });
 
+test('parseInputs threads pkg-version + pkg-path through', () => {
+  const inputs = parseInputs({
+    env: env(['pkg-version', '~6.99.0'], ['pkg-path', '/opt/pkg/bin/pkg']),
+  });
+  strictEqual(inputs.build.pkgVersion, '~6.99.0');
+  strictEqual(inputs.build.pkgPath, '/opt/pkg/bin/pkg');
+});
+
 test('parseInputs parses a realistic build config', () => {
   const inputs = parseInputs({
     env: env(
       ['targets', 'node22-linux-x64,node22-macos-arm64'],
-      ['mode', 'sea'],
-      ['compress-node', 'Brotli'],
+      ['config', '.pkgrc.json'],
+      ['entry', 'src/main.js'],
       ['compress', 'tar.gz'],
       ['checksum', 'sha256,sha512'],
       ['strip', 'true'],
-      ['fallback-to-source', 'true'],
-      ['public', 'true'],
-      ['public-packages', 'express,lodash'],
-      ['no-dict', '*'],
     ),
   });
   ok(Array.isArray(inputs.build.targets));
   strictEqual((inputs.build.targets as never[]).length, 2);
-  strictEqual(inputs.build.mode, 'sea');
-  strictEqual(inputs.build.compressNode, 'Brotli');
+  strictEqual(inputs.build.config, '.pkgrc.json');
+  strictEqual(inputs.build.entry, 'src/main.js');
   strictEqual(inputs.postBuild.compress, 'tar.gz');
   deepStrictEqual(inputs.postBuild.checksum, ['sha256', 'sha512']);
   strictEqual(inputs.postBuild.strip, true);
-  strictEqual(inputs.build.fallbackToSource, true);
-  strictEqual(inputs.build.public, true);
-  deepStrictEqual(inputs.build.publicPackages, ['express', 'lodash']);
-  deepStrictEqual(inputs.build.noDict, ['*']);
+});
+
+test('parseInputs accepts config-inline with valid JSON object', () => {
+  const inputs = parseInputs({
+    env: env(['config-inline', '{"bin":"src/main.js","mode":"sea"}']),
+  });
+  strictEqual(inputs.build.config, undefined);
+  strictEqual(inputs.build.configInline, '{"bin":"src/main.js","mode":"sea"}');
+});
+
+test('parseInputs rejects config + config-inline set together', () => {
+  throws(
+    () =>
+      parseInputs({
+        env: env(['config', '.pkgrc.json'], ['config-inline', '{"bin":"x.js"}']),
+      }),
+    ValidationError,
+  );
+});
+
+test('parseInputs rejects config-inline with invalid JSON', () => {
+  throws(
+    () => parseInputs({ env: env(['config-inline', '{not json']) }),
+    (err: unknown) => err instanceof ValidationError && /not valid JSON/.test(err.message),
+  );
+});
+
+test('parseInputs rejects config-inline that is not a JSON object', () => {
+  throws(
+    () => parseInputs({ env: env(['config-inline', '"bare-string"']) }),
+    (err: unknown) => err instanceof ValidationError && /JSON object/.test(err.message),
+  );
+  throws(
+    () => parseInputs({ env: env(['config-inline', '[1,2,3]']) }),
+    (err: unknown) => err instanceof ValidationError && /JSON object/.test(err.message),
+  );
+  throws(
+    () => parseInputs({ env: env(['config-inline', 'null']) }),
+    (err: unknown) => err instanceof ValidationError && /JSON object/.test(err.message),
+  );
+});
+
+test('parseInputs flags removed pkg-layer inputs as unknown', () => {
+  const unknown: string[] = [];
+  parseInputs({
+    env: env(
+      ['mode', 'sea'],
+      ['compress-node', 'Brotli'],
+      ['public', 'true'],
+      ['no-bytecode', 'true'],
+      ['extra-args', '--foo'],
+    ),
+    onUnknownInput: (n) => unknown.push(n),
+  });
+  for (const n of ['mode', 'compress-node', 'public', 'no-bytecode', 'extra-args']) {
+    ok(unknown.includes(n), `expected "${n}" to be flagged as unknown`);
+  }
 });
 
 test('parseInputs coerces multiple boolean spellings', () => {
@@ -119,16 +175,7 @@ test('parseInputs rejects invalid boolean', () => {
 });
 
 test('parseInputs rejects invalid enum value', () => {
-  throws(() => parseInputs({ env: env(['mode', 'fast']) }), ValidationError);
   throws(() => parseInputs({ env: env(['compress', 'rar']) }), ValidationError);
-  // Case-sensitive: only the canonical 'Zstd' (and 'Brotli' / 'GZip' / 'None')
-  // is accepted. Lowercase 'zstd' still fails.
-  throws(() => parseInputs({ env: env(['compress-node', 'zstd']) }), ValidationError);
-});
-
-test('parseInputs accepts Zstd compress-node', () => {
-  const inputs = parseInputs({ env: env(['compress-node', 'Zstd']) });
-  strictEqual(inputs.build.compressNode, 'Zstd');
 });
 
 test('parseInputs checksum accepts "none" and drops to empty list', () => {

@@ -47,6 +47,11 @@ export interface PkgInvocation {
 
 /**
  * Build the argv passed to pkg from a `PkgInvocation`. Exposed for unit tests.
+ *
+ * The action deliberately owns only a thin action-layer surface: targets (CI
+ * matrix concern), config path, output directory, entry. Pkg-specific knobs
+ * (mode, compression, public, bytecode, v8 options, debug, …) belong in the
+ * user's pkg config file so the action doesn't have to track pkg's CLI.
  */
 export function buildPkgArgs(inv: PkgInvocation): string[] {
   const args: string[] = [];
@@ -57,44 +62,8 @@ export function buildPkgArgs(inv: PkgInvocation): string[] {
   if (inv.build.config !== undefined) {
     args.push('--config', inv.build.config);
   }
-  if (inv.build.mode === 'sea') {
-    args.push('--sea');
-  }
-  if (inv.build.compressNode !== 'None') {
-    args.push('--compress', inv.build.compressNode);
-  }
-  if (inv.build.fallbackToSource) {
-    args.push('--fallback-to-source');
-  }
-  if (inv.build.public) {
-    args.push('--public');
-  }
-  if (inv.build.publicPackages.length > 0) {
-    args.push('--public-packages', inv.build.publicPackages.join(','));
-  }
-  if (inv.build.options.length > 0) {
-    args.push('--options', inv.build.options.join(','));
-  }
-  if (inv.build.noBytecode) {
-    args.push('--no-bytecode');
-  }
-  if (inv.build.noDict.length > 0) {
-    args.push('--no-dict', inv.build.noDict.join(','));
-  }
-  if (inv.build.debug) {
-    args.push('--debug');
-  }
 
   args.push('--out-path', inv.outputDir);
-
-  // Extra raw flags (escape hatch). Split on whitespace for a naive but usable
-  // tokenization — users needing quoted args can set them via env. The pkg CLI
-  // itself doesn't accept quoted bundled tokens.
-  if (inv.build.extraArgs !== undefined && inv.build.extraArgs.trim() !== '') {
-    for (const tok of inv.build.extraArgs.split(/\s+/).filter((s) => s.length > 0)) {
-      args.push(tok);
-    }
-  }
 
   // Positional entry / project root — must come LAST, after flags.
   const entry = inv.build.entry ?? '.';

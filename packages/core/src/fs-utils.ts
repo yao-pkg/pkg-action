@@ -29,6 +29,35 @@ export async function createInvocationTemp(parent: string): Promise<string> {
 }
 
 /**
+ * Filename used by {@link materializePkgConfigInline}. Exposed as a constant so
+ * tests can assert the exact placement without re-stringifying it.
+ */
+export const PKG_CONFIG_INLINE_FILENAME = 'pkg-config.inline.json';
+
+/**
+ * Resolve the effective `--config` path pkg will be invoked with.
+ *
+ * - If `configInline` is defined, write it to
+ *   `<invocationDir>/pkg-config.inline.json` and return that path.
+ * - Otherwise return `config` unchanged (may be undefined).
+ *
+ * `parseInputs` guarantees mutual exclusion + JSON-object shape, so this
+ * helper does no validation of its own — it is strictly the "bytes to disk"
+ * step. Kept here rather than in the orchestrator so it is unit-testable in
+ * isolation.
+ */
+export async function materializePkgConfigInline(opts: {
+  readonly config: string | undefined;
+  readonly configInline: string | undefined;
+  readonly invocationDir: string;
+}): Promise<string | undefined> {
+  if (opts.configInline === undefined) return opts.config;
+  const path = join(opts.invocationDir, PKG_CONFIG_INLINE_FILENAME);
+  await writeFile(path, opts.configInline, 'utf8');
+  return path;
+}
+
+/**
  * Atomic write: write to <path>.tmp-<uuid> then rename over <path>. Avoids
  * the window where a reader sees a half-written file.
  */

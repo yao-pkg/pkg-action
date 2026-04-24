@@ -213,11 +213,11 @@ export function crossCompileRisk(host: Target, target: Target): string | null {
   }
   // Non-Linux → Linux-arm64 without QEMU hits the fabrication bug on Node 22.
   if (target.os === 'linux' && target.arch === 'arm64' && host.arch !== 'arm64') {
-    return 'Linux-arm64 cross-compile from a non-arm64 host hits the pkg bytecode fabricator bug (#87/#181) on Node 22. Use a linux/arm64 runner or pass --fallback-to-source.';
+    return 'Linux-arm64 cross-compile from a non-arm64 host hits the pkg bytecode fabricator bug (#87/#181) on Node 22. Use a linux/arm64 runner or set `fallbackToSource: true` in your pkg config.';
   }
   // Non-Windows → win-x64 on Node 22 also hits the fabricator bug.
   if (target.os === 'win' && target.arch === 'x64' && host.os !== 'win') {
-    return 'win-x64 cross-compile from a non-Windows host hits the pkg bytecode fabricator bug (#87/#181) on Node 22. Use a windows runner or pass --fallback-to-source.';
+    return 'win-x64 cross-compile from a non-Windows host hits the pkg bytecode fabricator bug (#87/#181) on Node 22. Use a windows runner or set `fallbackToSource: true` in your pkg config.';
   }
   // macOS-arm64 requires signing.
   if (target.os === 'macos' && target.arch === 'arm64' && host.os !== 'macos') {

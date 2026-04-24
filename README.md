@@ -31,6 +31,63 @@ Tracking issue: [yao-pkg/pkg#248](https://github.com/yao-pkg/pkg/issues/248).
     path: "${{ join(fromJson(steps.build.outputs.artifacts), '\n') }}"
 ```
 
+## pkg configuration
+
+The action does **not** mirror pkg's CLI flags as inputs. Pkg-specific knobs
+— SEA mode, bundled Node compression, `public` / `publicPackages`, V8
+`options`, `noBytecode`, `noDict`, `debug`, bytecode-fabricator fallback —
+live in your pkg config file (`.pkgrc.json`, `pkg.config.{js,ts,json}`, or
+the `pkg` field of `package.json`). See
+[yao-pkg/pkg's README](https://github.com/yao-pkg/pkg#config) for the full
+schema.
+
+Example — SEA mode with Brotli-compressed bundle + fallback, saved as `.pkgrc.json`:
+
+```json
+{
+  "bin": "src/main.js",
+  "sea": true,
+  "compress": "Brotli",
+  "fallbackToSource": true
+}
+```
+
+```yaml
+- uses: yao-pkg/pkg-action@v1
+  with:
+    config: .pkgrc.json
+    targets: node22-linux-x64
+```
+
+### Inline config
+
+For trivial setups you can skip the file and pass the config as a JSON string
+via `config-inline` — the action writes it to a temp file and points pkg at
+it. Mutually exclusive with `config`.
+
+```yaml
+- uses: yao-pkg/pkg-action@v1
+  with:
+    targets: node22-linux-x64
+    config-inline: |
+      {
+        "bin": "src/main.js",
+        "sea": true,
+        "compress": "Brotli"
+      }
+```
+
+> The value is registered with `core.setSecret`, so exact matches are redacted
+> from logs — but it is still written verbatim to a temp file on the runner.
+> Prefer `config` (a committed file) for anything beyond a couple of knobs,
+> and source long-lived secrets from GitHub Actions secrets / OIDC, not from
+> `config-inline`.
+
+The action's inputs cover only concerns pkg config cannot express: matrix
+targets, pkg install version/path, archive format, filename template,
+checksum algorithms, Windows-metadata resedit patch, macOS/Windows signing,
+cache, step summary.
+
 ## Outputs
 
 | Output      | Shape                                                                     |

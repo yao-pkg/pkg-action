@@ -10,13 +10,14 @@
 meta:
   repo: yao-pkg/pkg-action
   branch: main
-  last-updated: '2026-04-23'
+  last-updated: '2026-04-24'
   action-status: ALPHA — ready for early adopters to try in their own workflows
-  ci-status: green (222 unit tests)
+  ci-status: green (227 unit tests)
   e2e-status: |
-    6 jobs after the scope cut — tiny-cjs (ubuntu/macos/windows), codegen-drift,
-    matrix plan→fanout, multi-target-linux, windows-metadata. Signing e2e still
-    deferred until live credentials are available.
+    7 jobs after the scope cut — tiny-cjs (ubuntu/macos/windows), codegen-drift,
+    matrix plan→fanout, multi-target-linux, windows-metadata, claude-code-smoke
+    (SEA + Zstd, 4 OS/arch combos). Signing e2e still deferred until live
+    credentials are available.
 
 # ─── Scope decision (2026-04-23) ─────────────────────────────────────────
 #
@@ -47,6 +48,37 @@ recent-hardening:
   - 'VERSION export driven by root package.json via esbuild `define`; runtime fallback reads the file in dev (S1).'
   - '`yamlString` codegen helper throws on embedded control chars — prevents silent action.yml corruption (S2).'
   - 'CI coverage gate at 85% via scripts/check-coverage.ts parsing lcov (S6).'
+
+# ─── Input-surface slim (2026-04-23) ─────────────────────────────────────
+# Stop mirroring pkg's CLI. Pkg-specific knobs live in the user's pkg config;
+# the action owns only concerns pkg config cannot express (CI-matrix targets,
+# pkg install version, archive, checksum, windows-metadata, signing, cache).
+
+input-surface-slim:
+  dropped-inputs:
+    - mode
+    - node-version
+    - compress-node
+    - fallback-to-source
+    - public
+    - public-packages
+    - options
+    - no-bytecode
+    - no-dict
+    - debug
+    - extra-args
+  migration: 'Move each value into .pkgrc / pkg.config.{js,ts,json} or the `pkg` field of package.json. `buildPkgArgs` forwards the config path to pkg.'
+  breaking: 'yes — users setting any dropped input will see the unknown-input warning and the value will be ignored. Release note required.'
+  minimum-pkg-version: |
+    @yao-pkg/pkg >= 6.19.0 is required for the full build-flag surface in
+    pkg config. The default `pkg-version` input is pinned to `~6.19.0`.
+  upstream-dependency: |
+    RESOLVED in @yao-pkg/pkg v6.19.0 (2026-04-24) via yao-pkg/pkg#263 —
+    closes yao-pkg/pkg#262. All CLI-only build flags now have config
+    equivalents: compress, fallbackToSource, public, publicPackages,
+    options, bytecode (inverts --no-bytecode), nativeBuild (inverts
+    --no-native-build), noDictionary (renamed from --no-dict), debug,
+    signature.
 
 # ─── Removed (2026-04-23) ────────────────────────────────────────────────
 # Distribution scope reset. Use dedicated downstream actions instead.

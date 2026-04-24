@@ -38,6 +38,7 @@ import {
   formatTarget,
   hostTarget,
   mapPkgOutputs,
+  materializePkgConfigInline,
   parseInputs,
   parseSigningInputs,
   parseWindowsMetadataInputs,
@@ -151,6 +152,18 @@ async function main(): Promise<void> {
   const pkgOutputDir = join(invocationDir, 'pkg-out');
   await mkdir(pkgOutputDir, { recursive: true });
 
+  // 4.5. Materialize `config-inline` to disk, if set. parseInputs already
+  //      validated it as a JSON object and enforced mutual exclusion with
+  //      `config`, so the helper just writes the bytes and returns the path.
+  const effectiveConfig = await materializePkgConfigInline({
+    config: inputs.build.config,
+    configInline: inputs.build.configInline,
+    invocationDir,
+  });
+  if (inputs.build.configInline !== undefined && effectiveConfig !== undefined) {
+    logger.info(`[pkg-action] materialized config-inline → ${effectiveConfig}`);
+  }
+
   // 5. Run pkg from the project directory.
   //
   // When a package.json was used to locate the project, drop the explicit
@@ -159,9 +172,11 @@ async function main(): Promise<void> {
   // standalone pkg config like .pkgrc.json).
   const pkgCommand = inputs.build.pkgPath ?? 'pkg';
   const cfgIsPackageJson =
-    inputs.build.config !== undefined &&
-    pathBasename(inputs.build.config).toLowerCase() === 'package.json';
-  const pkgBuildInputs = cfgIsPackageJson ? { ...inputs.build, config: undefined } : inputs.build;
+    effectiveConfig !== undefined && pathBasename(effectiveConfig).toLowerCase() === 'package.json';
+  const pkgBuildInputs = {
+    ...inputs.build,
+    config: cfgIsPackageJson ? undefined : effectiveConfig,
+  };
   // Fold the pkg invocation into its own group — "Walking dependencies",
   // "Downloading nodejs executable", "Generating SEA assets", plus the
   // GH-Actions `[command]` echo and any warnings, can easily be 30+ lines
