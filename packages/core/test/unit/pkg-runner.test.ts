@@ -10,7 +10,7 @@ const BASE_BUILD: BuildInputs = {
   configInline: undefined,
   entry: undefined,
   targets: 'host',
-  pkgVersion: '~6.16.0',
+  pkgVersion: '~6.19.0',
   pkgPath: undefined,
 };
 

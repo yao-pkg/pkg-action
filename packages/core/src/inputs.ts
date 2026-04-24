@@ -42,7 +42,8 @@ export const INPUT_SPECS: readonly InputSpec[] = [
     name: 'config-inline',
     category: 'build',
     description:
-      'Pkg config as a JSON string. Written to a temp file and passed to pkg via --config. Mutually exclusive with config. Do not embed secrets — this input is not masked.',
+      'Pkg config as a JSON string. Written to a temp file and passed to pkg via --config. Mutually exclusive with config. Registered with core.setSecret so exact matches are redacted from logs; still written to a temp file on the runner, so prefer config for anything beyond trivial knobs.',
+    secret: true,
   },
   {
     name: 'entry',

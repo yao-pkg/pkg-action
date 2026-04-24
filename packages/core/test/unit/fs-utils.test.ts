@@ -7,6 +7,8 @@ import {
   atomicWriteFile,
   createInvocationTemp,
   exists,
+  materializePkgConfigInline,
+  PKG_CONFIG_INLINE_FILENAME,
   zeroFillAndRemove,
 } from '../../src/fs-utils.ts';
 
@@ -85,5 +87,59 @@ test('exists returns false for missing and true for present', async () => {
     strictEqual(await exists(join(parent, 'nope')), false);
     await writeFile(join(parent, 'yep'), '');
     strictEqual(await exists(join(parent, 'yep')), true);
+  });
+});
+
+test('materializePkgConfigInline passes through config when inline is unset', async () => {
+  await withTempParent(async (parent) => {
+    const out = await materializePkgConfigInline({
+      config: '.pkgrc.json',
+      configInline: undefined,
+      invocationDir: parent,
+    });
+    strictEqual(out, '.pkgrc.json');
+    // Nothing should have been written.
+    strictEqual(await exists(join(parent, PKG_CONFIG_INLINE_FILENAME)), false);
+  });
+});
+
+test('materializePkgConfigInline returns undefined when neither is set', async () => {
+  await withTempParent(async (parent) => {
+    const out = await materializePkgConfigInline({
+      config: undefined,
+      configInline: undefined,
+      invocationDir: parent,
+    });
+    strictEqual(out, undefined);
+    strictEqual(await exists(join(parent, PKG_CONFIG_INLINE_FILENAME)), false);
+  });
+});
+
+test('materializePkgConfigInline writes inline JSON and returns its path', async () => {
+  await withTempParent(async (parent) => {
+    const payload = '{"bin":"src/main.js","sea":true,"compress":"Brotli"}';
+    const out = await materializePkgConfigInline({
+      config: undefined,
+      configInline: payload,
+      invocationDir: parent,
+    });
+    const expected = join(parent, PKG_CONFIG_INLINE_FILENAME);
+    strictEqual(out, expected);
+    strictEqual(await readFile(expected, 'utf8'), payload);
+  });
+});
+
+test('materializePkgConfigInline prefers inline over config when inline is set', async () => {
+  // parseInputs enforces mutual exclusion, but the helper's contract is
+  // "inline wins" — guard against a future caller that accidentally passes
+  // both.
+  await withTempParent(async (parent) => {
+    const out = await materializePkgConfigInline({
+      config: '.pkgrc.json',
+      configInline: '{"bin":"x.js"}',
+      invocationDir: parent,
+    });
+    strictEqual(out, join(parent, PKG_CONFIG_INLINE_FILENAME));
+    strictEqual(await readFile(out as string, 'utf8'), '{"bin":"x.js"}');
   });
 });

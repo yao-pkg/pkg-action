@@ -41,13 +41,13 @@ the `pkg` field of `package.json`). See
 [yao-pkg/pkg's README](https://github.com/yao-pkg/pkg#config) for the full
 schema.
 
-Example — SEA mode with Brotli-compressed Node + fallback, saved as `.pkgrc.json`:
+Example — SEA mode with Brotli-compressed bundle + fallback, saved as `.pkgrc.json`:
 
 ```json
 {
   "bin": "src/main.js",
-  "mode": "sea",
-  "compressNode": "Brotli",
+  "sea": true,
+  "compress": "Brotli",
   "fallbackToSource": true
 }
 ```
@@ -72,14 +72,16 @@ it. Mutually exclusive with `config`.
     config-inline: |
       {
         "bin": "src/main.js",
-        "mode": "sea",
-        "compressNode": "Brotli"
+        "sea": true,
+        "compress": "Brotli"
       }
 ```
 
-> **Do not embed secrets in `config-inline`** — the value is written to disk
-> and echoed into the build log. It is not registered with
-> `core.setSecret`.
+> The value is registered with `core.setSecret`, so exact matches are redacted
+> from logs — but it is still written verbatim to a temp file on the runner.
+> Prefer `config` (a committed file) for anything beyond a couple of knobs,
+> and source long-lived secrets from GitHub Actions secrets / OIDC, not from
+> `config-inline`.
 
 The action's inputs cover only concerns pkg config cannot express: matrix
 targets, pkg install version/path, archive format, filename template,

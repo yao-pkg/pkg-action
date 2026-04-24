@@ -14497,7 +14497,7 @@ function getState(name) {
 }
 
 // packages/build/src/main.ts
-import { mkdir as mkdir3, rename as rename3, stat as stat4, writeFile as writeFile5 } from "node:fs/promises";
+import { mkdir as mkdir3, rename as rename3, stat as stat4 } from "node:fs/promises";
 import { tmpdir as tmpdir2 } from "node:os";
 import { basename as pathBasename, dirname as dirname5, join as join7, resolve as pathResolve } from "node:path";
 
@@ -14551,6 +14551,12 @@ import { dirname as dirname3, join as join3 } from "node:path";
 async function createInvocationTemp(parent) {
   let id = randomUUID2(), dir = join3(parent, `pkg-action-${id}`);
   return await mkdir2(dir, { recursive: !0, mode: 448 }), await chmod2(dir, 448), dir;
+}
+var PKG_CONFIG_INLINE_FILENAME = "pkg-config.inline.json";
+async function materializePkgConfigInline(opts) {
+  if (opts.configInline === void 0) return opts.config;
+  let path4 = join3(opts.invocationDir, PKG_CONFIG_INLINE_FILENAME);
+  return await writeFile2(path4, opts.configInline, "utf8"), path4;
 }
 async function atomicWriteFile(path4, data) {
   await mkdir2(dirname3(path4), { recursive: !0 });
@@ -14769,7 +14775,8 @@ var INPUT_SPECS = [
   {
     name: "config-inline",
     category: "build",
-    description: "Pkg config as a JSON string. Written to a temp file and passed to pkg via --config. Mutually exclusive with config. Do not embed secrets \u2014 this input is not masked."
+    description: "Pkg config as a JSON string. Written to a temp file and passed to pkg via --config. Mutually exclusive with config. Registered with core.setSecret so exact matches are redacted from logs; still written to a temp file on the runner, so prefer config for anything beyond trivial knobs.",
+    secret: !0
   },
   {
     name: "entry",
@@ -19259,11 +19266,12 @@ async function main() {
   saveState("invocationDir", invocationDir);
   let pkgOutputDir = join7(invocationDir, "pkg-out");
   await mkdir3(pkgOutputDir, { recursive: !0 });
-  let effectiveConfig = inputs.build.config;
-  if (inputs.build.configInline !== void 0) {
-    let inlinePath = join7(invocationDir, "pkg-config.inline.json");
-    await writeFile5(inlinePath, inputs.build.configInline, "utf8"), effectiveConfig = inlinePath, logger.info(`[pkg-action] materialized config-inline \u2192 ${inlinePath}`);
-  }
+  let effectiveConfig = await materializePkgConfigInline({
+    config: inputs.build.config,
+    configInline: inputs.build.configInline,
+    invocationDir
+  });
+  inputs.build.configInline !== void 0 && effectiveConfig !== void 0 && logger.info(`[pkg-action] materialized config-inline \u2192 ${effectiveConfig}`);
   let pkgCommand = inputs.build.pkgPath ?? "pkg", cfgIsPackageJson = effectiveConfig !== void 0 && pathBasename(effectiveConfig).toLowerCase() === "package.json", pkgBuildInputs = {
     ...inputs.build,
     config: cfgIsPackageJson ? void 0 : effectiveConfig
