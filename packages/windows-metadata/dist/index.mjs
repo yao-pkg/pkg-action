@@ -13383,8 +13383,8 @@ var INPUT_SPECS = [
   {
     name: "pkg-version",
     category: "build",
-    description: "npm version specifier for @yao-pkg/pkg (e.g. ~6.16.0). Bypassed when pkg-path is set.",
-    default: "~6.16.0"
+    description: "npm version specifier for @yao-pkg/pkg (e.g. ~6.19.0). 6.19.0+ is required for the full build-flag surface in pkg config (compress, fallbackToSource, public, publicPackages, options, bytecode, nativeBuild, noDictionary, debug, signature). Bypassed when pkg-path is set.",
+    default: "~6.19.0"
   },
   {
     name: "pkg-path",
