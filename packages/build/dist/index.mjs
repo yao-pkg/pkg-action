@@ -15226,7 +15226,9 @@ async function mapPkgOutputs(targets, baseName, outputDir) {
   if (unresolved.length > 0) {
     let listing = await readdir2(outputDir);
     for (let { target, predicted: predictedName } of unresolved) {
-      let match = findFallbackMatch(listing, target, predictedName);
+      let match = findFallbackMatch(listing, target, predictedName, {
+        soleTarget: targets.length === 1
+      });
       if (match === void 0)
         throw new PkgRunError(
           `pkg did not produce an output for ${formatTarget(target)}. Expected "${predictedName}" in ${outputDir}; directory contains: ${listing.join(", ") || "(empty)"}. If a postBuild hook moves or renames the binary, drop that \u2014 the action locates outputs by name.`
@@ -15236,12 +15238,13 @@ async function mapPkgOutputs(targets, baseName, outputDir) {
   }
   return entries;
 }
-function findFallbackMatch(listing, target, predicted) {
+function findFallbackMatch(listing, target, predicted, opts = { soleTarget: !1 }) {
   if (listing.includes(predicted)) return predicted;
   let lower = predicted.toLowerCase(), ci = listing.find((f) => f.toLowerCase() === lower);
   if (ci !== void 0) return ci;
-  let needle = `${target.os}-${target.arch}`;
-  return listing.find((f) => f.toLowerCase().includes(needle.toLowerCase()));
+  let needle = `${target.os}-${target.arch}`, byTriple = listing.find((f) => f.toLowerCase().includes(needle.toLowerCase()));
+  if (byTriple !== void 0) return byTriple;
+  if (opts.soleTarget && listing.length === 1) return listing[0];
 }
 async function exists2(path4) {
   try {

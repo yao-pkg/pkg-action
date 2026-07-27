@@ -100,7 +100,9 @@ export async function mapPkgOutputs(
     // (or its diff-parts) uniquely identifies each file.
     const listing = await readdir(outputDir);
     for (const { target, predicted: predictedName } of unresolved) {
-      const match = findFallbackMatch(listing, target, predictedName);
+      const match = findFallbackMatch(listing, target, predictedName, {
+        soleTarget: targets.length === 1,
+      });
       if (match === undefined) {
         throw new PkgRunError(
           `pkg did not produce an output for ${formatTarget(target)}. ` +
@@ -119,6 +121,7 @@ function findFallbackMatch(
   listing: readonly string[],
   target: Target,
   predicted: string,
+  opts: { readonly soleTarget: boolean } = { soleTarget: false },
 ): string | undefined {
   // Try exact first (handles case-sensitivity quirks).
   if (listing.includes(predicted)) return predicted;
@@ -126,10 +129,18 @@ function findFallbackMatch(
   const lower = predicted.toLowerCase();
   const ci = listing.find((f) => f.toLowerCase() === lower);
   if (ci !== undefined) return ci;
-  // Last resort: any file containing BOTH the os and arch tokens. Avoids the
-  // fragility of the exact predicted name when pkg's heuristic drifts.
+  // Any file containing BOTH the os and arch tokens. Avoids the fragility of
+  // the exact predicted name when pkg's heuristic drifts.
   const needle = `${target.os}-${target.arch}`;
-  return listing.find((f) => f.toLowerCase().includes(needle.toLowerCase()));
+  const byTriple = listing.find((f) => f.toLowerCase().includes(needle.toLowerCase()));
+  if (byTriple !== undefined) return byTriple;
+  // One target, one file, and the directory is ours and was empty before this
+  // run — so that file is the output whatever pkg chose to call it. Needed
+  // because the base name can come from the config's `name`, which the action
+  // cannot read without executing the user's pkg.config.mjs. A single target
+  // gets no os/arch suffix, so nothing above can match.
+  if (opts.soleTarget && listing.length === 1) return listing[0];
+  return undefined;
 }
 
 async function exists(path: string): Promise<boolean> {
