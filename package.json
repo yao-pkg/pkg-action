@@ -27,9 +27,12 @@
     "lint:code": "eslint 'packages/**/src/**/*.ts' 'scripts/**/*.ts' '.github/scripts/**/*.ts'",
     "lint:style": "prettier --check .",
     "fix": "eslint --fix 'packages/**/src/**/*.ts' 'scripts/**/*.ts' '.github/scripts/**/*.ts' && prettier --write .",
-    "typecheck": "tsc --noEmit -p ."
+    "typecheck": "tsc --noEmit -p .",
+    "release": "release-it",
+    "release:dry": "release-it --dry-run"
   },
   "devDependencies": {
+    "@release-it/conventional-changelog": "^12.0.0",
     "@types/node": "^22.19.17",
     "@typescript-eslint/eslint-plugin": "^8.58.2",
     "@typescript-eslint/parser": "^8.58.2",
@@ -39,6 +42,7 @@
     "eslint-plugin-prettier": "^5.5.5",
     "globals": "^17.5.0",
     "prettier": "^3.8.3",
+    "release-it": "^21.0.0",
     "typescript": "5.9.3"
   }
 }

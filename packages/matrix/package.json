@@ -12,6 +12,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@pkg-action/core": "0.0.0"
+    "@pkg-action/core": "*"
   }
 }
