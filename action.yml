@@ -152,7 +152,10 @@ runs:
       run: |
         # Read from env and quoted — never interpolated into this script by the
         # workflow templater, or a crafted specifier would execute right here.
-        if [[ ! "${PKG_VERSION}" =~ ^[A-Za-z0-9.~^*><=|[:space:]-]+$ ]]; then
+        # The pattern lives in a variable because [[ ]] parses a bare > as an
+        # operator before it ever reaches the regex engine.
+        specifier_re='^[A-Za-z0-9.*|=<>~^ -]+$'
+        if [[ ! "${PKG_VERSION}" =~ $specifier_re ]]; then
           echo "::error::Input 'pkg-version' is not a valid npm version specifier: ${PKG_VERSION}"
           exit 1
         fi
