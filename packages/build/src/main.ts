@@ -123,20 +123,26 @@ async function main(): Promise<void> {
 
   // 2. Project directory + metadata.
   //
-  // When `config` points at a package.json, the project root is its parent
-  // directory — pkg reads that package.json as the entry. When `config` is a
-  // non-package.json (e.g. .pkgrc.json) or is unset, the project dir is
-  // GITHUB_WORKSPACE (or cwd when running locally).
+  // An explicit `config` names the project: its parent directory is the root,
+  // whether it is a package.json or a standalone config sitting beside one.
+  // That is where package.json — name, version, and the `bin` used as the entry
+  // for a standalone config — is read from. A config kept away from the project
+  // (say `configs/pkg.config.mjs`) has no package.json next to it, so fall back
+  // to GITHUB_WORKSPACE (or cwd when running locally), as does an unset config.
   const workspace = process.env['GITHUB_WORKSPACE'] ?? process.cwd();
-  const projectDir = (() => {
+  const projectDir = await (async () => {
     const cfg = inputs.build.config;
-    if (cfg !== undefined) {
-      const absCfg = pathResolve(workspace, cfg);
-      if (pathBasename(absCfg).toLowerCase() === 'package.json') {
-        return dirname(absCfg);
-      }
+    if (cfg === undefined) return workspace;
+    const configDir = dirname(pathResolve(workspace, cfg));
+    if (pathBasename(pathResolve(workspace, cfg)).toLowerCase() === 'package.json') {
+      return configDir;
     }
-    return workspace;
+    try {
+      await stat(join(configDir, 'package.json'));
+      return configDir;
+    } catch {
+      return workspace;
+    }
   })();
   const project = await readProjectInfo(projectDir);
   logger.info(`[pkg-action] project dir: ${projectDir}`);

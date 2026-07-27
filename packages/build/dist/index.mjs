@@ -19278,14 +19278,17 @@ async function main() {
     setFailed(formatErrorChain(err));
     return;
   }
-  let workspace = process.env.GITHUB_WORKSPACE ?? process.cwd(), projectDir = (() => {
+  let workspace = process.env.GITHUB_WORKSPACE ?? process.cwd(), projectDir = await (async () => {
     let cfg = inputs.build.config;
-    if (cfg !== void 0) {
-      let absCfg = pathResolve(workspace, cfg);
-      if (pathBasename(absCfg).toLowerCase() === "package.json")
-        return dirname5(absCfg);
+    if (cfg === void 0) return workspace;
+    let configDir = dirname5(pathResolve(workspace, cfg));
+    if (pathBasename(pathResolve(workspace, cfg)).toLowerCase() === "package.json")
+      return configDir;
+    try {
+      return await stat4(join7(configDir, "package.json")), configDir;
+    } catch {
+      return workspace;
     }
-    return workspace;
   })(), project = await readProjectInfo(projectDir);
   logger.info(`[pkg-action] project dir: ${projectDir}`), logger.info(`[pkg-action] project: ${project.name}@${project.version}`);
   let resolvedTargets = inputs.build.targets === "host" ? [hostTarget()] : [...inputs.build.targets];
