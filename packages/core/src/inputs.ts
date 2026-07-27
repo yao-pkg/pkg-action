@@ -28,6 +28,20 @@ export interface InputSpec {
   readonly deprecated?: string;
 }
 
+/**
+ * Config filenames pkg auto-detects, in its own precedence order (pkg's
+ * `PKGRC_FILENAMES`). Single source for the input descriptions, the docs, and
+ * the cache-key glob — those drifted apart once already, and a glob that misses
+ * a real config filename silently serves a stale pkg-fetch cache.
+ */
+export const PKG_CONFIG_FILENAMES = [
+  '.pkgrc',
+  '.pkgrc.json',
+  'pkg.config.js',
+  'pkg.config.cjs',
+  'pkg.config.mjs',
+] as const;
+
 // Registry. Used by codegen to produce action.yml. Kept exhaustive from day one
 // so codegen doesn't need to know which milestone added which input.
 export const INPUT_SPECS: readonly InputSpec[] = [
@@ -36,13 +50,13 @@ export const INPUT_SPECS: readonly InputSpec[] = [
     name: 'config',
     category: 'build',
     description:
-      'Path to a pkg config. When omitted, pkg auto-detects .pkgrc, .pkgrc.json, pkg.config.js, pkg.config.cjs or pkg.config.mjs next to the entry, then falls back to the package.json pkg field. An explicit path may also point at a package.json or any .json file. Mutually exclusive with config-inline.',
+      'Path to a pkg config. When omitted, pkg auto-detects .pkgrc, .pkgrc.json, pkg.config.js, pkg.config.cjs or pkg.config.mjs next to the entry; the package.json pkg field is used when the entry itself resolves to a package.json. An explicit path may point at a package.json or a standalone config; for a standalone config pkg also needs an entry script, so the action supplies package.json bin when the entry input is unset. Mutually exclusive with config-inline.',
   },
   {
     name: 'config-inline',
     category: 'build',
     description:
-      'Pkg config as a JSON string. Written to a temp file and passed to pkg via --config. Mutually exclusive with config. Being JSON, it can only carry the shell-string form of the preBuild/postBuild hooks — function hooks and transform need a pkg.config.{js,cjs,mjs} file via config. Registered with core.setSecret so exact matches are redacted from logs; still written to a temp file on the runner, so prefer config for anything beyond trivial knobs.',
+      'Pkg config as a JSON string. Written to a temp file and passed to pkg via --config. Mutually exclusive with config. Being JSON, it can only carry the shell-string form of the preBuild/postBuild hooks — function hooks and transform need a pkg.config.{js,cjs,mjs} file via config. Registered with core.setSecret so exact matches are redacted from logs, which does not extend to output a hook prints; still written to a temp file on the runner, so prefer config for anything beyond trivial knobs.',
     secret: true,
   },
   {
@@ -373,6 +387,19 @@ function readInput(env: EnvSource, name: string): string | undefined {
   return specFor(name)?.default;
 }
 
+/**
+ * Resolve an input that the spec guarantees a default for. Keeps the default in
+ * INPUT_SPECS alone — a caller-side `?? 'literal'` reads as authoritative but is
+ * unreachable, so a bump touching only one of the two silently goes stale.
+ */
+function readRequiredInput(env: EnvSource, name: string): string {
+  const value = readInput(env, name);
+  if (value === undefined) {
+    throw new ValidationError(`Input "${name}" has no value and no default in INPUT_SPECS.`);
+  }
+  return value;
+}
+
 function parseBoolean(value: string | undefined, name: string): boolean {
   if (value === undefined) return false;
   const normalized = value.toLowerCase();
@@ -495,7 +522,7 @@ export function parseInputs(opts: ParseInputsOptions = {}): ActionInputs {
     configInline,
     entry: readInput(env, 'entry'),
     targets,
-    pkgVersion: readInput(env, 'pkg-version') ?? '~6.21.0',
+    pkgVersion: readRequiredInput(env, 'pkg-version'),
     pkgPath: readInput(env, 'pkg-path'),
   };
 
@@ -509,7 +536,7 @@ export function parseInputs(opts: ParseInputsOptions = {}): ActionInputs {
       '7z',
       'none',
     ] as const),
-    filename: readInput(env, 'filename') ?? '{name}-{version}-{os}-{arch}',
+    filename: readRequiredInput(env, 'filename'),
     checksum: parseChecksumList(readInput(env, 'checksum'), 'checksum'),
   };
 
