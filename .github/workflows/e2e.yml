@@ -544,25 +544,23 @@ jobs:
           }
 
   # ──────────────────────────────────────────────────────────────────────
-  # The only job that exercises the action the way a consumer does:
-  # `uses: <owner>/<repo>@<sha>`, against a workspace that is NOT a checkout
-  # of this repo.
+  # The job that exercises the action the way a consumer does: the action
+  # directory is NOT the workspace root.
   #
   # Every other job says `uses: ./`, which makes GITHUB_WORKSPACE and the
   # action directory the same tree. That coincidence hid a release blocker:
   # the top-level action was a composite delegating to `uses: ./packages/build`,
   # and a composite resolves a local `uses:` against the *consumer's* workspace
   # (actions/runner#1348). It passed here and would have failed for every real
-  # caller. The sparse checkout below is the point — the workspace holds the
-  # fixture and nothing else, so anything the action needs from its own repo
-  # must come from the action download, not from the workspace.
+  # caller.
+  #
+  # `uses:` takes no expressions, so this cannot say `<owner>/<repo>@<sha>` for
+  # the commit under test. Checking the action out into a subdirectory
+  # reproduces the part that matters — the workspace root holds the fixture and
+  # nothing else, so an action reaching for `$GITHUB_WORKSPACE/packages/…`
+  # finds nothing. `consumer-download` below covers the real fetch path.
   consumer-ref:
-    name: consumer (uses ${{ github.repository }}@sha)
-    # A fork PR's head sha is not reachable through the action-download path,
-    # so this cannot run there. It still gates every push to main.
-    if: >-
-      github.event_name != 'pull_request' ||
-      github.event.pull_request.head.repo.full_name == github.repository
+    name: consumer (action in a subdirectory)
     runs-on: ubuntu-latest
     steps:
       - name: Check out the fixture only — no packages/, no action.yml
@@ -571,20 +569,26 @@ jobs:
           sparse-checkout: test-fixtures/tiny-app-cjs
           sparse-checkout-cone-mode: false
 
-      - name: Assert the workspace does not look like pkg-action
+      - name: Check out the action under test beside it
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: _action-under-test
+
+      - name: Assert the workspace root does not look like pkg-action
         shell: bash
         run: |
-          for path in action.yml packages/build dist; do
+          for path in action.yml packages dist; do
             if [ -e "$path" ]; then
-              echo "::error::workspace contains $path — this job no longer proves anything"
+              echo "::error::workspace root contains $path — this job no longer proves anything"
               exit 1
             fi
           done
           ls -la
 
-      - name: Run pkg-action by ref
+      - name: Run pkg-action from its subdirectory
         id: build
-        uses: ${{ github.repository }}@${{ github.event.pull_request.head.sha || github.sha }}
+        uses: ./_action-under-test
         with:
           config: test-fixtures/tiny-app-cjs/package.json
           targets: node22-linux-x64
@@ -617,6 +621,36 @@ jobs:
           # cache directory is shared with anything else that shells out to pkg.
           [ -n "${PKG_CACHE_PATH:-}" ] || { echo "::error::PKG_CACHE_PATH not exported"; exit 1; }
           echo "PKG_CACHE_PATH=$PKG_CACHE_PATH"
+
+  # ──────────────────────────────────────────────────────────────────────
+  # The real download path: `uses: <owner>/<repo>@<ref>`, resolved by GitHub
+  # rather than read off the runner's disk. A literal ref is the only thing
+  # `uses:` accepts, so this can only test `@main` — which makes it a
+  # post-merge canary, not a PR gate. `consumer-ref` above is the PR gate.
+  consumer-download:
+    name: consumer (downloaded from @main)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          sparse-checkout: test-fixtures/tiny-app-cjs
+          sparse-checkout-cone-mode: false
+
+      - name: Run pkg-action as published
+        id: build
+        uses: yao-pkg/pkg-action@main
+        with:
+          config: test-fixtures/tiny-app-cjs/package.json
+          targets: node22-linux-x64
+          checksum: sha256
+
+      - name: Assert the binary runs
+        shell: bash
+        run: |
+          bin=$(echo '${{ steps.build.outputs.binaries }}' | jq -r '.[0]')
+          [ -x "$bin" ] || { echo "::error::not executable: $bin"; exit 1; }
+          echo "binary output: $("$bin")"
 
   # ──────────────────────────────────────────────────────────────────────
   # Carried over from the M-1 spikes: `runs.using: node24` has to resolve on a

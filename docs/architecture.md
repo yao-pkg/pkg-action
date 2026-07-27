@@ -257,12 +257,15 @@ workflow_dispatch. Jobs:
 - `windows-metadata` round-trip (`.github/scripts/assert-windows-metadata.ts`)
 - `claude-code-smoke` — SEA + Zstd across 4 OS/arch combos
 - `build-hooks` — preBuild / postBuild / transform
-- `consumer-ref` — **the only job that reaches the action the way a caller
-  does**: `uses: <owner>/<repo>@<sha>` against a sparse checkout holding just
-  the fixture. Every other job says `uses: ./`, which makes the workspace and
-  the action directory the same tree and hides anything that depends on the
-  difference. Skipped on fork PRs (their head sha is not reachable through the
-  action-download path).
+- `consumer-ref` — **the PR gate for consumer-shaped invocation**: the fixture
+  is sparse-checked-out at the workspace root and the action under test into
+  `_action-under-test/`, so the action directory is not the workspace root.
+  Every other job says `uses: ./`, which collapses the two and hides anything
+  that depends on the difference. `uses:` accepts no expressions, so a job
+  cannot name `<owner>/<repo>@<sha>` for the commit under test — hence the
+  subdirectory.
+- `consumer-download` — post-merge canary: `uses: yao-pkg/pkg-action@main`,
+  the real GitHub-resolved download path. Push-to-main only.
 - `self-hosted-node24` — `runs.using: node24` on a self-hosted runner, gated on
   the `HAS_SELF_HOSTED_LINUX` repository variable so it does not queue forever
   when no such runner exists.

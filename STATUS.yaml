@@ -12,13 +12,13 @@ meta:
   branch: main
   last-updated: '2026-07-27'
   action-status: BETA — the action now resolves for external consumers; v1.0.0 blockers cleared
-  ci-status: green (276 unit tests)
+  ci-status: green (278 unit tests)
   e2e-status: |
-    10 jobs — tiny-cjs (ubuntu/macos/windows), codegen-drift, matrix
+    11 jobs — tiny-cjs (ubuntu/macos/windows), codegen-drift, matrix
     plan→fanout, multi-target-linux, windows-metadata, claude-code-smoke
-    (SEA + Zstd, 4 OS/arch combos), build-hooks, consumer-ref, and
-    self-hosted-node24. Signing e2e still deferred until live credentials
-    are available.
+    (SEA + Zstd, 4 OS/arch combos), build-hooks, consumer-ref,
+    consumer-download, and self-hosted-node24. Signing e2e still deferred
+    until live credentials are available.
 
 # ─── Scope decision (2026-04-23) ─────────────────────────────────────────
 #
@@ -164,7 +164,9 @@ composite-removal:
     full at 6/6. index.mjs 0.96 MB → 2.5 MB, post.mjs 0.73 MB → 2.2 MB.
     Normal for an action that caches; actions/cache's own bundle is ~2 MB.
   regression-guards:
-    - 'e2e `consumer-ref` job — `uses: <owner>/<repo>@<sha>` against a sparse checkout holding only the fixture. Skipped on fork PRs (head sha unreachable via action download).'
+    - 'e2e `consumer-ref` job — fixture at the workspace root, action under test in `_action-under-test/`, so the action directory is not the workspace root. `uses:` accepts no expressions, so no job can name the commit under test by ref; the subdirectory reproduces the part that matters.'
+    - 'e2e `consumer-download` job — `uses: yao-pkg/pkg-action@main`, the real download path. Push-to-main only, so it is a post-merge canary rather than a PR gate.'
+    - 'unit test "no step uses an expression in its uses: key" — GitHub rejects such a workflow with no annotation naming the line. Cost one CI round-trip on this very PR.'
     - 'unit test "no published action.yml references a local action" over all three action.yml files.'
     - 'unit test "every published action.yml points at a bundle that exists" + "no action.yml escapes the repository root" (covers the `../packages/…` main paths in matrix/ and windows-metadata/).'
     - 'unit test "the repo publishes no action.yml the tests do not know about" — a new action directory cannot silently skip the checks above.'
