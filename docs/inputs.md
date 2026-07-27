@@ -8,11 +8,11 @@ Every `pkg-action` input, grouped by category.
 
 | Input | Default | Required | Secret | Description |
 | --- | --- | --- | --- | --- |
-| `config` | — | no | no | Path to a pkg config (.pkgrc, pkg.config.{js,ts,json}, or package.json). Auto-detected when omitted. Mutually exclusive with config-inline. |
-| `config-inline` | — | no | yes | Pkg config as a JSON string. Written to a temp file and passed to pkg via --config. Mutually exclusive with config. Registered with core.setSecret so exact matches are redacted from logs; still written to a temp file on the runner, so prefer config for anything beyond trivial knobs. |
+| `config` | — | no | no | Path to a pkg config. When omitted, pkg auto-detects .pkgrc, .pkgrc.json, pkg.config.js, pkg.config.cjs or pkg.config.mjs next to the entry, then falls back to the package.json pkg field. An explicit path may also point at a package.json or any .json file. Mutually exclusive with config-inline. |
+| `config-inline` | — | no | yes | Pkg config as a JSON string. Written to a temp file and passed to pkg via --config. Mutually exclusive with config. Being JSON, it can only carry the shell-string form of the preBuild/postBuild hooks — function hooks and transform need a pkg.config.{js,cjs,mjs} file via config. Registered with core.setSecret so exact matches are redacted from logs; still written to a temp file on the runner, so prefer config for anything beyond trivial knobs. |
 | `entry` | — | no | no | Entry script when not specified in the config. |
 | `targets` | — | no | no | Comma- or newline-separated pkg target triples, e.g. node22-linux-x64,node22-macos-arm64. Defaults to the host target. |
-| `pkg-version` | `~6.19.0` | no | no | npm version specifier for @yao-pkg/pkg (e.g. ~6.19.0). 6.19.0+ is required for the full build-flag surface in pkg config (compress, fallbackToSource, public, publicPackages, options, bytecode, nativeBuild, noDictionary, debug, signature). Bypassed when pkg-path is set. |
+| `pkg-version` | `~6.21.0` | no | no | npm version specifier for @yao-pkg/pkg (e.g. ~6.21.0). 6.19.0+ is required for the full build-flag surface in pkg config (compress, fallbackToSource, public, publicPackages, options, bytecode, nativeBuild, noDictionary, debug, signature); 6.21.0+ adds the preBuild, postBuild and transform build hooks. Bypassed when pkg-path is set. |
 | `pkg-path` | — | no | no | Absolute path to a pre-installed pkg binary. Skips the implicit npm i -g. |
 
 ## Post-build
@@ -73,6 +73,42 @@ Every `pkg-action` input, grouped by category.
 | `cache` | `true` | no | no | Cache the pkg-fetch Node downloads between runs. |
 | `cache-key` | — | no | no | Override the auto-derived cache key. |
 | `step-summary` | `true` | no | no | Write a markdown summary of build time / size / checksum to the job summary. |
+
+## Build hooks
+
+@yao-pkg/pkg 6.21.0+ runs three hooks from your pkg config. They have no CLI flags and
+no action inputs — set them in the file you point `config` at (or let pkg auto-detect it).
+Raise `pkg-version` to at least `~6.21.0` to get them.
+
+| Key | Accepts | Runs |
+| --- | --- | --- |
+| `preBuild` | shell string or function | once, before pkg walks the dependency graph |
+| `postBuild` | shell string or function | once per produced binary, after it is written and codesigned |
+| `transform` | function only | per packed file, after path refinement, before bytecode/compression |
+
+The shell form of `postBuild` gets the absolute output path in `PKG_OUTPUT`; the function
+form gets it as its first argument. `transform(file, body)` returns a string or Buffer to
+replace the contents, or `undefined` to leave the file alone.
+
+```js
+// pkg.config.mjs
+export default {
+  targets: ['node22-linux-x64'],
+  preBuild: 'npm run build',
+  postBuild: (output) => console.log(`built ${output}`),
+  transform: (file, body) =>
+    file.endsWith('.js') ? body.toString().replaceAll('__VERSION__', process.env.GITHUB_SHA) : undefined,
+};
+```
+
+`config-inline` is JSON, so it can only carry the shell-string form of `preBuild` /
+`postBuild`. Function hooks and `transform` need a real `pkg.config.{js,cjs,mjs}` file.
+
+> **Do not move or rename the binary from `postBuild`.** The hook runs inside pkg, before
+> the action's windows-metadata, signing, archive and checksum stages. Those stages locate
+> outputs by predicting pkg's naming heuristic and falling back to a basename-prefix scan of
+> the output directory — a rename defeats both. Use the action's own archive and checksum
+> inputs instead.
 
 ## Outputs
 

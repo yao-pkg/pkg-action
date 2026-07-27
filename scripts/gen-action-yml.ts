@@ -165,6 +165,47 @@ runs:
 
 // ─── docs/inputs.md ───────────────────────────────────────────────────────
 
+// Hooks are pkg-config keys, not action inputs, so they have no INPUT_SPECS
+// entry to carry this prose.
+const BUILD_HOOKS_SECTION: readonly string[] = [
+  '## Build hooks',
+  '',
+  '@yao-pkg/pkg 6.21.0+ runs three hooks from your pkg config. They have no CLI flags and',
+  'no action inputs — set them in the file you point `config` at (or let pkg auto-detect it).',
+  'Raise `pkg-version` to at least `~6.21.0` to get them.',
+  '',
+  '| Key | Accepts | Runs |',
+  '| --- | --- | --- |',
+  '| `preBuild` | shell string or function | once, before pkg walks the dependency graph |',
+  '| `postBuild` | shell string or function | once per produced binary, after it is written and codesigned |',
+  '| `transform` | function only | per packed file, after path refinement, before bytecode/compression |',
+  '',
+  'The shell form of `postBuild` gets the absolute output path in `PKG_OUTPUT`; the function',
+  'form gets it as its first argument. `transform(file, body)` returns a string or Buffer to',
+  'replace the contents, or `undefined` to leave the file alone.',
+  '',
+  '```js',
+  '// pkg.config.mjs',
+  'export default {',
+  "  targets: ['node22-linux-x64'],",
+  "  preBuild: 'npm run build',",
+  '  postBuild: (output) => console.log(`built ${output}`),',
+  '  transform: (file, body) =>',
+  "    file.endsWith('.js') ? body.toString().replaceAll('__VERSION__', process.env.GITHUB_SHA) : undefined,",
+  '};',
+  '```',
+  '',
+  '`config-inline` is JSON, so it can only carry the shell-string form of `preBuild` /',
+  '`postBuild`. Function hooks and `transform` need a real `pkg.config.{js,cjs,mjs}` file.',
+  '',
+  '> **Do not move or rename the binary from `postBuild`.** The hook runs inside pkg, before',
+  "> the action's windows-metadata, signing, archive and checksum stages. Those stages locate",
+  "> outputs by predicting pkg's naming heuristic and falling back to a basename-prefix scan of",
+  "> the output directory — a rename defeats both. Use the action's own archive and checksum",
+  '> inputs instead.',
+  '',
+];
+
 function renderInputsDocs(): string {
   const lines: string[] = [];
   lines.push('<!-- GENERATED — do not edit by hand. Source: packages/core/src/inputs.ts. -->');
@@ -207,6 +248,8 @@ function renderInputsDocs(): string {
     }
     lines.push('');
   }
+
+  lines.push(...BUILD_HOOKS_SECTION);
 
   lines.push('## Outputs');
   lines.push('');

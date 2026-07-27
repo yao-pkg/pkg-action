@@ -67,11 +67,20 @@ input-surface-slim:
     - no-dict
     - debug
     - extra-args
-  migration: 'Move each value into .pkgrc / pkg.config.{js,ts,json} or the `pkg` field of package.json. `buildPkgArgs` forwards the config path to pkg.'
+  migration: 'Move each value into .pkgrc / pkg.config.{js,cjs,mjs} or the `pkg` field of package.json. `buildPkgArgs` forwards the config path to pkg.'
   breaking: 'yes — users setting any dropped input will see the unknown-input warning and the value will be ignored. Release note required.'
   minimum-pkg-version: |
     @yao-pkg/pkg >= 6.19.0 is required for the full build-flag surface in
-    pkg config. The default `pkg-version` input is pinned to `~6.19.0`.
+    pkg config; >= 6.21.0 adds the preBuild / postBuild / transform build
+    hooks. The default `pkg-version` input is pinned to `~6.21.0`.
+  build-hooks: |
+    Config-only feature (no CLI flags, no action inputs) — pkg reads
+    preBuild / postBuild / transform straight from the config the action
+    forwards via --config, so the pass-through surface needs no change.
+    Two constraints are documented in docs/inputs.md rather than enforced:
+    `config-inline` is JSON so it can only carry the shell-string form of
+    pre/postBuild, and a postBuild hook must not move or rename the binary
+    or `pkg-output-map` can no longer locate it.
   upstream-dependency: |
     RESOLVED in @yao-pkg/pkg v6.19.0 (2026-04-24) via yao-pkg/pkg#263 —
     closes yao-pkg/pkg#262. All CLI-only build flags now have config
