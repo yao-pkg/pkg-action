@@ -10,9 +10,9 @@ branding:
 
 inputs:
   config:
-    description: 'Path to a pkg config. When omitted, pkg auto-detects .pkgrc, .pkgrc.json, pkg.config.js, pkg.config.cjs or pkg.config.mjs next to the entry, then falls back to the package.json pkg field. An explicit path may also point at a package.json or any .json file. Mutually exclusive with config-inline.'
+    description: 'Path to a pkg config. When omitted, pkg auto-detects .pkgrc, .pkgrc.json, pkg.config.js, pkg.config.cjs or pkg.config.mjs next to the entry; the package.json pkg field is used when the entry itself resolves to a package.json. An explicit path may point at a package.json or a standalone config; for a standalone config pkg also needs an entry script, so the action supplies package.json bin when the entry input is unset. Mutually exclusive with config-inline.'
   config-inline:
-    description: 'Pkg config as a JSON string. Written to a temp file and passed to pkg via --config. Mutually exclusive with config. Being JSON, it can only carry the shell-string form of the preBuild/postBuild hooks — function hooks and transform need a pkg.config.{js,cjs,mjs} file via config. Registered with core.setSecret so exact matches are redacted from logs; still written to a temp file on the runner, so prefer config for anything beyond trivial knobs.'
+    description: 'Pkg config as a JSON string. Written to a temp file and passed to pkg via --config. Mutually exclusive with config. Being JSON, it can only carry the shell-string form of the preBuild/postBuild hooks — function hooks and transform need a pkg.config.{js,cjs,mjs} file via config. Registered with core.setSecret so exact matches are redacted from logs, which does not extend to output a hook prints; still written to a temp file on the runner, so prefer config for anything beyond trivial knobs.'
   entry:
     description: 'Entry script when not specified in the config.'
   targets:
@@ -142,13 +142,21 @@ runs:
       uses: actions/cache@v5
       with:
         path: ${{ runner.temp }}/pkg-cache
-        key: ${{ inputs.cache-key || format('pkg-fetch-{0}-{1}-{2}', runner.os, runner.arch, hashFiles('**/package.json', '.pkgrc*', '**/pkg.config.{js,ts,json}')) }}
+        key: ${{ inputs.cache-key || format('pkg-fetch-{0}-{1}-{2}', runner.os, runner.arch, hashFiles('**/package.json', '.pkgrc', '.pkgrc.json', '**/pkg.config.js', '**/pkg.config.cjs', '**/pkg.config.mjs')) }}
 
     - name: Install @yao-pkg/pkg
       if: ${{ inputs.pkg-path == '' }}
       shell: bash
+      env:
+        PKG_VERSION: ${{ inputs.pkg-version }}
       run: |
-        npm i -g @yao-pkg/pkg@${{ inputs.pkg-version }}
+        # Via env + quoted, never ${{ }} inline — the value would otherwise be
+        # pasted into this script and a crafted specifier would execute here.
+        if [[ ! "${PKG_VERSION}" =~ ^[A-Za-z0-9.~^*><=|[:space:]-]+$ ]]; then
+          echo "::error::Input 'pkg-version' is not a valid npm version specifier: ${PKG_VERSION}"
+          exit 1
+        fi
+        npm i -g "@yao-pkg/pkg@${PKG_VERSION}"
 
     - name: Run pkg-action build
       id: pkg-action-build

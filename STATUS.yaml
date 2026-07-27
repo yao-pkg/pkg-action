@@ -77,10 +77,27 @@ input-surface-slim:
     Config-only feature (no CLI flags, no action inputs) — pkg reads
     preBuild / postBuild / transform straight from the config the action
     forwards via --config, so the pass-through surface needs no change.
-    Two constraints are documented in docs/inputs.md rather than enforced:
-    `config-inline` is JSON so it can only carry the shell-string form of
-    pre/postBuild, and a postBuild hook must not move or rename the binary
-    or `pkg-output-map` can no longer locate it.
+    One constraint is documented rather than enforced: a postBuild hook
+    must not move or rename the binary or `pkg-output-map` can no longer
+    locate it.
+  default-pkg-version-bump: |
+    `pkg-version` default moved ~6.19.0 -> ~6.21.0.
+    breaking: 'no API change, but every consumer on a floating action tag
+      who never set `pkg-version` gets a new pkg toolchain on their next
+      run. Release note REQUIRED, and it must call out the trust change
+      below — not just the version number.'
+    security: |
+      6.21 hooks are arbitrary code execution sourced from the config in
+      the checked-out tree. A workflow that builds an untrusted ref (fork
+      pull_request) now grants that ref command execution in a job that
+      may hold signing certs and tokens. No such capability existed at
+      6.19. Documented in docs/inputs.md + README; not enforceable from
+      the action side.
+    pin-vs-floor: |
+      `~` keeps patch-only so a pkg minor never lands without an action
+      release — deliberate, since the action replicates pkg's output
+      naming in `pkg-output-map` and a naming change would break it
+      silently. Cost: consumers need an action release for pkg minors.
   upstream-dependency: |
     RESOLVED in @yao-pkg/pkg v6.19.0 (2026-04-24) via yao-pkg/pkg#263 —
     closes yao-pkg/pkg#262. All CLI-only build flags now have config
@@ -137,7 +154,7 @@ pending:
 
   live-credential-e2e:
     - Real signing — macOS Developer ID cert, Apple notarization creds, Windows code-signing cert.
-    Blocked on: organization decision about secret provisioning.
+    - 'Blocked on: organization decision about secret provisioning.'
 
   release-readiness:
     - Bump root `package.json#version` to 1.0.0 at tag time — auto-propagates via esbuild define into every bundled sub-action.

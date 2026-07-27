@@ -457,3 +457,83 @@ jobs:
           echo "$out" | grep -qE '[0-9]+\.[0-9]+\.[0-9]+' || {
             echo "::error::extracted binary produced unexpected output"; exit 1;
           }
+
+  # Proves the --config pass-through actually carries pkg 6.21 build hooks, and
+  # that a standalone config (no package.json entry) invokes cleanly — that
+  # combination hard-errored before the entry is supplied from package.json bin.
+  build-hooks:
+    name: build hooks (preBuild + postBuild + transform)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Scaffold a fixture with a standalone pkg config
+        id: fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          fix="${RUNNER_TEMP}/hooks-fixture"
+          rm -rf "$fix"; mkdir -p "$fix"
+          cd "$fix"
+          cat > package.json <<'JSON'
+          { "name": "hooks-app", "version": "1.0.0", "bin": "index.js" }
+          JSON
+          # __STAMP__ is rewritten in-flight by the transform hook — the packed
+          # binary prints the rewritten value while this file keeps the literal.
+          cat > index.js <<'JS'
+          console.log('stamp=__STAMP__');
+          JS
+          # preBuild is a plain shell string (no nested quoting) so a failure
+          # here means the hook did not run, not that the fixture was malformed.
+          cat > pkg.config.mjs <<'MJS'
+          import { writeFileSync } from 'node:fs';
+
+          export default {
+            preBuild: 'touch prebuild-ran.txt',
+            postBuild: (output) => writeFileSync('postbuild.txt', output),
+            transform: (file, body) =>
+              file.endsWith('index.js')
+                ? body.toString().replaceAll('__STAMP__', () => 'rewritten-by-transform')
+                : undefined,
+          };
+          MJS
+          echo "fixture=$fix" >> "$GITHUB_OUTPUT"
+
+      - name: Build with hooks
+        id: build
+        uses: ./
+        with:
+          config: ${{ steps.fix.outputs.fixture }}/pkg.config.mjs
+          targets: node22-linux-x64
+          checksum: sha256
+
+      - name: Assert every hook fired
+        shell: bash
+        run: |
+          set -euo pipefail
+          fix='${{ steps.fix.outputs.fixture }}'
+
+          [ -f "$fix/prebuild-ran.txt" ] || { echo "::error::preBuild hook did not run"; exit 1; }
+
+          # The on-disk source keeps the placeholder — transform must not mutate it.
+          grep -q '__STAMP__' "$fix/index.js" || {
+            echo "::error::transform wrote back to disk; it should only affect packed bytes"; exit 1;
+          }
+
+          # postBuild wrote the output path it was handed.
+          [ -f "$fix/postbuild.txt" ] || { echo "::error::postBuild hook did not run"; exit 1; }
+          echo "postBuild recorded: $(cat "$fix/postbuild.txt")"
+
+          # transform rewrote the packed source, so the built binary prints the
+          # rewritten stamp rather than the literal placeholder.
+          bin=$(echo '${{ steps.build.outputs.binaries }}' | jq -r '.[0]')
+          [ -f "$bin" ] || { echo "::error::binary missing: $bin"; exit 1; }
+          chmod +x "$bin"
+          out=$("$bin")
+          echo "binary output: $out"
+          [ "$out" = 'stamp=rewritten-by-transform' ] || {
+            echo "::error::transform hook did not rewrite the packed source (got: $out)"; exit 1;
+          }
