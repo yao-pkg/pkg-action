@@ -1,6 +1,12 @@
 import { test } from 'node:test';
 import { strictEqual, deepStrictEqual, rejects } from 'node:assert/strict';
-import { buildPkgArgs, runPkg, type ExecFn, type ExecResult } from '../../src/pkg-runner.ts';
+import {
+  buildPkgArgs,
+  installPkg,
+  runPkg,
+  type ExecFn,
+  type ExecResult,
+} from '../../src/pkg-runner.ts';
 import type { BuildInputs } from '../../src/inputs.ts';
 import { createTestLogger } from '../../src/logger.ts';
 import { PkgRunError } from '../../src/errors.ts';
@@ -126,6 +132,35 @@ test('runPkg wraps spawn errors in PkgRunError with cause', async () => {
       },
       { exec, logger, pkgCommand: 'pkg' },
     ),
+    (err) => err instanceof PkgRunError && (err as { cause?: unknown }).cause === spawnErr,
+  );
+});
+
+test('installPkg pins the specifier inside a single argv element', async () => {
+  const calls: Array<[string, readonly string[]]> = [];
+  const exec: ExecFn = async (command, args): Promise<ExecResult> => {
+    calls.push([command, args]);
+    return { exitCode: 0, stdout: '', stderr: '' };
+  };
+  const { logger } = createTestLogger();
+  await installPkg('~6.21.0', { exec, logger });
+  deepStrictEqual(calls, [['npm', ['i', '-g', '@yao-pkg/pkg@~6.21.0']]]);
+});
+
+test('installPkg fails the build when npm exits non-zero', async () => {
+  const exec: ExecFn = async () => ({ exitCode: 1, stdout: '', stderr: 'E404' });
+  const { logger } = createTestLogger();
+  await rejects(installPkg('~6.21.0', { exec, logger }), (err) => err instanceof PkgRunError);
+});
+
+test('installPkg wraps spawn errors in PkgRunError with cause', async () => {
+  const spawnErr = new Error('ENOENT');
+  const exec: ExecFn = async () => {
+    throw spawnErr;
+  };
+  const { logger } = createTestLogger();
+  await rejects(
+    installPkg('~6.21.0', { exec, logger }),
     (err) => err instanceof PkgRunError && (err as { cause?: unknown }).cause === spawnErr,
   );
 });

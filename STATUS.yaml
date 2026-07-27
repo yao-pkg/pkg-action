@@ -10,14 +10,15 @@
 meta:
   repo: yao-pkg/pkg-action
   branch: main
-  last-updated: '2026-04-24'
-  action-status: ALPHA — ready for early adopters to try in their own workflows
-  ci-status: green (227 unit tests)
+  last-updated: '2026-07-27'
+  action-status: BETA — the action now resolves for external consumers; v1.0.0 blockers cleared
+  ci-status: green (278 unit tests)
   e2e-status: |
-    7 jobs after the scope cut — tiny-cjs (ubuntu/macos/windows), codegen-drift,
-    matrix plan→fanout, multi-target-linux, windows-metadata, claude-code-smoke
-    (SEA + Zstd, 4 OS/arch combos). Signing e2e still deferred until live
-    credentials are available.
+    11 jobs — tiny-cjs (ubuntu/macos/windows), codegen-drift, matrix
+    plan→fanout, multi-target-linux, windows-metadata, claude-code-smoke
+    (SEA + Zstd, 4 OS/arch combos), build-hooks, consumer-ref,
+    consumer-download, and self-hosted-node24. Signing e2e still deferred
+    until live credentials are available.
 
 # ─── Scope decision (2026-04-23) ─────────────────────────────────────────
 #
@@ -68,7 +69,12 @@ input-surface-slim:
     - debug
     - extra-args
   migration: 'Move each value into .pkgrc / pkg.config.{js,cjs,mjs} or the `pkg` field of package.json. `buildPkgArgs` forwards the config path to pkg.'
-  breaking: 'yes — users setting any dropped input will see the unknown-input warning and the value will be ignored. Release note required.'
+  breaking: |
+    Behaviourally yes — a workflow setting any dropped input gets the
+    unknown-input warning and the value is ignored. NOT a release note: none of
+    this ever shipped under a tag, so there is no released version to break
+    from. The v1.0.0 changelog is cut from the scope-cut commit forward for the
+    same reason.
   minimum-pkg-version: |
     @yao-pkg/pkg >= 6.19.0 is required for the full build-flag surface in
     pkg config; >= 6.21.0 adds the preBuild / postBuild / transform build
@@ -82,10 +88,9 @@ input-surface-slim:
     locate it.
   default-pkg-version-bump: |
     `pkg-version` default moved ~6.19.0 -> ~6.21.0.
-    breaking: 'no API change, but every consumer on a floating action tag
-      who never set `pkg-version` gets a new pkg toolchain on their next
-      run. Release note REQUIRED, and it must call out the trust change
-      below — not just the version number.'
+    breaking: 'no API change. Pre-1.0 there is no floating tag to move under
+      anyone, so this needs no release note — but the trust change below must
+      be documented for consumers regardless, and it is, in SECURITY.md.'
     security: |
       6.21 hooks are arbitrary code execution sourced from the config in
       the checked-out tree. A workflow that builds an untrusted ref (fork
@@ -114,7 +119,7 @@ removed:
     what: 'attach-to-release, release-{tag,name,body,draft,prerelease}, generate-release-table inputs + ReleaseAttacher + buildReleaseBody + step-summary Release trailer.'
     replacement: 'softprops/action-gh-release against steps.<id>.outputs.artifacts + outputs.checksums.'
   M6.1 SLSA provenance:
-    what: 'provenance input + attest-build-provenance wiring in composite action.yml.'
+    what: 'provenance input + attest-build-provenance wiring in the then-composite action.yml.'
     replacement: 'actions/attest-build-provenance@v4 — one step chained after pkg-action.'
   M6.2 SBOM:
     what: 'sbom input + packages/core/src/sbom.ts (CycloneDX 1.5 + SPDX 2.3).'
@@ -132,20 +137,47 @@ removed:
     what: 'upload-artifact + artifact-name inputs + @actions/artifact integration.'
     replacement: 'actions/upload-artifact@v4 with path set from steps.<id>.outputs.artifacts.'
 
+# ─── Release blocker found and fixed (2026-07-27) ────────────────────────
+
+composite-removal:
+  bug: |
+    The top-level action was a composite whose build step said
+    `uses: ./packages/build`. Inside a composite, a local `uses:` path
+    resolves against the CONSUMER's GITHUB_WORKSPACE, not the action's own
+    checkout (actions/runner#1348, still open). Every documented invocation
+    — `uses: yao-pkg/pkg-action@v1` — would have failed on its first step
+    with "Can't find 'action.yml' … for action './packages/build'".
+  why-ci-was-green: |
+    All eight e2e jobs used `uses: ./`, which makes GITHUB_WORKSPACE and the
+    action directory the same tree, so the wrong-root lookup happened to
+    land on the right files. The test setup masked the bug completely.
+  fix: |
+    /action.yml is now a plain `runs.using: node24` action with
+    main=packages/build/dist/index.mjs, post=packages/build/dist/post.mjs.
+    packages/build/action.yml is deleted — one action.yml, not two. The
+    three composite steps moved into TypeScript:
+      - PKG_CACHE_PATH export        → core.exportVariable in main.ts
+      - actions/cache@v5 step        → @actions/cache restore in main.ts,
+                                       save in post.ts (packages/build/src/pkg-cache-io.ts)
+      - npm i -g @yao-pkg/pkg        → installPkg() in core/pkg-runner.ts
+    The bash specifier regex became parsePkgVersionSpecifier in inputs.ts.
+    Cache keys are byte-identical to the ones the composite's hashFiles()
+    produced, so pre-1.0 caches still hit.
+  cost: |
+    Two runtime deps (@actions/cache, @actions/glob) — the budget is now
+    full at 6/6. index.mjs 0.96 MB → 2.5 MB, post.mjs 0.73 MB → 2.2 MB.
+    Normal for an action that caches; actions/cache's own bundle is ~2 MB.
+  regression-guards:
+    - 'e2e `consumer-ref` job — fixture at the workspace root, action under test in `_action-under-test/`, so the action directory is not the workspace root. `uses:` accepts no expressions, so no job can name the commit under test by ref; the subdirectory reproduces the part that matters.'
+    - 'e2e `consumer-download` job — `uses: yao-pkg/pkg-action@main`, the real download path. Push-to-main only, so it is a post-merge canary rather than a PR gate.'
+    - 'unit test "no step uses an expression in its uses: key" — GitHub rejects such a workflow with no annotation naming the line. Cost one CI round-trip on this very PR.'
+    - 'unit test "no published action.yml references a local action" over all three action.yml files.'
+    - 'unit test "every published action.yml points at a bundle that exists" + "no action.yml escapes the repository root" (covers the `../packages/…` main paths in matrix/ and windows-metadata/).'
+    - 'unit test "the repo publishes no action.yml the tests do not know about" — a new action directory cannot silently skip the checks above.'
+
 # ─── Pending ─────────────────────────────────────────────────────────────
 
 pending:
-  architecture:
-    orchestrator-refactor:
-      issue: packages/build/src/main.ts now ~380 lines (down from ~780 after scope cut) but still mixes wiring with transforms.
-      plan: 'Extract `finalizeBinary(out, ctx, deps)` (rename → windows-metadata → sign → archive → checksum) into @pkg-action/core. Optional — cosmetic, not blocking v1.0.0.'
-      size: 2-3 hours, dedicated PR.
-
-    subpath-exports:
-      issue: '@pkg-action/core barrel re-exports everything; unit tests pay unused transitive cost. Less acute after distribution code removal.'
-      plan: 'Add `"./signing"`, `"./windows-metadata-apply"` subpath exports in packages/core/package.json.'
-      size: 1 hour. Cosmetic unless test startup measured slow.
-
   e2e-coverage:
     - Add `test-fixtures/tiny-app-ts/` — TypeScript source + tsconfig to exercise pkg TS path.
     - Add `test-fixtures/tiny-app-assets/` — pkg.assets glob + runtime read from SEA snapshot.
@@ -157,13 +189,53 @@ pending:
     - 'Blocked on: organization decision about secret provisioning.'
 
   release-readiness:
-    - Bump root `package.json#version` to 1.0.0 at tag time — auto-propagates via esbuild define into every bundled sub-action.
-    - Write CHANGELOG.md covering M0 → M4 from git history (include 2026-04-23 scope cut as a prominent BREAKING note).
-    - Self-hosted runner smoke for node24 (carried over from M-1).
     - GHES verification (out of reach without a GHES instance).
+    - 'Set the `HAS_SELF_HOSTED_LINUX` repo variable to `true` once a self-hosted runner exists — the `self-hosted-node24` e2e job is written and gated on it, so it stays skipped until then.'
+    - 'Tick "Publish this Action to the GitHub Marketplace" on the v1.0.0 release page. No API for it; the release workflow only prints a reminder.'
+    - 'AFTER v1.0.0 ships: delete `plugins.@release-it/conventional-changelog.gitRawCommitsOpts` from .release-it.json. It pins changelog generation to the scope-cut commit so pre-1.0 removed features stay out of the first entry; left in place it would also pin every later release to that same start point.'
+
+# ─── Release automation (2026-07-27) ─────────────────────────────────────
+
+release-tooling:
+  driver: 'release-it ^21 + @release-it/conventional-changelog ^12, config in .release-it.json.'
+  trigger: '.github/workflows/release.yml — workflow_dispatch, dry-run defaults to true.'
+  why-ci-not-laptop: |
+    The release commit carries the dist/ bundles consumers execute. CI is the
+    only place they are guaranteed to be built by the Node in .node-version —
+    the same one the test matrix ran.
+  version-flow: |
+    Conventional Commits pick the bump → release-it writes root package.json →
+    after:bump runs scripts/sync-workspace-versions.ts (root version into every
+    packages/*/package.json), then `yarn gen`, then `yarn build`. Only the root
+    version is load-bearing; esbuild inlines it as __PKG_ACTION_VERSION__.
+    Intra-workspace deps were repinned 0.0.0 → `*` so the sync never has to
+    rewrite ranges and yarn keeps linking locally.
+  changelog: |
+    CHANGELOG.md is generated, never hand-written — release-it rewrites it on
+    every release, so an entry edited by hand comes back duplicated on top of a
+    regenerated one. Verified: the plugin's `infile` cannot be unset from the
+    CLI (`--no-plugins.….infile` writes to a file literally named "false") and
+    a config using `extends` deep-merges the parent's `infile` back in.
+
+    So the pre-1.0 noise is cut at the range instead of in the file:
+    `gitRawCommitsOpts.from` pins generation to the scope-cut commit
+    (9781c17), which is where the Docker / SBOM / Homebrew / Scoop / provenance
+    / release-attach work was removed. Everything before it describes features
+    that never shipped and are not in v1.0.0, so listing them would be wrong,
+    not merely noisy. test/chore/style types stay hidden.
+  open-question: |
+    RESOLVED — packages/*/package.json versions are synced by the release
+    script rather than left at 0.0.0. They are cosmetic (private:true, never
+    published), so this is a consistency choice: no manifest should claim 0.0.0
+    inside a tagged release.
+  major-tag: 'scripts/move-major-tag.ts runs in after:release, force-moves vN to the new tag. Skipped for prereleases so @v1 never serves an rc.'
+  open-question: |
+    packages/*/package.json versions are cosmetic — those packages are
+    private:true and never published. Syncing them is what was asked for and
+    is harmless; leaving them at 0.0.0 forever would also have been defensible.
 
 # ─── Runtime dependencies ────────────────────────────────────────────────
-# Every runtime dep must be justified — cap 6 (plan §16).
+# Every runtime dep must be justified — cap 6 (plan §16). NOW FULL AT 6/6.
 
 runtime-deps:
   '@actions/core':
@@ -172,6 +244,17 @@ runtime-deps:
   '@actions/exec':
     version: ^3.0.0
     purpose: process spawning with GH log streaming.
+  '@actions/cache':
+    version: ^6.2.0
+    purpose: |
+      pkg-fetch download cache. Added 2026-07-27 when the composite wrapper
+      was removed — actions/cache@v5 was a composite step and had nowhere left
+      to live. Pulls @azure/storage-blob; ~2.1 MB of the bundle is this.
+  '@actions/glob':
+    version: ^0.6.1
+    purpose: |
+      hashFiles() for the default cache key. Same implementation the workflow
+      expression used, so keys are unchanged across the migration.
   resedit:
     version: ^3.0.2
     purpose: Windows PE resource editing (pulls pe-library@^2.0.1 transitively).
@@ -180,6 +263,10 @@ runtime-deps:
     purpose: cross-platform deterministic zip writer.
 
 dev-deps:
+  release-it:
+    version: ^21.0.0
+    notes: 'release driver. Engines require Node ^22.21.0 || >=24 — satisfied by .node-version (22.22.1) and the CI matrix.'
+  '@release-it/conventional-changelog': { version: ^12.0.0 }
   typescript:
     version: 5.9.3
     notes: pinned — must stay compatible with Node 22.22.1 bundled amaro strip-types parser.
@@ -201,8 +288,8 @@ dev-deps:
 gh-actions:
   actions/checkout: v6
   actions/setup-node: v6
-  actions/cache: v5
   github/codeql-action: v4
+  note: 'actions/cache is no longer referenced — caching moved in-process with the composite removal. See composite-removal.fix.'
 
 known-issues:
   - 'yarn install pulls transitive bare-os/bare-fs emitting invalid-engine warnings — cosmetic.'

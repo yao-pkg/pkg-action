@@ -1,0 +1,83 @@
+name: Release
+
+# Cuts a release with release-it: bump → sync workspace versions → codegen →
+# bundle → CHANGELOG from Conventional Commits → commit → tag → GitHub release
+# → move the floating major tag. See .release-it.json for the sequence.
+#
+# Runs here rather than on a maintainer's laptop for one reason: the release
+# commit contains the `dist/` bundles that consumers actually execute, and this
+# is the only place they are guaranteed to be built by the Node in
+# .node-version — the same one CI tested. A laptop on a different minor emits a
+# different bundle, and nothing downstream would notice.
+
+on:
+  workflow_dispatch:
+    inputs:
+      increment:
+        description: 'Version increment (release-it). Leave as conventional to let the commits decide.'
+        type: choice
+        default: conventional
+        options:
+          - conventional
+          - patch
+          - minor
+          - major
+      dry-run:
+        description: 'Print what would happen and change nothing.'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # release-it reads the commit history to pick the bump and write the
+          # changelog, and move-major-tag.ts resolves the tag it just pushed.
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+          cache: yarn
+
+      - run: yarn install --non-interactive
+
+      - name: Identify as the release bot
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+      # release-it's own before:init hook runs lint + typecheck + unit tests, so
+      # a release cannot be cut from a red tree.
+      - name: Run release-it
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          args=(--ci)
+          if [ "${{ inputs.increment }}" != 'conventional' ]; then
+            args+=("--increment=${{ inputs.increment }}")
+          fi
+          if [ "${{ inputs.dry-run }}" = 'true' ]; then
+            args+=(--dry-run)
+          fi
+          echo "release-it ${args[*]}"
+          yarn release-it "${args[@]}"
+
+      - name: Remind about the Marketplace
+        if: ${{ inputs.dry-run != true }}
+        run: |
+          echo "### Released" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Publishing to the GitHub Marketplace is a manual checkbox on the" >> "$GITHUB_STEP_SUMMARY"
+          echo "release page — the API cannot set it. Open the new release and tick" >> "$GITHUB_STEP_SUMMARY"
+          echo "\"Publish this Action to the GitHub Marketplace\"." >> "$GITHUB_STEP_SUMMARY"

@@ -1,133 +1,106 @@
 // The generated files are drift-checked in CI by `yarn gen && git diff --exit-code`,
 // which proves they match the generator — not that the generator is right. These
-// assert the parts with real consequences: the cache-key glob (a missed filename
-// silently serves a stale pkg-fetch cache) and the shell-injection guard on the
-// install step.
+// assert the parts with real consequences: the cache-key globs (a missed filename
+// silently serves a stale pkg-fetch cache) and the shape of every published
+// action.yml.
 
 import { test } from 'node:test';
-import { ok, match } from 'node:assert/strict';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
-import { execFileSync } from 'node:child_process';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { ok } from 'node:assert/strict';
+import { readdir, readFile, stat } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PKG_CONFIG_FILENAMES } from '../../src/inputs.ts';
+import { PKG_CACHE_KEY_GLOBS } from '../../src/pkg-cache.ts';
 
 const REPO_ROOT = fileURLToPath(new URL('../../../..', import.meta.url));
 
 const readGenerated = (rel: string): Promise<string> => readFile(join(REPO_ROOT, rel), 'utf8');
 
-test('cache key hashes every pkg config filename pkg auto-detects', async () => {
-  const yml = await readGenerated('action.yml');
-  const keyLine = yml.split('\n').find((l) => l.includes('hashFiles('));
-  ok(keyLine !== undefined, 'no hashFiles line in action.yml');
+/** Every published action.yml — the root entrypoint plus the two sub-actions. */
+const ACTION_YMLS = ['action.yml', 'matrix/action.yml', 'windows-metadata/action.yml'] as const;
+
+test('cache key hashes every pkg config filename pkg auto-detects', () => {
   for (const name of PKG_CONFIG_FILENAMES) {
-    ok(keyLine.includes(`'${name}'`) || keyLine.includes(`'**/${name}'`), `glob misses ${name}`);
+    ok(
+      PKG_CACHE_KEY_GLOBS.includes(name) || PKG_CACHE_KEY_GLOBS.includes(`**/${name}`),
+      `glob misses ${name}`,
+    );
   }
+  ok(PKG_CACHE_KEY_GLOBS.includes('**/package.json'), 'glob misses package.json');
 });
 
-test('cache key does not hash pkg.config.ts, which pkg never auto-detects', async () => {
-  const yml = await readGenerated('action.yml');
-  ok(!yml.includes('pkg.config.{js,ts,json}'), 'stale pkg.config glob still present');
-});
-
-test('pkg-version reaches the install step via env, never inline interpolation', async () => {
-  const yml = await readGenerated('action.yml');
-  const install = yml.slice(yml.indexOf('Install @yao-pkg/pkg'));
+test('cache key does not hash pkg.config.ts, which pkg never auto-detects', () => {
   ok(
-    !install.includes('npm i -g @yao-pkg/pkg@${{'),
-    'pkg-version is interpolated straight into the run block — shell injection',
-  );
-  ok(install.includes('PKG_VERSION: ${{ inputs.pkg-version }}'), 'pkg-version not passed via env');
-  ok(
-    install.includes('npm i -g "@yao-pkg/pkg@${PKG_VERSION}"'),
-    'install does not quote the value',
+    !PKG_CACHE_KEY_GLOBS.some((g) => g.includes('.ts')),
+    'a glob matches pkg.config.ts, which pkg does not auto-detect',
   );
 });
 
-test('install step validates the specifier before installing', async () => {
-  const yml = await readGenerated('action.yml');
-  match(yml, /if \[\[ ! "\$\{PKG_VERSION\}" =~ \$specifier_re \]\]; then/);
-});
-
-/** Every `run: |` block in a generated action.yml, dedented. */
-function runBlocks(yml: string): string[] {
-  const blocks: string[] = [];
-  const lines = yml.split('\n');
-  let current: string[] | undefined;
-  let indent = 0;
-  for (const line of lines) {
-    const start = /^(\s*)run: \|/.exec(line);
-    if (start?.[1] !== undefined) {
-      if (current !== undefined) blocks.push(current.join('\n'));
-      current = [];
-      indent = start[1].length;
-      continue;
-    }
-    if (current === undefined) continue;
-    if (line.trim() !== '' && line.length - line.trimStart().length <= indent) {
-      blocks.push(current.join('\n'));
-      current = undefined;
-      continue;
-    }
-    current.push(line.slice(indent + 2));
-  }
-  if (current !== undefined) blocks.push(current.join('\n'));
-  return blocks;
-}
-
-// `yarn lint` never sees the shell embedded in a YAML string, so a syntax
-// error there only surfaces as a red CI job. `[[ ]]` parsing a bare `>` as an
-// operator got through exactly this way.
-test('generated run blocks are valid bash', async (t) => {
-  const yml = await readGenerated('action.yml');
-  const blocks = runBlocks(yml);
-  ok(blocks.length > 0, 'no run blocks found — the extractor is broken');
-  const dir = await mkdtemp(join(tmpdir(), 'pkgaction-shellcheck-'));
-  try {
-    for (const [i, block] of blocks.entries()) {
-      const file = join(dir, `block-${String(i)}.sh`);
-      await writeFile(file, block);
-      try {
-        execFileSync('bash', ['-n', file], { stdio: 'pipe' });
-      } catch (err) {
-        const stderr = (err as { stderr?: Buffer }).stderr?.toString() ?? String(err);
-        t.diagnostic(block);
-        ok(false, `run block ${String(i)} is not valid bash: ${stderr}`);
-      }
-    }
-  } finally {
-    await rm(dir, { recursive: true, force: true });
-  }
-});
-
-// Actions expands `${{ }}` anywhere inside a run block — shell comments
-// included — so a literal one in prose is a template parse error, not a
-// comment. This failed CI on every job once; it must fail locally instead.
-test('no run block contains a workflow expression', async () => {
-  for (const file of ['action.yml', 'packages/build/action.yml']) {
-    const lines = (await readGenerated(file)).split('\n');
-    let inRun = false;
-    let runIndent = 0;
-    lines.forEach((line, i) => {
-      const runStart = /^(\s*)run: \|/.exec(line);
-      if (runStart?.[1] !== undefined) {
-        inRun = true;
-        runIndent = runStart[1].length;
-        return;
-      }
-      if (!inRun) return;
-      const indent = line.length - line.trimStart().length;
-      if (line.trim() !== '' && indent <= runIndent) {
-        inRun = false;
-        return;
-      }
+// The bug this guards: a composite step's `uses: ./path` resolves against the
+// *consumer's* workspace, not this repo (actions/runner#1348), so it only ever
+// works when the workspace happens to be a checkout of pkg-action. It passed
+// every in-repo e2e job for exactly that reason. Nothing we publish may
+// reference a local action again.
+test('no published action.yml references a local action', async () => {
+  for (const rel of ACTION_YMLS) {
+    for (const [i, line] of (await readGenerated(rel)).split('\n').entries()) {
       ok(
-        !line.includes('${{'),
-        `${file}:${String(i + 1)} has a \${{ }} expression inside a run block: ${line.trim()}`,
+        !/^\s*(-\s*)?uses:\s*\.\//.test(line),
+        `${rel}:${String(i + 1)} references a local action: ${line.trim()}`,
       );
-    });
+    }
   }
+});
+
+test('every published action.yml points at a bundle that exists', async () => {
+  for (const rel of ACTION_YMLS) {
+    const yml = await readGenerated(rel);
+    ok(/^\s*using:\s*'node24'$/m.test(yml), `${rel} is not a node24 action`);
+    const scripts = [...yml.matchAll(/^\s*(?:main|post):\s*'([^']+)'$/gm)].map((m) => m[1]);
+    ok(scripts.length > 0, `${rel} declares neither main nor post`);
+    for (const script of scripts) {
+      ok(script !== undefined);
+      const abs = join(REPO_ROOT, dirname(rel), script);
+      const info = await stat(abs).catch(() => undefined);
+      ok(info?.isFile() === true, `${rel} points at a missing bundle: ${script}`);
+    }
+  }
+});
+
+// Sub-actions reach their bundle with `../packages/…`, which stays inside the
+// fetched checkout only as long as the action directory is one level deep.
+test('no action.yml escapes the repository root', async () => {
+  for (const rel of ACTION_YMLS) {
+    const depth = rel.split('/').length - 1;
+    const yml = await readGenerated(rel);
+    for (const m of yml.matchAll(/^\s*(?:main|post):\s*'([^']+)'$/gm)) {
+      const script = m[1];
+      ok(script !== undefined);
+      const ups = script.split('/').filter((s) => s === '..').length;
+      ok(ups <= depth, `${rel} climbs ${String(ups)} level(s) from depth ${String(depth)}`);
+    }
+  }
+});
+
+test('the repo publishes no action.yml the tests do not know about', async () => {
+  const found: string[] = [];
+  const walk = async (dir: string, rel: string): Promise<void> => {
+    for (const entry of await readdir(join(REPO_ROOT, dir), { withFileTypes: true })) {
+      if (entry.name === 'node_modules' || entry.name.startsWith('.')) continue;
+      const childRel = rel === '' ? entry.name : `${rel}/${entry.name}`;
+      if (entry.isDirectory()) {
+        await walk(join(dir, entry.name), childRel);
+      } else if (entry.name === 'action.yml' || entry.name === 'action.yaml') {
+        found.push(childRel);
+      }
+    }
+  };
+  await walk('.', '');
+  found.sort();
+  ok(
+    found.join(',') === [...ACTION_YMLS].sort().join(','),
+    `action.yml set changed: found ${found.join(', ')}`,
+  );
 });
 
 test('docs document all three build hooks and the trust boundary', async () => {

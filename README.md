@@ -202,6 +202,16 @@ Homebrew tap, Scoop bucket, npm package — all live in the same
 - `yarn build` — esbuild ESM bundle of each sub-action
 - `yarn test` — `node --test` with `--experimental-strip-types`
 - `yarn lint` — ESLint + Prettier
+- `yarn release:dry` — release-it dry run (see [`docs/architecture.md`](./docs/architecture.md) §11)
+
+Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) —
+`CHANGELOG.md` and the version bump are generated from them.
+
+## Security
+
+Report vulnerabilities privately — see [`SECURITY.md`](./SECURITY.md), which
+also documents the trust boundary around pkg build hooks (they are arbitrary
+code execution sourced from the ref you build).
 
 ## License
 

@@ -6,7 +6,25 @@
   "description": "Shared TypeScript library for pkg-action sub-actions — inputs, templates, targets, archive, checksum, signing, resedit.",
   "main": "./src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./archive": "./src/archive.ts",
+    "./checksum": "./src/checksum.ts",
+    "./errors": "./src/errors.ts",
+    "./finalize-binary": "./src/finalize-binary.ts",
+    "./fs-utils": "./src/fs-utils.ts",
+    "./inputs": "./src/inputs.ts",
+    "./logger": "./src/logger.ts",
+    "./pkg-cache": "./src/pkg-cache.ts",
+    "./pkg-output-map": "./src/pkg-output-map.ts",
+    "./pkg-runner": "./src/pkg-runner.ts",
+    "./project-info": "./src/project-info.ts",
+    "./signing": "./src/signing.ts",
+    "./summary": "./src/summary.ts",
+    "./targets": "./src/targets.ts",
+    "./templates": "./src/templates.ts",
+    "./version": "./src/version.ts",
+    "./windows-metadata": "./src/windows-metadata.ts",
+    "./windows-metadata-apply": "./src/windows-metadata-apply.ts"
   },
   "sideEffects": false,
   "engines": {

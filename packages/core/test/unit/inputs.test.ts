@@ -85,6 +85,28 @@ test('parseInputs threads pkg-version + pkg-path through', () => {
   strictEqual(inputs.build.pkgPath, '/opt/pkg/bin/pkg');
 });
 
+test('parseInputs accepts the npm specifier forms a caller can reasonably write', () => {
+  for (const spec of ['~6.21.0', '6.21.0', 'latest', '^6.19', '>=6.19.0 <7', '6.x || 7.x', '*']) {
+    strictEqual(parseInputs({ env: env(['pkg-version', spec]) }).build.pkgVersion, spec);
+  }
+});
+
+// Until v1 this shape check lived in the composite's install step, where it
+// stopped a crafted specifier from being interpolated into bash. The install
+// now runs through @actions/exec with the specifier in one argv element, so the
+// check survives for the other half of its job: failing a typo fast, naming the
+// input, instead of surfacing as an opaque npm error.
+test('parseInputs rejects a pkg-version that is not a version specifier', () => {
+  for (const bad of ['6.21.0; rm -rf /', '$(id)', '`id`', '6.21.0 && echo pwned', 'a/b']) {
+    throws(
+      () => parseInputs({ env: env(['pkg-version', bad]) }),
+      (err: unknown) =>
+        err instanceof ValidationError && /not a valid npm version specifier/.test(err.message),
+      `accepted ${bad}`,
+    );
+  }
+});
+
 test('parseInputs parses a realistic build config', () => {
   const inputs = parseInputs({
     env: env(

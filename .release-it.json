@@ -1,0 +1,58 @@
+{
+  "$schema": "https://unpkg.com/release-it@21/schema/release-it.json",
+  "git": {
+    "commitMessage": "chore(release): v${version}",
+    "tagName": "v${version}",
+    "tagAnnotation": "pkg-action v${version}",
+    "requireBranch": "main",
+    "requireCleanWorkingDir": true,
+    "requireUpstream": true,
+    "push": true
+  },
+  "npm": {
+    "publish": false
+  },
+  "github": {
+    "release": true,
+    "releaseName": "v${version}",
+    "autoGenerate": false,
+    "comments": {
+      "submit": false
+    }
+  },
+  "hooks": {
+    "before:init": ["yarn lint", "yarn typecheck", "yarn test:unit"],
+    "after:bump": [
+      "node --experimental-strip-types scripts/sync-workspace-versions.ts",
+      "yarn gen",
+      "yarn build"
+    ],
+    "after:release": "node --experimental-strip-types scripts/move-major-tag.ts ${version}"
+  },
+  "plugins": {
+    "@release-it/conventional-changelog": {
+      "preset": {
+        "name": "conventionalcommits",
+        "types": [
+          { "type": "feat", "section": "Features" },
+          { "type": "fix", "section": "Bug Fixes" },
+          { "type": "perf", "section": "Performance" },
+          { "type": "refactor", "section": "Refactoring" },
+          { "type": "docs", "section": "Documentation" },
+          { "type": "build", "section": "Build & Dependencies" },
+          { "type": "ci", "section": "CI" },
+          { "type": "test", "hidden": true },
+          { "type": "chore", "hidden": true },
+          { "type": "style", "hidden": true }
+        ]
+      },
+      "infile": "CHANGELOG.md",
+      "header": "# Changelog\n\nAll notable changes to `yao-pkg/pkg-action`. Generated from Conventional Commits — do not edit by hand.\n",
+      "ignoreRecommendedBump": false,
+      "strictSemVer": true,
+      "gitRawCommitsOpts": {
+        "from": "9781c17dbf8171995379f2ecf30c9d5a7ea1e592"
+      }
+    }
+  }
+}
