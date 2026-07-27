@@ -126,3 +126,44 @@ test('mapPkgOutputs: single-target, bare name', async () => {
     strictEqual(out[0]?.path, join(dir, 'app'));
   });
 });
+
+// A standalone pkg config can set its own `name`, and pkg prefers that over
+// package.json — so the predicted base name misses. With one target there is
+// no os/arch suffix for the triple fallback to grab either.
+test('mapPkgOutputs resolves a single target whose name pkg chose itself', async () => {
+  await withOutputDir(['renamed-by-config'], async (dir) => {
+    const entries = await mapPkgOutputs(
+      [{ node: 22, os: 'linux', arch: 'x64' }],
+      'predicted-name',
+      dir,
+    );
+    strictEqual(entries.length, 1);
+    strictEqual(entries[0]?.path, join(dir, 'renamed-by-config'));
+  });
+});
+
+test('mapPkgOutputs does not guess when one target left several files', async () => {
+  await withOutputDir(['one', 'two'], async (dir) => {
+    await rejects(
+      () => mapPkgOutputs([{ node: 22, os: 'linux', arch: 'x64' }], 'predicted-name', dir),
+      /did not produce an output/,
+    );
+  });
+});
+
+test('mapPkgOutputs does not guess for multi-target builds', async () => {
+  await withOutputDir(['only-one-file'], async (dir) => {
+    await rejects(
+      () =>
+        mapPkgOutputs(
+          [
+            { node: 22, os: 'linux', arch: 'x64' },
+            { node: 22, os: 'macos', arch: 'arm64' },
+          ],
+          'predicted-name',
+          dir,
+        ),
+      /did not produce an output/,
+    );
+  });
+});

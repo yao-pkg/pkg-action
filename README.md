@@ -36,10 +36,15 @@ Tracking issue: [yao-pkg/pkg#248](https://github.com/yao-pkg/pkg/issues/248).
 The action does **not** mirror pkg's CLI flags as inputs. Pkg-specific knobs
 — SEA mode, bundled Node compression, `public` / `publicPackages`, V8
 `options`, `noBytecode`, `noDict`, `debug`, bytecode-fabricator fallback —
-live in your pkg config file (`.pkgrc.json`, `pkg.config.{js,ts,json}`, or
-the `pkg` field of `package.json`). See
+live in your pkg config file (`.pkgrc`, `.pkgrc.json`, `pkg.config.{js,cjs,mjs}`,
+or the `pkg` field of `package.json`). See
 [yao-pkg/pkg's README](https://github.com/yao-pkg/pkg#config) for the full
 schema.
+
+pkg 6.21 also runs `preBuild` / `postBuild` / `transform` hooks from that file.
+They execute arbitrary code with the runner's environment — see
+[docs/inputs.md](docs/inputs.md#build-hooks) before enabling them on a workflow
+that builds untrusted refs.
 
 Example — SEA mode with Brotli-compressed bundle + fallback, saved as `.pkgrc.json`:
 

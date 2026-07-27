@@ -13363,12 +13363,12 @@ var INPUT_SPECS = [
   {
     name: "config",
     category: "build",
-    description: "Path to a pkg config (.pkgrc, pkg.config.{js,ts,json}, or package.json). Auto-detected when omitted. Mutually exclusive with config-inline."
+    description: "Path to a pkg config. When omitted, pkg auto-detects .pkgrc, .pkgrc.json, pkg.config.js, pkg.config.cjs or pkg.config.mjs next to the entry; the package.json pkg field is used when the entry itself resolves to a package.json. An explicit path may point at a package.json or a standalone config; for a standalone config pkg also needs an entry script, so the action supplies package.json bin when the entry input is unset. Mutually exclusive with config-inline."
   },
   {
     name: "config-inline",
     category: "build",
-    description: "Pkg config as a JSON string. Written to a temp file and passed to pkg via --config. Mutually exclusive with config. Registered with core.setSecret so exact matches are redacted from logs; still written to a temp file on the runner, so prefer config for anything beyond trivial knobs.",
+    description: "Pkg config as a JSON string. Written to a temp file and passed to pkg via --config. Mutually exclusive with config. Being JSON, it can only carry the shell-string form of the preBuild/postBuild hooks \u2014 function hooks and transform need a pkg.config.{js,cjs,mjs} file via config. Registered with core.setSecret so exact matches are redacted from logs, which does not extend to output a hook prints; still written to a temp file on the runner, so prefer config for anything beyond trivial knobs.",
     secret: !0
   },
   {
@@ -13384,8 +13384,8 @@ var INPUT_SPECS = [
   {
     name: "pkg-version",
     category: "build",
-    description: "npm version specifier for @yao-pkg/pkg (e.g. ~6.19.0). 6.19.0+ is required for the full build-flag surface in pkg config (compress, fallbackToSource, public, publicPackages, options, bytecode, nativeBuild, noDictionary, debug, signature). Bypassed when pkg-path is set.",
-    default: "~6.19.0"
+    description: "npm version specifier for @yao-pkg/pkg (e.g. ~6.21.0). 6.19.0+ is required for the full build-flag surface in pkg config (compress, fallbackToSource, public, publicPackages, options, bytecode, nativeBuild, noDictionary, debug, signature); 6.21.0+ adds the preBuild, postBuild and transform build hooks. Bypassed when pkg-path is set.",
+    default: "~6.21.0"
   },
   {
     name: "pkg-path",

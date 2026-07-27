@@ -14770,12 +14770,12 @@ var INPUT_SPECS = [
   {
     name: "config",
     category: "build",
-    description: "Path to a pkg config (.pkgrc, pkg.config.{js,ts,json}, or package.json). Auto-detected when omitted. Mutually exclusive with config-inline."
+    description: "Path to a pkg config. When omitted, pkg auto-detects .pkgrc, .pkgrc.json, pkg.config.js, pkg.config.cjs or pkg.config.mjs next to the entry; the package.json pkg field is used when the entry itself resolves to a package.json. An explicit path may point at a package.json or a standalone config; for a standalone config pkg also needs an entry script, so the action supplies package.json bin when the entry input is unset. Mutually exclusive with config-inline."
   },
   {
     name: "config-inline",
     category: "build",
-    description: "Pkg config as a JSON string. Written to a temp file and passed to pkg via --config. Mutually exclusive with config. Registered with core.setSecret so exact matches are redacted from logs; still written to a temp file on the runner, so prefer config for anything beyond trivial knobs.",
+    description: "Pkg config as a JSON string. Written to a temp file and passed to pkg via --config. Mutually exclusive with config. Being JSON, it can only carry the shell-string form of the preBuild/postBuild hooks \u2014 function hooks and transform need a pkg.config.{js,cjs,mjs} file via config. Registered with core.setSecret so exact matches are redacted from logs, which does not extend to output a hook prints; still written to a temp file on the runner, so prefer config for anything beyond trivial knobs.",
     secret: !0
   },
   {
@@ -14791,8 +14791,8 @@ var INPUT_SPECS = [
   {
     name: "pkg-version",
     category: "build",
-    description: "npm version specifier for @yao-pkg/pkg (e.g. ~6.19.0). 6.19.0+ is required for the full build-flag surface in pkg config (compress, fallbackToSource, public, publicPackages, options, bytecode, nativeBuild, noDictionary, debug, signature). Bypassed when pkg-path is set.",
-    default: "~6.19.0"
+    description: "npm version specifier for @yao-pkg/pkg (e.g. ~6.21.0). 6.19.0+ is required for the full build-flag surface in pkg config (compress, fallbackToSource, public, publicPackages, options, bytecode, nativeBuild, noDictionary, debug, signature); 6.21.0+ adds the preBuild, postBuild and transform build hooks. Bypassed when pkg-path is set.",
+    default: "~6.21.0"
   },
   {
     name: "pkg-path",
@@ -15031,6 +15031,12 @@ function readInput(env, name) {
   let raw = readInputRaw(env, name);
   return raw !== void 0 ? raw : specFor(name)?.default;
 }
+function readRequiredInput(env, name) {
+  let value = readInput(env, name);
+  if (value === void 0)
+    throw new ValidationError(`Input "${name}" has no value and no default in INPUT_SPECS.`);
+  return value;
+}
 function parseBoolean(value, name) {
   if (value === void 0) return !1;
   let normalized = value.toLowerCase();
@@ -15097,7 +15103,7 @@ function parseInputs(opts = {}) {
     configInline,
     entry: readInput(env, "entry"),
     targets,
-    pkgVersion: readInput(env, "pkg-version") ?? "~6.19.0",
+    pkgVersion: readRequiredInput(env, "pkg-version"),
     pkgPath: readInput(env, "pkg-path")
   }, postBuild = {
     strip: parseBoolean(readInput(env, "strip"), "strip"),
@@ -15108,7 +15114,7 @@ function parseInputs(opts = {}) {
       "7z",
       "none"
     ]),
-    filename: readInput(env, "filename") ?? "{name}-{version}-{os}-{arch}",
+    filename: readRequiredInput(env, "filename"),
     checksum: parseChecksumList(readInput(env, "checksum"), "checksum")
   }, performance2 = {
     cache: parseBoolean(readInput(env, "cache"), "cache"),
@@ -15155,6 +15161,16 @@ function buildPkgArgs(inv) {
   let entry = inv.build.entry ?? ".";
   return args.push(entry), args;
 }
+async function resolvePkgVersion(deps) {
+  try {
+    let result = await deps.exec(deps.pkgCommand, ["--version"], { ignoreReturnCode: !0 });
+    if (result.exitCode !== 0) return;
+    let version = result.stdout.trim();
+    return version === "" ? void 0 : version;
+  } catch {
+    return;
+  }
+}
 async function runPkg(inv, deps) {
   let args = buildPkgArgs(inv);
   deps.logger.info(`[pkg-action] Invoking: ${deps.pkgCommand} ${args.join(" ")}`);
@@ -15168,8 +15184,12 @@ async function runPkg(inv, deps) {
   } catch (err) {
     throw new PkgRunError(`Failed to spawn pkg: ${String(err)}`, { cause: err });
   }
-  if (result.exitCode !== 0)
-    throw new PkgRunError(`pkg exited with code ${String(result.exitCode)}. See stderr above.`);
+  if (result.exitCode !== 0) {
+    let configHint = inv.build.config !== void 0 ? ` If a preBuild/postBuild/transform hook is set in ${inv.build.config}, check its output above \u2014 hook failures surface as a pkg exit.` : "";
+    throw new PkgRunError(
+      `pkg exited with code ${String(result.exitCode)}. See stderr above.${configHint}`
+    );
+  }
   return result;
 }
 
@@ -15206,22 +15226,25 @@ async function mapPkgOutputs(targets, baseName, outputDir) {
   if (unresolved.length > 0) {
     let listing = await readdir2(outputDir);
     for (let { target, predicted: predictedName } of unresolved) {
-      let match = findFallbackMatch(listing, target, predictedName);
+      let match = findFallbackMatch(listing, target, predictedName, {
+        soleTarget: targets.length === 1
+      });
       if (match === void 0)
         throw new PkgRunError(
-          `pkg did not produce an output for ${formatTarget(target)}. Expected "${predictedName}" in ${outputDir}; directory contains: ${listing.join(", ") || "(empty)"}.`
+          `pkg did not produce an output for ${formatTarget(target)}. Expected "${predictedName}" in ${outputDir}; directory contains: ${listing.join(", ") || "(empty)"}. If a postBuild hook moves or renames the binary, drop that \u2014 the action locates outputs by name.`
         );
       entries.push({ target, path: join4(outputDir, match) });
     }
   }
   return entries;
 }
-function findFallbackMatch(listing, target, predicted) {
+function findFallbackMatch(listing, target, predicted, opts = { soleTarget: !1 }) {
   if (listing.includes(predicted)) return predicted;
   let lower = predicted.toLowerCase(), ci = listing.find((f) => f.toLowerCase() === lower);
   if (ci !== void 0) return ci;
-  let needle = `${target.os}-${target.arch}`;
-  return listing.find((f) => f.toLowerCase().includes(needle.toLowerCase()));
+  let needle = `${target.os}-${target.arch}`, byTriple = listing.find((f) => f.toLowerCase().includes(needle.toLowerCase()));
+  if (byTriple !== void 0) return byTriple;
+  if (opts.soleTarget && listing.length === 1) return listing[0];
 }
 async function exists2(path4) {
   try {
@@ -15370,6 +15393,14 @@ function formatDuration(ms) {
 // packages/core/src/project-info.ts
 import { readFile } from "node:fs/promises";
 import { join as join5 } from "node:path";
+function resolveBinEntry(bin, name, projectDir) {
+  let rel = bin;
+  if (typeof rel == "object" && rel !== null) {
+    let map = rel, unscoped = name.split("/").pop();
+    rel = (unscoped !== void 0 ? map[unscoped] : void 0) ?? Object.values(map)[0];
+  }
+  return typeof rel == "string" && rel !== "" ? join5(projectDir, rel) : void 0;
+}
 async function readProjectInfo(projectDir) {
   let path4 = join5(projectDir, "package.json"), raw;
   try {
@@ -15390,7 +15421,7 @@ async function readProjectInfo(projectDir) {
     throw new ValidationError(`package.json at ${path4} is missing "name".`);
   if (typeof version != "string" || version === "")
     throw new ValidationError(`package.json at ${path4} is missing "version".`);
-  return { name, version };
+  return { name, version, binEntry: resolveBinEntry(obj.bin, name, projectDir) };
 }
 function tokensForTarget(target, project, env, nowDate = /* @__PURE__ */ new Date()) {
   let sha = (env.GITHUB_SHA ?? "").slice(0, 7), ref = env.GITHUB_REF_NAME ?? env.GITHUB_REF ?? "", tag = extractTag(env.GITHUB_REF), nodePart = target.node === "latest" ? "latest" : `node${String(target.node)}`;
@@ -19250,14 +19281,17 @@ async function main() {
     setFailed(formatErrorChain(err));
     return;
   }
-  let workspace = process.env.GITHUB_WORKSPACE ?? process.cwd(), projectDir = (() => {
+  let workspace = process.env.GITHUB_WORKSPACE ?? process.cwd(), projectDir = await (async () => {
     let cfg = inputs.build.config;
-    if (cfg !== void 0) {
-      let absCfg = pathResolve(workspace, cfg);
-      if (pathBasename(absCfg).toLowerCase() === "package.json")
-        return dirname5(absCfg);
+    if (cfg === void 0) return workspace;
+    let configDir = dirname5(pathResolve(workspace, cfg));
+    if (pathBasename(pathResolve(workspace, cfg)).toLowerCase() === "package.json")
+      return configDir;
+    try {
+      return await stat4(join7(configDir, "package.json")), configDir;
+    } catch {
+      return workspace;
     }
-    return workspace;
   })(), project = await readProjectInfo(projectDir);
   logger.info(`[pkg-action] project dir: ${projectDir}`), logger.info(`[pkg-action] project: ${project.name}@${project.version}`);
   let resolvedTargets = inputs.build.targets === "host" ? [hostTarget()] : [...inputs.build.targets];
@@ -19272,11 +19306,22 @@ async function main() {
     invocationDir
   });
   inputs.build.configInline !== void 0 && effectiveConfig !== void 0 && logger.info(`[pkg-action] materialized config-inline \u2192 ${effectiveConfig}`);
-  let pkgCommand = inputs.build.pkgPath ?? "pkg", cfgIsPackageJson = effectiveConfig !== void 0 && pathBasename(effectiveConfig).toLowerCase() === "package.json", pkgBuildInputs = {
+  let pkgCommand = inputs.build.pkgPath ?? "pkg", standaloneConfig = effectiveConfig !== void 0 && pathBasename(effectiveConfig).toLowerCase() === "package.json" ? void 0 : effectiveConfig, entry = inputs.build.entry;
+  if (standaloneConfig !== void 0 && entry === void 0) {
+    if (project.binEntry === void 0)
+      throw new ValidationError(
+        `Input "${inputs.build.configInline !== void 0 ? "config-inline" : "config"}" needs an entry script, but package.json at ${projectDir} has no "bin". Set the "entry" input, or add "bin" to package.json.`
+      );
+    entry = project.binEntry, logger.info(`[pkg-action] entry resolved from package.json bin \u2192 ${entry}`);
+  }
+  let pkgBuildInputs = {
     ...inputs.build,
-    config: cfgIsPackageJson ? void 0 : effectiveConfig
-  }, pkgTargetsLabel = resolvedTargets.map(formatTarget).join(", ");
-  logger.startGroup(`[pkg-action] pkg build (targets=${pkgTargetsLabel})`);
+    config: standaloneConfig,
+    entry
+  }, pkgTargetsLabel = resolvedTargets.map(formatTarget).join(", "), resolvedPkgVersion = await resolvePkgVersion({ exec: execBridge, logger, pkgCommand });
+  logger.info(
+    `[pkg-action] pkg ${resolvedPkgVersion ?? "(version unknown)"} (from "${inputs.build.pkgVersion}")`
+  ), logger.startGroup(`[pkg-action] pkg build (targets=${pkgTargetsLabel})`);
   let runStart = Date.now();
   try {
     await runPkg(
@@ -19339,11 +19384,11 @@ async function main() {
       }
       finalizedArtifacts.push(finalPath);
       let rowDigest = await finalizeChecksums(finalPath, inputs.postBuild.checksum);
-      for (let entry of rowDigest.entries)
-        shasumEntries.push(entry), logger.info(`[pkg-action] ${entry.algo} ${entry.digest}  ${pathBasename(finalPath)}`);
+      for (let entry2 of rowDigest.entries)
+        shasumEntries.push(entry2), logger.info(`[pkg-action] ${entry2.algo} ${entry2.digest}  ${pathBasename(finalPath)}`);
       if (rowDigest.entries.length > 0) {
         let key = pathBasename(finalPath), byAlgo = {};
-        for (let entry of rowDigest.entries) byAlgo[entry.algo] = entry.digest;
+        for (let entry2 of rowDigest.entries) byAlgo[entry2.algo] = entry2.digest;
         digestsByArtifact[key] = byAlgo;
       }
       let { size } = await stat4(finalPath), row = {
@@ -19373,7 +19418,7 @@ async function main() {
     );
     await writeSummary(rowsWithTime, {
       actionVersion: VERSION,
-      pkgVersion: inputs.build.pkgVersion
+      pkgVersion: resolvedPkgVersion !== void 0 ? `${resolvedPkgVersion} (${inputs.build.pkgVersion})` : inputs.build.pkgVersion
     });
   }
   setOutput("binaries", JSON.stringify(finalizedBinaries)), setOutput("artifacts", JSON.stringify(finalizedArtifacts)), setOutput("checksums", JSON.stringify(shasumsFiles)), setOutput("digests", JSON.stringify(digestsByArtifact)), setOutput("version", project.version), logger.info(

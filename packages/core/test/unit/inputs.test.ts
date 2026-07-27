@@ -4,6 +4,7 @@ import {
   closestInputName,
   INPUT_SPECS,
   parseInputs,
+  PKG_CONFIG_FILENAMES,
   readInputRaw,
   specFor,
 } from '../../src/inputs.ts';
@@ -64,7 +65,7 @@ test('parseInputs with no env uses defaults', () => {
   strictEqual(inputs.build.config, undefined);
   strictEqual(inputs.build.configInline, undefined);
   strictEqual(inputs.build.entry, undefined);
-  strictEqual(inputs.build.pkgVersion, '~6.19.0');
+  strictEqual(inputs.build.pkgVersion, '~6.21.0');
   strictEqual(inputs.build.pkgPath, undefined);
 
   strictEqual(inputs.postBuild.compress, 'none');
@@ -242,4 +243,26 @@ test('closestInputName suggests known input', () => {
 
 test('closestInputName returns null for far-off inputs', () => {
   strictEqual(closestInputName('xxxxxxxxxxxxxxxxxxx'), null);
+});
+
+// Guards the removal of the `?? '<literal>'` fallbacks in parseInputs: those
+// duplicated the INPUT_SPECS default, so a bump could update one and not the
+// other. This asserts the spec is the only place the value lives.
+test('parseInputs defaults come from INPUT_SPECS, not a second literal', () => {
+  const inputs = parseInputs({ env: {} });
+  strictEqual(inputs.build.pkgVersion, specFor('pkg-version')?.default);
+  strictEqual(inputs.postBuild.filename, specFor('filename')?.default);
+});
+
+test('every spec default is a value parseInputs can actually resolve', () => {
+  const inputs = parseInputs({ env: {} });
+  ok(inputs.build.pkgVersion !== undefined && inputs.build.pkgVersion !== '');
+  ok(inputs.postBuild.filename !== undefined && inputs.postBuild.filename !== '');
+});
+
+test('PKG_CONFIG_FILENAMES matches the filenames pkg auto-detects', () => {
+  deepStrictEqual(
+    [...PKG_CONFIG_FILENAMES],
+    ['.pkgrc', '.pkgrc.json', 'pkg.config.js', 'pkg.config.cjs', 'pkg.config.mjs'],
+  );
 });

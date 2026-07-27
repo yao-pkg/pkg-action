@@ -73,6 +73,23 @@ export function buildPkgArgs(inv: PkgInvocation): string[] {
 }
 
 /**
+ * Ask pkg which version it actually is. The `pkg-version` input is a specifier
+ * (`~6.21.0` floats patches), so it can't identify the build that ran — which is
+ * what you need when a patch release regresses. Returns undefined rather than
+ * throwing: failing to label a summary must never fail a build.
+ */
+export async function resolvePkgVersion(deps: PkgRunnerDeps): Promise<string | undefined> {
+  try {
+    const result = await deps.exec(deps.pkgCommand, ['--version'], { ignoreReturnCode: true });
+    if (result.exitCode !== 0) return undefined;
+    const version = result.stdout.trim();
+    return version === '' ? undefined : version;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Run pkg with the given invocation. Wraps non-zero exits in PkgRunError so
  * the orchestrator can surface the failure as a single `core.setFailed`.
  */
@@ -92,7 +109,15 @@ export async function runPkg(inv: PkgInvocation, deps: PkgRunnerDeps): Promise<E
   }
 
   if (result.exitCode !== 0) {
-    throw new PkgRunError(`pkg exited with code ${String(result.exitCode)}. See stderr above.`);
+    // Name the config: a preBuild/postBuild/transform hook failing looks exactly
+    // like a pkg-internal failure in the log, and the hook lives in that file.
+    const configHint =
+      inv.build.config !== undefined
+        ? ` If a preBuild/postBuild/transform hook is set in ${inv.build.config}, check its output above — hook failures surface as a pkg exit.`
+        : '';
+    throw new PkgRunError(
+      `pkg exited with code ${String(result.exitCode)}. See stderr above.${configHint}`,
+    );
   }
 
   return result;

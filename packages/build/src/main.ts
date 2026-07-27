@@ -44,11 +44,13 @@ import {
   parseWindowsMetadataInputs,
   readProjectInfo,
   render,
+  resolvePkgVersion,
   runPkg,
   signMacos,
   signWindowsSigntool,
   signWindowsTrustedSigning,
   tokensForTarget,
+  ValidationError,
   writeShasumsFile,
   writeSidecar,
   writeSummary,
@@ -121,20 +123,26 @@ async function main(): Promise<void> {
 
   // 2. Project directory + metadata.
   //
-  // When `config` points at a package.json, the project root is its parent
-  // directory — pkg reads that package.json as the entry. When `config` is a
-  // non-package.json (e.g. .pkgrc.json) or is unset, the project dir is
-  // GITHUB_WORKSPACE (or cwd when running locally).
+  // An explicit `config` names the project: its parent directory is the root,
+  // whether it is a package.json or a standalone config sitting beside one.
+  // That is where package.json — name, version, and the `bin` used as the entry
+  // for a standalone config — is read from. A config kept away from the project
+  // (say `configs/pkg.config.mjs`) has no package.json next to it, so fall back
+  // to GITHUB_WORKSPACE (or cwd when running locally), as does an unset config.
   const workspace = process.env['GITHUB_WORKSPACE'] ?? process.cwd();
-  const projectDir = (() => {
+  const projectDir = await (async () => {
     const cfg = inputs.build.config;
-    if (cfg !== undefined) {
-      const absCfg = pathResolve(workspace, cfg);
-      if (pathBasename(absCfg).toLowerCase() === 'package.json') {
-        return dirname(absCfg);
-      }
+    if (cfg === undefined) return workspace;
+    const configDir = dirname(pathResolve(workspace, cfg));
+    if (pathBasename(pathResolve(workspace, cfg)).toLowerCase() === 'package.json') {
+      return configDir;
     }
-    return workspace;
+    try {
+      await stat(join(configDir, 'package.json'));
+      return configDir;
+    } catch {
+      return workspace;
+    }
   })();
   const project = await readProjectInfo(projectDir);
   logger.info(`[pkg-action] project dir: ${projectDir}`);
@@ -173,9 +181,25 @@ async function main(): Promise<void> {
   const pkgCommand = inputs.build.pkgPath ?? 'pkg';
   const cfgIsPackageJson =
     effectiveConfig !== undefined && pathBasename(effectiveConfig).toLowerCase() === 'package.json';
+  const standaloneConfig = cfgIsPackageJson ? undefined : effectiveConfig;
+  // pkg rejects `--config <file>` alongside a package.json input, and the
+  // default positional `.` resolves to exactly that. So a standalone config
+  // has to name the entry script explicitly.
+  let entry = inputs.build.entry;
+  if (standaloneConfig !== undefined && entry === undefined) {
+    if (project.binEntry === undefined) {
+      throw new ValidationError(
+        `Input "${inputs.build.configInline !== undefined ? 'config-inline' : 'config'}" needs an entry script, ` +
+          `but package.json at ${projectDir} has no "bin". Set the "entry" input, or add "bin" to package.json.`,
+      );
+    }
+    entry = project.binEntry;
+    logger.info(`[pkg-action] entry resolved from package.json bin → ${entry}`);
+  }
   const pkgBuildInputs = {
     ...inputs.build,
-    config: cfgIsPackageJson ? undefined : effectiveConfig,
+    config: standaloneConfig,
+    entry,
   };
   // Fold the pkg invocation into its own group — "Walking dependencies",
   // "Downloading nodejs executable", "Generating SEA assets", plus the
@@ -185,6 +209,13 @@ async function main(): Promise<void> {
   // runPkg logs the full command itself via "Invoking: …" — no need to
   // pre-log the argv here.
   const pkgTargetsLabel = resolvedTargets.map(formatTarget).join(', ');
+  // Resolve before the build so the concrete version is in the log even when
+  // pkg then fails — that is exactly the run you need to identify afterwards.
+  const resolvedPkgVersion = await resolvePkgVersion({ exec: execBridge, logger, pkgCommand });
+  logger.info(
+    `[pkg-action] pkg ${resolvedPkgVersion ?? '(version unknown)'} (from "${inputs.build.pkgVersion}")`,
+  );
+
   logger.startGroup(`[pkg-action] pkg build (targets=${pkgTargetsLabel})`);
   const runStart = Date.now();
   try {
@@ -349,7 +380,10 @@ async function main(): Promise<void> {
     );
     await writeSummary(rowsWithTime, {
       actionVersion: VERSION,
-      pkgVersion: inputs.build.pkgVersion,
+      pkgVersion:
+        resolvedPkgVersion !== undefined
+          ? `${resolvedPkgVersion} (${inputs.build.pkgVersion})`
+          : inputs.build.pkgVersion,
     });
   }
 

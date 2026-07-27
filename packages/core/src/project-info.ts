@@ -15,6 +15,29 @@ export interface ProjectInfo {
   /** package.json "name" (or "bin" basename if bin is a string). Used as the output base name. */
   readonly name: string;
   readonly version: string;
+  /**
+   * Entry script from package.json `bin`, resolved against the project dir.
+   * `undefined` when `bin` is absent. Needed because pkg refuses `--config <file>`
+   * together with a package.json input ("Specify either 'package.json' or config.
+   * Not both"), so a standalone config must be paired with an explicit entry.
+   */
+  readonly binEntry: string | undefined;
+}
+
+/**
+ * Pick the `bin` entry the way pkg does (lib/config.ts `resolveInput`): a string
+ * `bin` is the entry; an object is keyed by the unscoped package name, falling
+ * back to the first value. Mirrored rather than reimplemented so the action and
+ * pkg never disagree about which script gets packed.
+ */
+function resolveBinEntry(bin: unknown, name: string, projectDir: string): string | undefined {
+  let rel: unknown = bin;
+  if (typeof rel === 'object' && rel !== null) {
+    const map = rel as Record<string, unknown>;
+    const unscoped = name.split('/').pop();
+    rel = (unscoped !== undefined ? map[unscoped] : undefined) ?? Object.values(map)[0];
+  }
+  return typeof rel === 'string' && rel !== '' ? join(projectDir, rel) : undefined;
 }
 
 /**
@@ -47,7 +70,7 @@ export async function readProjectInfo(projectDir: string): Promise<ProjectInfo> 
   if (typeof version !== 'string' || version === '') {
     throw new ValidationError(`package.json at ${path} is missing "version".`);
   }
-  return { name, version };
+  return { name, version, binEntry: resolveBinEntry(obj['bin'], name, projectDir) };
 }
 
 /**
@@ -56,7 +79,7 @@ export async function readProjectInfo(projectDir: string): Promise<ProjectInfo> 
  */
 export function tokensForTarget(
   target: Target,
-  project: ProjectInfo,
+  project: Pick<ProjectInfo, 'name' | 'version'>,
   env: Readonly<Record<string, string | undefined>>,
   nowDate: Date = new Date(),
 ): TemplateTokens {
