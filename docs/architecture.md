@@ -314,6 +314,13 @@ published; intra-workspace deps pin `*` so the sync never has to rewrite
 ranges. Only the root version is load-bearing — esbuild inlines it as
 `__PKG_ACTION_VERSION__`.
 
+`gitRawCommitsOpts.from` pins changelog generation to the scope-cut commit
+(`9781c17`). Everything before it is the Docker / SBOM / Homebrew / Scoop /
+provenance / release-attach work that was removed before any tag existed —
+listing it in the v1.0.0 changelog would describe features v1.0.0 does not
+have. **Delete that key once v1.0.0 ships**, or every later release regenerates
+from the same start point.
+
 Publishing to the GitHub Marketplace stays manual: it is a checkbox on the
 release page with no API.
 

@@ -69,7 +69,12 @@ input-surface-slim:
     - debug
     - extra-args
   migration: 'Move each value into .pkgrc / pkg.config.{js,cjs,mjs} or the `pkg` field of package.json. `buildPkgArgs` forwards the config path to pkg.'
-  breaking: 'yes — users setting any dropped input will see the unknown-input warning and the value will be ignored. Release note required.'
+  breaking: |
+    Behaviourally yes — a workflow setting any dropped input gets the
+    unknown-input warning and the value is ignored. NOT a release note: none of
+    this ever shipped under a tag, so there is no released version to break
+    from. The v1.0.0 changelog is cut from the scope-cut commit forward for the
+    same reason.
   minimum-pkg-version: |
     @yao-pkg/pkg >= 6.19.0 is required for the full build-flag surface in
     pkg config; >= 6.21.0 adds the preBuild / postBuild / transform build
@@ -83,10 +88,9 @@ input-surface-slim:
     locate it.
   default-pkg-version-bump: |
     `pkg-version` default moved ~6.19.0 -> ~6.21.0.
-    breaking: 'no API change, but every consumer on a floating action tag
-      who never set `pkg-version` gets a new pkg toolchain on their next
-      run. Release note REQUIRED, and it must call out the trust change
-      below — not just the version number.'
+    breaking: 'no API change. Pre-1.0 there is no floating tag to move under
+      anyone, so this needs no release note — but the trust change below must
+      be documented for consumers regardless, and it is, in SECURITY.md.'
     security: |
       6.21 hooks are arbitrary code execution sourced from the config in
       the checked-out tree. A workflow that builds an untrusted ref (fork
@@ -115,7 +119,7 @@ removed:
     what: 'attach-to-release, release-{tag,name,body,draft,prerelease}, generate-release-table inputs + ReleaseAttacher + buildReleaseBody + step-summary Release trailer.'
     replacement: 'softprops/action-gh-release against steps.<id>.outputs.artifacts + outputs.checksums.'
   M6.1 SLSA provenance:
-    what: 'provenance input + attest-build-provenance wiring in composite action.yml.'
+    what: 'provenance input + attest-build-provenance wiring in the then-composite action.yml.'
     replacement: 'actions/attest-build-provenance@v4 — one step chained after pkg-action.'
   M6.2 SBOM:
     what: 'sbom input + packages/core/src/sbom.ts (CycloneDX 1.5 + SPDX 2.3).'
@@ -188,6 +192,7 @@ pending:
     - GHES verification (out of reach without a GHES instance).
     - 'Set the `HAS_SELF_HOSTED_LINUX` repo variable to `true` once a self-hosted runner exists — the `self-hosted-node24` e2e job is written and gated on it, so it stays skipped until then.'
     - 'Tick "Publish this Action to the GitHub Marketplace" on the v1.0.0 release page. No API for it; the release workflow only prints a reminder.'
+    - 'AFTER v1.0.0 ships: delete `plugins.@release-it/conventional-changelog.gitRawCommitsOpts` from .release-it.json. It pins changelog generation to the scope-cut commit so pre-1.0 removed features stay out of the first entry; left in place it would also pin every later release to that same start point.'
 
 # ─── Release automation (2026-07-27) ─────────────────────────────────────
 
@@ -205,7 +210,24 @@ release-tooling:
     version is load-bearing; esbuild inlines it as __PKG_ACTION_VERSION__.
     Intra-workspace deps were repinned 0.0.0 → `*` so the sync never has to
     rewrite ranges and yarn keeps linking locally.
-  changelog: 'CHANGELOG.md generated, never hand-written. test/chore/style hidden.'
+  changelog: |
+    CHANGELOG.md is generated, never hand-written — release-it rewrites it on
+    every release, so an entry edited by hand comes back duplicated on top of a
+    regenerated one. Verified: the plugin's `infile` cannot be unset from the
+    CLI (`--no-plugins.….infile` writes to a file literally named "false") and
+    a config using `extends` deep-merges the parent's `infile` back in.
+
+    So the pre-1.0 noise is cut at the range instead of in the file:
+    `gitRawCommitsOpts.from` pins generation to the scope-cut commit
+    (9781c17), which is where the Docker / SBOM / Homebrew / Scoop / provenance
+    / release-attach work was removed. Everything before it describes features
+    that never shipped and are not in v1.0.0, so listing them would be wrong,
+    not merely noisy. test/chore/style types stay hidden.
+  open-question: |
+    RESOLVED — packages/*/package.json versions are synced by the release
+    script rather than left at 0.0.0. They are cosmetic (private:true, never
+    published), so this is a consistency choice: no manifest should claim 0.0.0
+    inside a tagged release.
   major-tag: 'scripts/move-major-tag.ts runs in after:release, force-moves vN to the new tag. Skipped for prereleases so @v1 never serves an rc.'
   open-question: |
     packages/*/package.json versions are cosmetic — those packages are
@@ -266,8 +288,8 @@ dev-deps:
 gh-actions:
   actions/checkout: v6
   actions/setup-node: v6
-  actions/cache: v5
   github/codeql-action: v4
+  note: 'actions/cache is no longer referenced — caching moved in-process with the composite removal. See composite-removal.fix.'
 
 known-issues:
   - 'yarn install pulls transitive bare-os/bare-fs emitting invalid-engine warnings — cosmetic.'

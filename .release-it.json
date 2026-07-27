@@ -49,7 +49,10 @@
       "infile": "CHANGELOG.md",
       "header": "# Changelog\n\nAll notable changes to `yao-pkg/pkg-action`. Generated from Conventional Commits — do not edit by hand.\n",
       "ignoreRecommendedBump": false,
-      "strictSemVer": true
+      "strictSemVer": true,
+      "gitRawCommitsOpts": {
+        "from": "9781c17dbf8171995379f2ecf30c9d5a7ea1e592"
+      }
     }
   }
 }
