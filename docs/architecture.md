@@ -13,7 +13,7 @@ can stay focused on wiring.
 
 ```
 pkg-action/
-├── action.yml                  # GENERATED — top-level composite (marketplace entry)
+├── action.yml                  # GENERATED — Node24 JS action (marketplace entry)
 ├── matrix/action.yml           # hand-maintained — matrix/ sub-action surface
 ├── windows-metadata/action.yml # hand-maintained — windows-metadata/ sub-action surface
 ├── packages/
@@ -23,10 +23,12 @@ pkg-action/
 │   └── windows-metadata/       # runs.using: node24 — resedit PE patcher
 ├── scripts/
 │   ├── bundle.ts               # esbuild — writes every dist/index.mjs (+ post.mjs)
-│   ├── gen-action-yml.ts       # codegen — writes action.yml + packages/build/action.yml + docs/inputs.md
-│   └── check-coverage.ts       # CI gate — parses coverage.lcov, enforces minimum
+│   ├── gen-action-yml.ts       # codegen — writes action.yml + docs/inputs.md
+│   ├── check-coverage.ts       # CI gate — parses coverage.lcov, enforces minimum
+│   ├── sync-workspace-versions.ts # release — root version → every workspace
+│   └── move-major-tag.ts       # release — repoints the floating vN tag
 ├── test-fixtures/              # apps the e2e workflow builds end-to-end
-├── .github/workflows/          # ci.yml + e2e.yml + codeql.yml
+├── .github/workflows/          # ci.yml + e2e.yml + codeql.yml + release.yml
 ├── docs/                       # authored + (inputs.md) generated reference
 └── STATUS.yaml                 # transient pre-v1.0 tracker (retired at release)
 ```
@@ -81,10 +83,17 @@ directly).
 | `version.ts`                | `VERSION` constant — esbuild-defined at bundle, read from package.json in dev |
 | `index.ts`                  | Barrel                                                                        |
 
-### `@pkg-action/build` (root composite's JS step)
+### `@pkg-action/build` (the root action)
 
-Orchestrates the full pipeline. Entry: `src/main.ts`. Post-step: `src/post.ts`
-(tears down the macOS ephemeral keychain via `core.getState('macosKeychains')`).
+Orchestrates the full pipeline and _is_ `/action.yml`'s `main`. Entry:
+`src/main.ts` — restore pkg-fetch cache → `npm i -g @yao-pkg/pkg` → run pkg →
+`finalizeBinary` per output → summary → outputs. Post-step: `src/post.ts` (saves
+the pkg-fetch cache, then tears down the macOS ephemeral keychain via
+`core.getState('macosKeychains')`).
+
+`src/pkg-cache-io.ts` holds the two-phase `@actions/cache` wiring; the key
+derivation itself lives in `core/pkg-cache.ts` so it can be tested without the
+cache service.
 
 ### `@pkg-action/matrix`
 
@@ -103,15 +112,17 @@ pipeline.
 parseInputs              → typed input record + secret registration
 readProjectInfo          → package.json name + version (resolves config path)
 resolveTargets           → 'host' → hostTarget() | parsed list
+restorePkgCache          → @actions/cache, key from derivePkgCacheKey (skipped when cache=false)
+installPkg               → npm i -g @yao-pkg/pkg@<pkg-version> (skipped when pkg-path is set)
 runPkg                   → @actions/exec → @yao-pkg/pkg CLI with buildPkgArgs
 mapPkgOutputs            → reconcile on-disk .exe/mach-o/elf to Target[]
 parseWindowsMetadataInputs → null when unused, short-circuits the resedit step
 parseSigningInputs       → null when unused, validates + registerSecrets up-front
 
-per Target:
+per Target: finalizeBinary()   → core/finalize-binary.ts
   render(filename, tokens) → rename output
   applyWindowsMetadata    (win-* only, windowsMeta != null)
-  signOneTarget           (macos + win, signing != null)
+  sign                    (macos + win, signing != null)
   archive                 (compress != none)
   computeAllChecksums     (any checksum != none)
   record SummaryRow
@@ -122,7 +133,13 @@ setOutputs                → binaries / artifacts / checksums / digests / versi
 ```
 
 All heavy lifting lives in `@pkg-action/core`; the orchestrator is a wiring
-shell around the `ExecFn` bridge (`getExecOutput` from `@actions/exec`).
+shell around the `ExecFn` bridge (`getExecOutput` from `@actions/exec`). The
+per-target work is one `finalizeBinary()` call so the sequencing that actually
+matters — patch before sign, sign before checksum — is unit-testable without a
+runner.
+
+The post step (`src/post.ts`) saves the pkg-fetch cache, then deletes the
+ephemeral keychains and the invocation temp dir. It never fails the job.
 
 ## 5. Dependency-injection pattern
 
@@ -169,10 +186,20 @@ Authoritative list of dropped inputs + migration note lives in
 
 Emitted:
 
-- `/action.yml` — top-level composite. Every input forwarded explicitly to the
-  inner `./packages/build` step (GH Actions has no wildcard forward).
-- `/packages/build/action.yml` — JS action definition (`runs.using: node24`).
+- `/action.yml` — the marketplace entry: `runs.using: node24`, `main`
+  `packages/build/dist/index.mjs`, `post` `packages/build/dist/post.mjs`.
 - `/docs/inputs.md` — reference table grouped by `InputCategory`.
+
+Deliberately **not** a composite. A composite delegating to
+`uses: ./packages/build` resolves that path against the _consumer's_ workspace
+rather than this repo ([actions/runner#1348][runner-1348]), so it only worked
+when the workspace happened to be a checkout of pkg-action — which is exactly
+what every `uses: ./` e2e job set up. Owning the run in one JS entrypoint also
+keeps a real `post:` step, which is what tears down the signing keychains. The
+`consumer-ref` e2e job and the `no published action.yml references a local
+action` unit test both guard the regression.
+
+[runner-1348]: https://github.com/actions/runner/issues/1348
 
 **Not** touched by codegen:
 
@@ -218,7 +245,7 @@ steps: install → lint → typecheck → test (with lcov) → coverage gate (�
        → build → gen → git diff --exit-code over dist/ + action.yml + docs/inputs.md
 ```
 
-### `e2e.yml` — full composite against fixtures
+### `e2e.yml` — full action against fixtures
 
 Triggers: push to main, pull_request (path-filtered so docs-only PRs skip),
 workflow_dispatch. Jobs:
@@ -228,6 +255,17 @@ workflow_dispatch. Jobs:
 - `matrix-plan` → `matrix-fanout` demo (strategy.matrix consumption)
 - `multi-target-linux` single-runner build
 - `windows-metadata` round-trip (`.github/scripts/assert-windows-metadata.ts`)
+- `claude-code-smoke` — SEA + Zstd across 4 OS/arch combos
+- `build-hooks` — preBuild / postBuild / transform
+- `consumer-ref` — **the only job that reaches the action the way a caller
+  does**: `uses: <owner>/<repo>@<sha>` against a sparse checkout holding just
+  the fixture. Every other job says `uses: ./`, which makes the workspace and
+  the action directory the same tree and hides anything that depends on the
+  difference. Skipped on fork PRs (their head sha is not reachable through the
+  action-download path).
+- `self-hosted-node24` — `runs.using: node24` on a self-hosted runner, gated on
+  the `HAS_SELF_HOSTED_LINUX` repository variable so it does not queue forever
+  when no such runner exists.
 
 ### `codeql.yml` — GitHub CodeQL SAST
 
@@ -248,15 +286,35 @@ asserted by the e2e jobs.
 Known gap: no fixture yet for TS-source apps, asset-bundling, or
 `package.json#bin` overrides — see `STATUS.yaml#pending.e2e-coverage`.
 
-## 11. Release flow (future — v1.0.0)
+## 11. Release flow
 
-1. Bump `/package.json#version` to `1.0.0`.
-2. `yarn build` — esbuild inlines `"1.0.0"` into every bundled sub-action via `__PKG_ACTION_VERSION__`.
-3. `yarn gen` — noop for version, but ensures action.yml + inputs.md are fresh.
-4. Commit bundle + codegen output (CI diff gate verifies).
-5. Tag `v1.0.0`, push tag.
-6. Move `v1` major-alias tag to the new SHA (`git tag -f v1 && git push -f origin v1`).
-7. Replace `STATUS.yaml` with `CHANGELOG.md`.
+Driven by **release-it** (`.release-it.json`), triggered from the
+`Release` workflow (`workflow_dispatch`, defaults to a dry run). It runs in CI
+rather than on a laptop because the release commit carries the `dist/` bundles
+consumers execute, and CI is the only place they are guaranteed to be built by
+the Node in `.node-version`.
+
+| Step                     | Owner                                | What                                                        |
+| ------------------------ | ------------------------------------ | ----------------------------------------------------------- |
+| pick the version         | `@release-it/conventional-changelog` | Conventional Commits decide patch/minor/major               |
+| `before:init`            | release-it hook                      | `yarn lint`, `yarn typecheck`, `yarn test:unit`             |
+| bump root `package.json` | release-it                           |                                                             |
+| `after:bump`             | release-it hook                      | `sync-workspace-versions.ts` → `yarn gen` → `yarn build`    |
+| `CHANGELOG.md`           | plugin                               | prepended, generated — never hand-edited                    |
+| commit + tag             | release-it                           | `chore(release): vX.Y.Z`, tag `vX.Y.Z`                      |
+| GitHub release           | release-it                           | body = the generated changelog section                      |
+| `after:release`          | release-it hook                      | `move-major-tag.ts` repoints `vN` (skipped for prereleases) |
+
+`sync-workspace-versions.ts` exists so `packages/*/package.json` never claims
+`0.0.0` inside a tagged release. Those packages are `private: true` and never
+published; intra-workspace deps pin `*` so the sync never has to rewrite
+ranges. Only the root version is load-bearing — esbuild inlines it as
+`__PKG_ACTION_VERSION__`.
+
+Publishing to the GitHub Marketplace stays manual: it is a checkbox on the
+release page with no API.
+
+Retire `STATUS.yaml` once v1.0.0 ships — `CHANGELOG.md` replaces it.
 
 ## 12. Known architectural debt
 

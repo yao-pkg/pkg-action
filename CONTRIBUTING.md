@@ -23,11 +23,17 @@ We run TypeScript directly via `node --experimental-strip-types`. **Do not** int
 
 Hard caps: **6 runtime deps, 3 dev deps.** Every addition requires a justification comment next to its `package.json` entry. See the plan's §16 for the current allow-list and deny-list.
 
+Current runtime deps (6/6 — the budget is full): `@actions/core`, `@actions/exec`, `@actions/cache`, `@actions/glob`, `resedit`, `yazl`. `@actions/cache` + `@actions/glob` arrived when the composite wrapper was removed and the `actions/cache` step had to move in-process; they cost ~1.5 MB of bundle between them. Anything further needs one of these to leave first.
+
 ## Commits + PRs
 
 - Conventional Commits (`feat:`, `fix:`, `refactor:`, `test:`, `chore:`, `docs:`).
+  These are not decoration: `CHANGELOG.md` and the version bump are generated
+  from them by release-it. A `feat:` cuts a minor, a `fix:` cuts a patch, and a
+  `BREAKING CHANGE:` footer cuts a major. `test:`, `chore:` and `style:` are
+  hidden from the changelog.
 - Rebase onto `main`, not merge.
-- CI must be green before merge. `dist/` and generated `action.yml` files are checked via `git diff --exit-code` — run `yarn build` before committing.
+- CI must be green before merge. `dist/` and the generated `action.yml` are checked via `git diff --exit-code` — run `yarn build && yarn gen` before committing.
 
 ## Milestones
 
