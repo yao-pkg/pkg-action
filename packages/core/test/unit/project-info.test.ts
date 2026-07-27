@@ -107,3 +107,48 @@ test('tokensForTarget uses "latest" as node prefix for latest-<os>-<arch>', () =
   strictEqual(tokens.node, 'latest');
   strictEqual(tokens.target, 'latest-linux-x64');
 });
+
+// ─── bin entry resolution ─────────────────────────────────────────────────
+// Mirrors pkg's own precedence (lib/config.ts resolveInput): string bin wins,
+// object bin is keyed by the unscoped package name, else the first value.
+
+test('readProjectInfo resolves a string bin to an absolute entry', async () => {
+  await withProject({ name: 'app', version: '1.0.0', bin: 'cli.js' }, async (dir) => {
+    const info = await readProjectInfo(dir);
+    strictEqual(info.binEntry, join(dir, 'cli.js'));
+  });
+});
+
+test('readProjectInfo picks the bin entry matching the unscoped package name', async () => {
+  await withProject(
+    { name: '@scope/app', version: '1.0.0', bin: { other: 'other.js', app: 'right.js' } },
+    async (dir) => {
+      const info = await readProjectInfo(dir);
+      strictEqual(info.binEntry, join(dir, 'right.js'));
+    },
+  );
+});
+
+test('readProjectInfo falls back to the first bin value when no name match', async () => {
+  await withProject(
+    { name: 'app', version: '1.0.0', bin: { somethingElse: 'first.js', second: 'second.js' } },
+    async (dir) => {
+      const info = await readProjectInfo(dir);
+      strictEqual(info.binEntry, join(dir, 'first.js'));
+    },
+  );
+});
+
+test('readProjectInfo reports no bin entry when bin is absent', async () => {
+  await withProject({ name: 'app', version: '1.0.0' }, async (dir) => {
+    const info = await readProjectInfo(dir);
+    strictEqual(info.binEntry, undefined);
+  });
+});
+
+test('readProjectInfo ignores a non-string, non-object bin', async () => {
+  await withProject({ name: 'app', version: '1.0.0', bin: 42 }, async (dir) => {
+    const info = await readProjectInfo(dir);
+    strictEqual(info.binEntry, undefined);
+  });
+});

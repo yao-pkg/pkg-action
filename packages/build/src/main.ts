@@ -44,11 +44,13 @@ import {
   parseWindowsMetadataInputs,
   readProjectInfo,
   render,
+  resolvePkgVersion,
   runPkg,
   signMacos,
   signWindowsSigntool,
   signWindowsTrustedSigning,
   tokensForTarget,
+  ValidationError,
   writeShasumsFile,
   writeSidecar,
   writeSummary,
@@ -173,9 +175,25 @@ async function main(): Promise<void> {
   const pkgCommand = inputs.build.pkgPath ?? 'pkg';
   const cfgIsPackageJson =
     effectiveConfig !== undefined && pathBasename(effectiveConfig).toLowerCase() === 'package.json';
+  const standaloneConfig = cfgIsPackageJson ? undefined : effectiveConfig;
+  // pkg rejects `--config <file>` alongside a package.json input, and the
+  // default positional `.` resolves to exactly that. So a standalone config
+  // has to name the entry script explicitly.
+  let entry = inputs.build.entry;
+  if (standaloneConfig !== undefined && entry === undefined) {
+    if (project.binEntry === undefined) {
+      throw new ValidationError(
+        `Input "${inputs.build.configInline !== undefined ? 'config-inline' : 'config'}" needs an entry script, ` +
+          `but package.json at ${projectDir} has no "bin". Set the "entry" input, or add "bin" to package.json.`,
+      );
+    }
+    entry = project.binEntry;
+    logger.info(`[pkg-action] entry resolved from package.json bin → ${entry}`);
+  }
   const pkgBuildInputs = {
     ...inputs.build,
-    config: cfgIsPackageJson ? undefined : effectiveConfig,
+    config: standaloneConfig,
+    entry,
   };
   // Fold the pkg invocation into its own group — "Walking dependencies",
   // "Downloading nodejs executable", "Generating SEA assets", plus the
@@ -185,6 +203,13 @@ async function main(): Promise<void> {
   // runPkg logs the full command itself via "Invoking: …" — no need to
   // pre-log the argv here.
   const pkgTargetsLabel = resolvedTargets.map(formatTarget).join(', ');
+  // Resolve before the build so the concrete version is in the log even when
+  // pkg then fails — that is exactly the run you need to identify afterwards.
+  const resolvedPkgVersion = await resolvePkgVersion({ exec: execBridge, logger, pkgCommand });
+  logger.info(
+    `[pkg-action] pkg ${resolvedPkgVersion ?? '(version unknown)'} (from "${inputs.build.pkgVersion}")`,
+  );
+
   logger.startGroup(`[pkg-action] pkg build (targets=${pkgTargetsLabel})`);
   const runStart = Date.now();
   try {
@@ -349,7 +374,10 @@ async function main(): Promise<void> {
     );
     await writeSummary(rowsWithTime, {
       actionVersion: VERSION,
-      pkgVersion: inputs.build.pkgVersion,
+      pkgVersion:
+        resolvedPkgVersion !== undefined
+          ? `${resolvedPkgVersion} (${inputs.build.pkgVersion})`
+          : inputs.build.pkgVersion,
     });
   }
 
