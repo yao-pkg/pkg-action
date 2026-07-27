@@ -1,4 +1,5 @@
 // Post-run cleanup.
+//   - Saves the pkg-fetch download cache (main recorded the key).
 //   - Removes this invocation's temp dir (recorded via saveState in main).
 //   - Deletes every ephemeral macOS keychain the signer created.
 //
@@ -8,6 +9,7 @@
 import * as core from '@actions/core';
 import { getExecOutput } from '@actions/exec';
 import { rm } from 'node:fs/promises';
+import { savePkgCache } from './pkg-cache-io.ts';
 
 async function tearDownKeychains(): Promise<void> {
   const raw = core.getState('macosKeychains');
@@ -28,6 +30,10 @@ async function tearDownKeychains(): Promise<void> {
 }
 
 async function post(): Promise<void> {
+  // Cache first: it is the only step here whose output outlives the job, and a
+  // keychain that fails to delete must not cost the next run its downloads.
+  await savePkgCache();
+
   await tearDownKeychains();
 
   const invocationDir = core.getState('invocationDir');

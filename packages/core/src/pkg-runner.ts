@@ -73,6 +73,30 @@ export function buildPkgArgs(inv: PkgInvocation): string[] {
 }
 
 /**
+ * `npm i -g @yao-pkg/pkg@<specifier>`.
+ *
+ * Callers skip this when `pkg-path` names a pre-installed binary. The specifier
+ * was already shape-checked by `parseInputs`, and it lands in a single argv
+ * element, so nothing here can turn it into a second npm flag.
+ */
+export async function installPkg(
+  specifier: string,
+  deps: Omit<PkgRunnerDeps, 'pkgCommand'>,
+): Promise<void> {
+  const spec = `@yao-pkg/pkg@${specifier}`;
+  deps.logger.info(`[pkg-action] Installing ${spec}`);
+  let result: ExecResult;
+  try {
+    result = await deps.exec('npm', ['i', '-g', spec], { ignoreReturnCode: true });
+  } catch (err) {
+    throw new PkgRunError(`Failed to spawn npm: ${String(err)}`, { cause: err });
+  }
+  if (result.exitCode !== 0) {
+    throw new PkgRunError(`npm i -g ${spec} exited ${String(result.exitCode)}.`);
+  }
+}
+
+/**
  * Ask pkg which version it actually is. The `pkg-version` input is a specifier
  * (`~6.21.0` floats patches), so it can't identify the build that ran — which is
  * what you need when a patch release regresses. Returns undefined rather than

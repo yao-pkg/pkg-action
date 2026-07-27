@@ -408,6 +408,26 @@ function parseBoolean(value: string | undefined, name: string): boolean {
   throw new ValidationError(`Input "${name}" expected a boolean (true/false) but got "${value}".`);
 }
 
+/**
+ * Characters an npm version specifier can legitimately contain — digits, dots,
+ * the range operators, dist-tag letters, and the space/`|` used by compound
+ * ranges (`>=6.19 <7`, `6.x || 7.x`).
+ *
+ * The specifier reaches `npm i -g @yao-pkg/pkg@<spec>` as one argv element, so
+ * this is not an injection guard; it fails a typo'd or hostile value fast, with
+ * the input name attached, instead of surfacing as an opaque npm error.
+ */
+const NPM_SPECIFIER_RE = /^[A-Za-z0-9.*|=<>~^ -]+$/;
+
+function parsePkgVersionSpecifier(value: string): string {
+  if (!NPM_SPECIFIER_RE.test(value)) {
+    throw new ValidationError(
+      `Input "pkg-version" is not a valid npm version specifier: "${value}".`,
+    );
+  }
+  return value;
+}
+
 function parseEnum<T extends string>(
   value: string | undefined,
   name: string,
@@ -522,7 +542,7 @@ export function parseInputs(opts: ParseInputsOptions = {}): ActionInputs {
     configInline,
     entry: readInput(env, 'entry'),
     targets,
-    pkgVersion: readRequiredInput(env, 'pkg-version'),
+    pkgVersion: parsePkgVersionSpecifier(readRequiredInput(env, 'pkg-version')),
     pkgPath: readInput(env, 'pkg-path'),
   };
 

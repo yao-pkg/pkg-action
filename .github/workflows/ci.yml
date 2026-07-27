@@ -62,7 +62,7 @@ jobs:
 
       - name: Verify committed dist/ + action.yml + docs are up-to-date
         run: |
-          git diff --exit-code -- '**/dist/**' action.yml packages/build/action.yml docs/inputs.md || {
+          git diff --exit-code -- '**/dist/**' action.yml docs/inputs.md || {
             echo "::error::Committed dist/ or generated action.yml/inputs.md is out of sync. Run 'yarn build && yarn gen' locally and commit."
             exit 1
           }

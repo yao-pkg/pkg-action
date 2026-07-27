@@ -1,12 +1,11 @@
-// scripts/gen-action-yml.ts — code-generate the three action.yml surfaces
-// from the single source of truth in packages/core/src/inputs.ts, plus the
+// scripts/gen-action-yml.ts — code-generate the action.yml surfaces from the
+// single source of truth in packages/core/src/inputs.ts, plus the
 // human-readable docs/inputs.md.
 //
 // Runs via `node --experimental-strip-types scripts/gen-action-yml.ts`.
 //
 // Emits:
-//   /action.yml                       — top-level composite (marketplace entry)
-//   /packages/build/action.yml        — Node24 JS action invoked by the composite
+//   /action.yml                       — the marketplace entry (Node24 JS action)
 //   /docs/inputs.md                   — reference table
 //
 // NOT touched here (hand-maintained):
@@ -15,17 +14,12 @@
 //
 // CI gate: `git diff --exit-code` over the generated files catches drift.
 
-import { INPUT_SPECS, PKG_CONFIG_FILENAMES, specFor, type InputSpec } from '@pkg-action/core';
+import { INPUT_SPECS, specFor, type InputSpec } from '@pkg-action/core';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const REPO_ROOT = resolve(fileURLToPath(import.meta.url), '../..');
-
-/** `hashFiles` args covering every auto-detected pkg config, derived from the one list. */
-const CACHE_CONFIG_GLOBS = PKG_CONFIG_FILENAMES.map((f) =>
-  f.startsWith('.') ? `'${f}'` : `'**/${f}'`,
-).join(', ');
 
 /** The `pkg-version` default, quoted for prose. Never hardcode it a second time. */
 const PKG_VERSION_DEFAULT = specFor('pkg-version')?.default ?? '';
@@ -89,23 +83,18 @@ function renderOutputsSection(indent: string = ''): string {
   ).join('\n');
 }
 
-// ─── Top-level composite action.yml ───────────────────────────────────────
+// ─── Top-level action.yml ─────────────────────────────────────────────────
+//
+// A plain Node24 JS action, deliberately NOT a composite. A composite that
+// delegated to `uses: ./packages/build` resolved that path against the
+// *consumer's* workspace, not this repo (actions/runner#1348), so it only ever
+// worked when the workspace happened to be a checkout of pkg-action. Owning the
+// whole run in one JS entrypoint also buys a real `post:` step, which is what
+// tears down the ephemeral signing keychains.
 
-function renderCompositeActionYml(): string {
+function renderRootActionYml(): string {
   const inputsBlock = renderInputsSection('  ');
-  const outputsBlock = INPUT_SPECS.length; // just to use the local binding
-  void outputsBlock;
-
-  // Forward every input to the inner ./packages/build step explicitly — composite
-  // actions don't support a wildcard pass-through, so codegen does the enumeration.
-  const passthrough = INPUT_SPECS.map((s) => `          ${s.name}: \${{ inputs.${s.name} }}`).join(
-    '\n',
-  );
-
-  const outputsComposite = OUTPUTS.map(
-    (o) =>
-      `  ${o.id}:\n    description: ${yamlString(o.description)}\n    value: \${{ steps.pkg-action-build.outputs.${o.id} }}`,
-  ).join('\n');
+  const outputsBlock = renderOutputsSection('  ');
 
   return `${GENERATED_BANNER}name: 'yao-pkg/pkg-action'
 description: 'Build, optionally sign, archive, and checksum Node.js binaries with @yao-pkg/pkg.'
@@ -118,67 +107,12 @@ inputs:
 ${inputsBlock}
 
 outputs:
-${outputsComposite}
-
-runs:
-  using: 'composite'
-  steps:
-    - name: Export PKG_CACHE_PATH
-      shell: bash
-      run: |
-        echo "PKG_CACHE_PATH=\${RUNNER_TEMP}/pkg-cache" >> "\${GITHUB_ENV}"
-
-    - name: Cache pkg-fetch Node downloads
-      if: \${{ inputs.cache != 'false' }}
-      uses: actions/cache@v5
-      with:
-        path: \${{ runner.temp }}/pkg-cache
-        key: \${{ inputs.cache-key || format('pkg-fetch-{0}-{1}-{2}', runner.os, runner.arch, hashFiles('**/package.json', ${CACHE_CONFIG_GLOBS})) }}
-
-    - name: Install @yao-pkg/pkg
-      if: \${{ inputs.pkg-path == '' }}
-      shell: bash
-      env:
-        PKG_VERSION: \${{ inputs.pkg-version }}
-      run: |
-        # Read from env and quoted — never interpolated into this script by the
-        # workflow templater, or a crafted specifier would execute right here.
-        # The pattern lives in a variable because [[ ]] parses a bare > as an
-        # operator before it ever reaches the regex engine.
-        specifier_re='^[A-Za-z0-9.*|=<>~^ -]+$'
-        if [[ ! "\${PKG_VERSION}" =~ $specifier_re ]]; then
-          echo "::error::Input 'pkg-version' is not a valid npm version specifier: \${PKG_VERSION}"
-          exit 1
-        fi
-        npm i -g "@yao-pkg/pkg@\${PKG_VERSION}"
-
-    - name: Run pkg-action build
-      id: pkg-action-build
-      uses: ./packages/build
-      with:
-${passthrough}
-`;
-}
-
-// ─── packages/build/action.yml (Node24 JS action) ─────────────────────────
-
-function renderBuildActionYml(): string {
-  const inputsBlock = renderInputsSection('  ');
-  const outputsBlock = renderOutputsSection('  ');
-  return `${GENERATED_BANNER}name: 'pkg-action internal: build'
-description: 'Internal Node 24 JS action invoked by the top-level pkg-action composite. Not a public API.'
-author: 'yao-pkg contributors'
-
-inputs:
-${inputsBlock}
-
-outputs:
 ${outputsBlock}
 
 runs:
   using: 'node24'
-  main: 'dist/index.mjs'
-  post: 'dist/post.mjs'
+  main: 'packages/build/dist/index.mjs'
+  post: 'packages/build/dist/post.mjs'
 `;
 }
 
@@ -317,8 +251,7 @@ async function write(path: string, content: string): Promise<void> {
 
 async function main(): Promise<void> {
   process.stdout.write('pkg-action gen-action-yml — starting\n');
-  await write('action.yml', renderCompositeActionYml());
-  await write('packages/build/action.yml', renderBuildActionYml());
+  await write('action.yml', renderRootActionYml());
   await write('docs/inputs.md', renderInputsDocs());
   process.stdout.write('pkg-action gen-action-yml — done\n');
 }

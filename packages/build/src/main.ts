@@ -1,10 +1,11 @@
-// Orchestrator — runs end-to-end inside the Node24 JS action invoked by the
-// composite at the repo root.
+// Orchestrator — the `main` of the Node24 JS action at the repo root.
 //
 // Pipeline:
 //   parseInputs            → typed input record (+ secret registration, typo warnings)
 //   readProjectInfo        → package.json name + version
 //   resolveTargets         → 'host' → hostTarget() | explicit list
+//   restorePkgCache        → pkg-fetch downloads from a previous run
+//   installPkg             → npm i -g @yao-pkg/pkg@<pkg-version>
 //   runPkg                 → @actions/exec → @yao-pkg/pkg CLI
 //   mapPkgOutputs          → reconcile on-disk outputs to targets
 //   per binary:
@@ -25,47 +26,38 @@
 // `checksums` outputs.
 
 import * as core from '@actions/core';
-import { mkdir, rename, stat } from 'node:fs/promises';
+import { mkdir, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename as pathBasename, dirname, join, resolve as pathResolve } from 'node:path';
 import {
   actionsLogger,
-  applyWindowsMetadata,
-  archive,
-  computeAllChecksums,
   createInvocationTemp,
+  finalizeBinary,
   formatErrorChain,
   formatTarget,
   hostTarget,
+  installPkg,
   mapPkgOutputs,
   materializePkgConfigInline,
   parseInputs,
   parseSigningInputs,
   parseWindowsMetadataInputs,
   readProjectInfo,
-  render,
   resolvePkgVersion,
   runPkg,
-  signMacos,
-  signWindowsSigntool,
-  signWindowsTrustedSigning,
-  tokensForTarget,
   ValidationError,
   writeShasumsFile,
-  writeSidecar,
   writeSummary,
   closestInputName,
   VERSION,
   type ActionInputs,
   type ChecksumAlgorithm,
+  type ChecksumEntry,
   type ExecFn,
-  type Logger,
-  type OutputEntry,
-  type SigningInputs,
   type SummaryRow,
   type Target,
-  type WindowsMetadataInputs,
 } from '@pkg-action/core';
+import { restorePkgCache } from './pkg-cache-io.ts';
 
 // ─── @actions/exec bridge ─────────────────────────────────────────────────
 
@@ -159,6 +151,24 @@ async function main(): Promise<void> {
   core.saveState('invocationDir', invocationDir);
   const pkgOutputDir = join(invocationDir, 'pkg-out');
   await mkdir(pkgOutputDir, { recursive: true });
+
+  // 4.1. Point pkg-fetch at a known directory and restore its cache. Exported
+  //      rather than merely set in-process so a later workflow step that shells
+  //      out to pkg directly reuses the same downloads.
+  const pkgCachePath = join(runnerTemp, 'pkg-cache');
+  core.exportVariable('PKG_CACHE_PATH', pkgCachePath);
+  if (inputs.performance.cache) {
+    await restorePkgCache({
+      cachePath: pkgCachePath,
+      cacheKeyOverride: inputs.performance.cacheKey,
+      logger,
+    });
+  }
+
+  // 4.2. Install pkg unless the caller supplied one.
+  if (inputs.build.pkgPath === undefined) {
+    await installPkg(inputs.build.pkgVersion, { exec: execBridge, logger });
+  }
 
   // 4.5. Materialize `config-inline` to disk, if set. parseInputs already
   //      validated it as a JSON object and enforced mutual exclusion with
@@ -260,99 +270,41 @@ async function main(): Promise<void> {
 
   const finalizedBinaries: string[] = [];
   const finalizedArtifacts: string[] = [];
-  const shasumEntries: Array<{ algo: ChecksumAlgorithm; path: string; digest: string }> = [];
+  const shasumEntries: ChecksumEntry[] = [];
   const summaryRows: SummaryRow[] = [];
   // Per-artifact digest map keyed by basename — consumed by the `digests`
   // output so callers can verify without reading SHASUMS files off disk.
   const digestsByArtifact: Record<string, Partial<Record<ChecksumAlgorithm, string>>> = {};
 
   for (const out of pkgOutputs) {
-    const tokens = tokensForTarget(out.target, project, process.env);
-    const renamedBase = render(inputs.postBuild.filename, tokens);
-    const needsExe = out.target.os === 'win' && !renamedBase.toLowerCase().endsWith('.exe');
-    const renamed = needsExe ? `${renamedBase}.exe` : renamedBase;
-    const renamedPath = join(finalDir, renamed);
-    await rename(out.path, renamedPath);
+    const result = await finalizeBinary(
+      {
+        output: out,
+        project,
+        postBuild: inputs.postBuild,
+        finalDir,
+        windowsMetadata: windowsMeta,
+        signing,
+        tempDir: invocationDir,
+      },
+      { exec: execBridge, logger },
+    );
 
-    // Group per-target work in the GH Actions log so each target folds
-    // into its own collapsible section — makes matrix logs scannable.
-    logger.startGroup(`[pkg-action] finalize ${formatTarget(out.target)} → ${renamed}`);
-    try {
-      // 7.5. Patch Windows metadata in-place before archiving. Only win-*
-      //      targets receive a PE resource section; the call is a no-op
-      //      otherwise, but skipping it avoids reading the binary off disk.
-      if (windowsMeta !== null && out.target.os === 'win') {
-        const perBinary: WindowsMetadataInputs = {
-          ...windowsMeta,
-          originalFilename: windowsMeta.originalFilename ?? pathBasename(renamedPath),
-        };
-        await applyWindowsMetadata(renamedPath, renamedPath, perBinary);
-        logger.info(`[pkg-action] Patched Windows resources on ${renamedPath}.`);
-      }
+    finalizedBinaries.push(result.binaryPath);
+    finalizedArtifacts.push(result.artifactPath);
+    shasumEntries.push(...result.checksums);
+    summaryRows.push(result.row);
+    Object.assign(digestsByArtifact, result.digests);
 
-      // 7.6. Sign the binary, if configured for this target's OS. We sign
-      //      AFTER the metadata patch (signing covers the whole binary
-      //      including its resource section) and BEFORE archive/checksum
-      //      so the shasum reflects the signed bytes.
-      let signedFlag = false;
-      if (signing !== null) {
-        signedFlag = await signOneTarget(
-          { targetOs: out.target.os, binaryPath: renamedPath },
-          signing,
-          {
-            exec: execBridge,
-            logger,
-            tempDir: invocationDir,
-          },
-        );
-      }
-
-      finalizedBinaries.push(renamedPath);
-
-      let finalPath: string;
-      if (inputs.postBuild.compress === 'none') {
-        finalPath = renamedPath;
-      } else {
-        logger.info(
-          `[pkg-action] archive → ${pathBasename(renamedPath)} (format=${inputs.postBuild.compress})`,
-        );
-        const archStart = Date.now();
-        finalPath = await archiveBinary(out, renamedPath, inputs, tokens);
-        const archSize = (await stat(finalPath)).size;
-        logger.info(
-          `[pkg-action] archived ${pathBasename(finalPath)} (${formatBytes(archSize)}, ${formatSeconds(Date.now() - archStart)})`,
-        );
-      }
-      finalizedArtifacts.push(finalPath);
-
-      // Checksums — log each digest so a downstream failure trivially
-      // diffs against a local recompute.
-      const rowDigest = await finalizeChecksums(finalPath, inputs.postBuild.checksum);
-      for (const entry of rowDigest.entries) {
-        shasumEntries.push(entry);
-        logger.info(`[pkg-action] ${entry.algo} ${entry.digest}  ${pathBasename(finalPath)}`);
-      }
-      if (rowDigest.entries.length > 0) {
-        const key = pathBasename(finalPath);
-        const byAlgo: Partial<Record<ChecksumAlgorithm, string>> = {};
-        for (const entry of rowDigest.entries) byAlgo[entry.algo] = entry.digest;
-        digestsByArtifact[key] = byAlgo;
-      }
-
-      const { size } = await stat(finalPath);
-      const row: SummaryRow = {
-        target: formatTarget(out.target),
-        filename: finalPath,
-        sizeBytes: size,
-        ...(signedFlag ? { signed: true } : {}),
-      };
-      if (rowDigest.primary !== undefined) {
-        (row as { primaryDigest?: { algo: ChecksumAlgorithm; value: string } }).primaryDigest =
-          rowDigest.primary;
-      }
-      summaryRows.push(row);
-    } finally {
-      logger.endGroup();
+    // Hand the ephemeral keychain off to post.ts so it is torn down even on a
+    // later failure. Appending rather than overwriting keeps multiple targets
+    // (unlikely with macOS, but safe) from dropping each other.
+    if (result.macosKeychain !== undefined) {
+      const prior = core.getState('macosKeychains');
+      core.saveState(
+        'macosKeychains',
+        prior === '' ? result.macosKeychain : `${prior}\n${result.macosKeychain}`,
+      );
     }
   }
 
@@ -403,112 +355,6 @@ async function main(): Promise<void> {
 
 function formatSeconds(ms: number): string {
   return `${(ms / 1000).toFixed(1)}s`;
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${String(bytes)} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────
-
-async function signOneTarget(
-  spec: { targetOs: Target['os']; binaryPath: string },
-  signing: SigningInputs,
-  deps: { exec: ExecFn; logger: Logger; tempDir: string },
-): Promise<boolean> {
-  if (spec.targetOs === 'macos' && signing.macos !== undefined) {
-    const cleanup = await signMacos(spec.binaryPath, signing.macos, deps);
-    // Hand off to post.ts so the ephemeral keychain is torn down even on
-    // a later failure. We append instead of overwriting so multiple targets
-    // (unlikely with macOS, but safe) don't drop each other.
-    const prior = core.getState('macosKeychains');
-    const next = prior === '' ? cleanup.keychainPath : `${prior}\n${cleanup.keychainPath}`;
-    core.saveState('macosKeychains', next);
-    return true;
-  }
-  if (spec.targetOs === 'win') {
-    if (signing.windowsMode === 'signtool' && signing.windowsSigntool !== undefined) {
-      await signWindowsSigntool(spec.binaryPath, signing.windowsSigntool, deps);
-      return true;
-    }
-    if (signing.windowsMode === 'trusted-signing' && signing.windowsTrusted !== undefined) {
-      await signWindowsTrustedSigning(spec.binaryPath, signing.windowsTrusted, deps);
-      return true;
-    }
-  }
-  return false;
-}
-
-async function archiveBinary(
-  out: OutputEntry,
-  renamedPath: string,
-  inputs: ActionInputs,
-  tokens: Parameters<typeof render>[1],
-): Promise<string> {
-  const baseName = renamedPath.substring(0, renamedPath.length - extSuffix(renamedPath).length);
-  const archiveExt = archiveExtFor(inputs.postBuild.compress);
-  if (archiveExt === undefined) return renamedPath;
-  const archivePath = `${baseName}.${archiveExt}`;
-  await archive(
-    {
-      inputPath: renamedPath,
-      outputPath: archivePath,
-      // Use the same rendered basename inside the archive.
-      format: inputs.postBuild.compress as 'tar.gz' | 'tar.xz' | 'zip' | '7z',
-      entryName:
-        render(inputs.postBuild.filename, tokens) + (out.target.os === 'win' ? '.exe' : ''),
-    },
-    { exec: execBridge },
-  );
-  return archivePath;
-}
-
-function extSuffix(path: string): string {
-  // Return just the last extension; used to strip .exe before appending the archive suffix.
-  const idx = path.lastIndexOf('.');
-  if (idx === -1) return '';
-  // Guard against very long names — only strip if the extension is <=5 chars.
-  const ext = path.slice(idx);
-  return ext.length <= 5 ? ext : '';
-}
-
-function archiveExtFor(format: string): string | undefined {
-  if (format === 'tar.gz') return 'tar.gz';
-  if (format === 'tar.xz') return 'tar.xz';
-  if (format === 'zip') return 'zip';
-  if (format === '7z') return '7z';
-  return undefined;
-}
-
-interface ChecksumRoundup {
-  readonly entries: Array<{ algo: ChecksumAlgorithm; path: string; digest: string }>;
-  readonly primary: { algo: ChecksumAlgorithm; value: string } | undefined;
-}
-
-async function finalizeChecksums(
-  filePath: string,
-  algos: readonly ChecksumAlgorithm[],
-): Promise<ChecksumRoundup> {
-  if (algos.length === 0) return { entries: [], primary: undefined };
-  const digests = await computeAllChecksums(filePath, algos);
-  const entries: Array<{ algo: ChecksumAlgorithm; path: string; digest: string }> = [];
-  for (const algo of algos) {
-    const digest = digests[algo];
-    const sidecar = await writeSidecar(filePath, digest, algo);
-    entries.push({ algo, path: sidecar, digest });
-  }
-  const firstAlgo = algos[0];
-  const primaryDigest = firstAlgo !== undefined ? digests[firstAlgo] : undefined;
-  return {
-    entries,
-    primary:
-      firstAlgo !== undefined && primaryDigest !== undefined
-        ? { algo: firstAlgo, value: primaryDigest }
-        : undefined,
-  };
 }
 
 main().catch((err: unknown) => {

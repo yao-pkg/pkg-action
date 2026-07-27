@@ -115,98 +115,16 @@ inputs:
 outputs:
   binaries:
     description: 'JSON array of pre-archive binary absolute paths.'
-    value: ${{ steps.pkg-action-build.outputs.binaries }}
   artifacts:
     description: 'JSON array of post-archive artifact absolute paths.'
-    value: ${{ steps.pkg-action-build.outputs.artifacts }}
   checksums:
     description: 'JSON array of absolute paths to SHASUMS*.txt files.'
-    value: ${{ steps.pkg-action-build.outputs.checksums }}
   digests:
     description: 'JSON object mapping each artifact basename to its {algo: hex} digest map, e.g. {"app-1.0.0-linux-x64.tar.gz": {"sha256": "…"}}.'
-    value: ${{ steps.pkg-action-build.outputs.digests }}
   version:
     description: 'Resolved package.json version used in filename templates.'
-    value: ${{ steps.pkg-action-build.outputs.version }}
 
 runs:
-  using: 'composite'
-  steps:
-    - name: Export PKG_CACHE_PATH
-      shell: bash
-      run: |
-        echo "PKG_CACHE_PATH=${RUNNER_TEMP}/pkg-cache" >> "${GITHUB_ENV}"
-
-    - name: Cache pkg-fetch Node downloads
-      if: ${{ inputs.cache != 'false' }}
-      uses: actions/cache@v5
-      with:
-        path: ${{ runner.temp }}/pkg-cache
-        key: ${{ inputs.cache-key || format('pkg-fetch-{0}-{1}-{2}', runner.os, runner.arch, hashFiles('**/package.json', '.pkgrc', '.pkgrc.json', '**/pkg.config.js', '**/pkg.config.cjs', '**/pkg.config.mjs')) }}
-
-    - name: Install @yao-pkg/pkg
-      if: ${{ inputs.pkg-path == '' }}
-      shell: bash
-      env:
-        PKG_VERSION: ${{ inputs.pkg-version }}
-      run: |
-        # Read from env and quoted — never interpolated into this script by the
-        # workflow templater, or a crafted specifier would execute right here.
-        # The pattern lives in a variable because [[ ]] parses a bare > as an
-        # operator before it ever reaches the regex engine.
-        specifier_re='^[A-Za-z0-9.*|=<>~^ -]+$'
-        if [[ ! "${PKG_VERSION}" =~ $specifier_re ]]; then
-          echo "::error::Input 'pkg-version' is not a valid npm version specifier: ${PKG_VERSION}"
-          exit 1
-        fi
-        npm i -g "@yao-pkg/pkg@${PKG_VERSION}"
-
-    - name: Run pkg-action build
-      id: pkg-action-build
-      uses: ./packages/build
-      with:
-          config: ${{ inputs.config }}
-          config-inline: ${{ inputs.config-inline }}
-          entry: ${{ inputs.entry }}
-          targets: ${{ inputs.targets }}
-          pkg-version: ${{ inputs.pkg-version }}
-          pkg-path: ${{ inputs.pkg-path }}
-          strip: ${{ inputs.strip }}
-          compress: ${{ inputs.compress }}
-          filename: ${{ inputs.filename }}
-          checksum: ${{ inputs.checksum }}
-          windows-metadata-file: ${{ inputs.windows-metadata-file }}
-          windows-icon: ${{ inputs.windows-icon }}
-          windows-product-name: ${{ inputs.windows-product-name }}
-          windows-product-version: ${{ inputs.windows-product-version }}
-          windows-file-version: ${{ inputs.windows-file-version }}
-          windows-file-description: ${{ inputs.windows-file-description }}
-          windows-company-name: ${{ inputs.windows-company-name }}
-          windows-legal-copyright: ${{ inputs.windows-legal-copyright }}
-          windows-original-filename: ${{ inputs.windows-original-filename }}
-          windows-internal-name: ${{ inputs.windows-internal-name }}
-          windows-comments: ${{ inputs.windows-comments }}
-          windows-manifest: ${{ inputs.windows-manifest }}
-          windows-lang: ${{ inputs.windows-lang }}
-          windows-codepage: ${{ inputs.windows-codepage }}
-          macos-sign-identity: ${{ inputs.macos-sign-identity }}
-          macos-sign-certificate: ${{ inputs.macos-sign-certificate }}
-          macos-keychain-password: ${{ inputs.macos-keychain-password }}
-          macos-entitlements: ${{ inputs.macos-entitlements }}
-          macos-notarize: ${{ inputs.macos-notarize }}
-          macos-apple-id: ${{ inputs.macos-apple-id }}
-          macos-team-id: ${{ inputs.macos-team-id }}
-          macos-app-password: ${{ inputs.macos-app-password }}
-          windows-sign-mode: ${{ inputs.windows-sign-mode }}
-          windows-sign-cert: ${{ inputs.windows-sign-cert }}
-          windows-sign-password: ${{ inputs.windows-sign-password }}
-          windows-sign-rfc3161-url: ${{ inputs.windows-sign-rfc3161-url }}
-          windows-sign-description: ${{ inputs.windows-sign-description }}
-          azure-tenant-id: ${{ inputs.azure-tenant-id }}
-          azure-client-id: ${{ inputs.azure-client-id }}
-          azure-client-secret: ${{ inputs.azure-client-secret }}
-          azure-endpoint: ${{ inputs.azure-endpoint }}
-          azure-cert-profile: ${{ inputs.azure-cert-profile }}
-          cache: ${{ inputs.cache }}
-          cache-key: ${{ inputs.cache-key }}
-          step-summary: ${{ inputs.step-summary }}
+  using: 'node24'
+  main: 'packages/build/dist/index.mjs'
+  post: 'packages/build/dist/post.mjs'
