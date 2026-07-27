@@ -104,7 +104,8 @@ export async function mapPkgOutputs(
       if (match === undefined) {
         throw new PkgRunError(
           `pkg did not produce an output for ${formatTarget(target)}. ` +
-            `Expected "${predictedName}" in ${outputDir}; directory contains: ${listing.join(', ') || '(empty)'}.`,
+            `Expected "${predictedName}" in ${outputDir}; directory contains: ${listing.join(', ') || '(empty)'}. ` +
+            `If a postBuild hook moves or renames the binary, drop that — the action locates outputs by name.`,
         );
       }
       entries.push({ target, path: join(outputDir, match) });
