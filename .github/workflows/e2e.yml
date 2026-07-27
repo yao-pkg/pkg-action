@@ -1,20 +1,25 @@
 name: E2E
 
-# Invokes the top-level composite against the test-fixtures/ projects on
+# Invokes the top-level action against the test-fixtures/ projects on
 # ubuntu/macos/windows. Asserts:
 #   - produced binary runs and prints the expected version
 #   - checksum sidecar matches the binary
 #   - archive round-trips (when compress != none)
 #   - step summary contains a row for the target
+#
+# Every job below uses `uses: ./`, which resolves against the checked-out
+# workspace. That is NOT how a consumer reaches the action, and the difference
+# hid a release-blocking bug once. `consumer-ref` is the job that closes the
+# gap — do not let it rot.
 
 on:
   push:
     branches: [main]
   pull_request:
     paths:
-      # `packages/**` covers packages/build/action.yml + every source, test, and
-      # dist/ under packages/. The action.yml entries below are the top-level
-      # composite and the two sub-actions whose directories are not under packages/.
+      # `packages/**` covers every source, test, and dist/ under packages/.
+      # The action.yml entries below are the top-level entrypoint and the two
+      # sub-actions whose directories are not under packages/.
       - 'packages/**'
       - 'scripts/**'
       - 'action.yml'
@@ -108,7 +113,7 @@ jobs:
       - run: yarn gen
       - name: Verify committed action.yml matches source
         run: |
-          git diff --exit-code -- action.yml packages/build/action.yml docs/inputs.md || {
+          git diff --exit-code -- action.yml docs/inputs.md || {
             echo "::error::action.yml or docs/inputs.md is out of sync. Run 'yarn gen' locally and commit."
             exit 1
           }
@@ -536,4 +541,125 @@ jobs:
           echo "binary output: $out"
           [ "$out" = 'stamp=rewritten-by-transform' ] || {
             echo "::error::transform hook did not rewrite the packed source (got: $out)"; exit 1;
+          }
+
+  # ──────────────────────────────────────────────────────────────────────
+  # The only job that exercises the action the way a consumer does:
+  # `uses: <owner>/<repo>@<sha>`, against a workspace that is NOT a checkout
+  # of this repo.
+  #
+  # Every other job says `uses: ./`, which makes GITHUB_WORKSPACE and the
+  # action directory the same tree. That coincidence hid a release blocker:
+  # the top-level action was a composite delegating to `uses: ./packages/build`,
+  # and a composite resolves a local `uses:` against the *consumer's* workspace
+  # (actions/runner#1348). It passed here and would have failed for every real
+  # caller. The sparse checkout below is the point — the workspace holds the
+  # fixture and nothing else, so anything the action needs from its own repo
+  # must come from the action download, not from the workspace.
+  consumer-ref:
+    name: consumer (uses ${{ github.repository }}@sha)
+    # A fork PR's head sha is not reachable through the action-download path,
+    # so this cannot run there. It still gates every push to main.
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the fixture only — no packages/, no action.yml
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: test-fixtures/tiny-app-cjs
+          sparse-checkout-cone-mode: false
+
+      - name: Assert the workspace does not look like pkg-action
+        shell: bash
+        run: |
+          for path in action.yml packages/build dist; do
+            if [ -e "$path" ]; then
+              echo "::error::workspace contains $path — this job no longer proves anything"
+              exit 1
+            fi
+          done
+          ls -la
+
+      - name: Run pkg-action by ref
+        id: build
+        uses: ${{ github.repository }}@${{ github.event.pull_request.head.sha || github.sha }}
+        with:
+          config: test-fixtures/tiny-app-cjs/package.json
+          targets: node22-linux-x64
+          compress: tar.gz
+          checksum: sha256,sha512
+
+      - name: Assert the binary runs and the digests are real
+        shell: bash
+        run: |
+          bin=$(echo '${{ steps.build.outputs.binaries }}' | jq -r '.[0]')
+          [ -x "$bin" ] || { echo "::error::not executable: $bin"; exit 1; }
+          echo "binary output: $("$bin")"
+
+          artifact=$(echo '${{ steps.build.outputs.artifacts }}' | jq -r '.[0]')
+          [ -f "$artifact" ] || { echo "::error::missing artifact $artifact"; exit 1; }
+
+          # The digests output must agree with a local recompute, not just exist.
+          name=$(basename "$artifact")
+          expected=$(echo '${{ steps.build.outputs.digests }}' | jq -r --arg n "$name" '.[$n].sha256')
+          actual=$(sha256sum "$artifact" | cut -d' ' -f1)
+          [ "$expected" = "$actual" ] || {
+            echo "::error::sha256 mismatch — output says $expected, file is $actual"; exit 1;
+          }
+          echo "sha256 verified: $actual"
+
+      - name: Assert PKG_CACHE_PATH was exported to the job
+        shell: bash
+        run: |
+          # Exported by the action's main step; a later step seeing it proves the
+          # cache directory is shared with anything else that shells out to pkg.
+          [ -n "${PKG_CACHE_PATH:-}" ] || { echo "::error::PKG_CACHE_PATH not exported"; exit 1; }
+          echo "PKG_CACHE_PATH=$PKG_CACHE_PATH"
+
+  # ──────────────────────────────────────────────────────────────────────
+  # Carried over from the M-1 spikes: `runs.using: node24` has to resolve on a
+  # self-hosted runner too, where the runner's bundled node is whatever the
+  # admin installed rather than the hosted image's. Skipped unless the repo
+  # actually has a runner with these labels — a missing runner otherwise queues
+  # the job until it times out.
+  self-hosted-node24:
+    name: self-hosted node24 smoke
+    if: vars.HAS_SELF_HOSTED_LINUX == 'true'
+    runs-on: [self-hosted, linux, x64]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Report runner + node
+        shell: bash
+        run: |
+          echo "runner: ${RUNNER_NAME:-unknown} (${RUNNER_OS}/${RUNNER_ARCH})"
+          echo "node:   $(node --version) at $(command -v node)"
+
+      - name: Run pkg-action
+        id: build
+        uses: ./
+        with:
+          config: test-fixtures/tiny-app-cjs/package.json
+          targets: node22-linux-x64
+          checksum: sha256
+
+      - name: Assert the binary runs
+        shell: bash
+        run: |
+          bin=$(echo '${{ steps.build.outputs.binaries }}' | jq -r '.[0]')
+          [ -x "$bin" ] || { echo "::error::not executable: $bin"; exit 1; }
+          echo "binary output: $("$bin")"
+
+      - name: Assert the post step cleaned up after the previous run
+        shell: bash
+        run: |
+          # Hosted runners get a fresh VM; self-hosted ones do not, so a leaked
+          # invocation temp dir accumulates here and nowhere else.
+          leaked=$(find "${RUNNER_TEMP}" -maxdepth 1 -name 'pkg-action-*' | wc -l)
+          echo "invocation temp dirs currently present: $leaked"
+          [ "$leaked" -le 1 ] || {
+            echo "::error::post cleanup is leaking temp dirs on self-hosted runners"; exit 1;
           }
