@@ -141,8 +141,8 @@ runs:
       env:
         PKG_VERSION: \${{ inputs.pkg-version }}
       run: |
-        # Via env + quoted, never \${{ }} inline — the value would otherwise be
-        # pasted into this script and a crafted specifier would execute here.
+        # Read from env and quoted — never interpolated into this script by the
+        # workflow templater, or a crafted specifier would execute right here.
         if [[ ! "\${PKG_VERSION}" =~ ^[A-Za-z0-9.~^*><=|[:space:]-]+$ ]]; then
           echo "::error::Input 'pkg-version' is not a valid npm version specifier: \${PKG_VERSION}"
           exit 1

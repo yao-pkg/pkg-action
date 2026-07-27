@@ -48,6 +48,35 @@ test('install step rejects a specifier containing shell metacharacters', async (
   match(yml, /if \[\[ ! "\$\{PKG_VERSION\}" =~ .+ \]\]; then/);
 });
 
+// Actions expands `${{ }}` anywhere inside a run block — shell comments
+// included — so a literal one in prose is a template parse error, not a
+// comment. This failed CI on every job once; it must fail locally instead.
+test('no run block contains a workflow expression', async () => {
+  for (const file of ['action.yml', 'packages/build/action.yml']) {
+    const lines = (await readGenerated(file)).split('\n');
+    let inRun = false;
+    let runIndent = 0;
+    lines.forEach((line, i) => {
+      const runStart = /^(\s*)run: \|/.exec(line);
+      if (runStart?.[1] !== undefined) {
+        inRun = true;
+        runIndent = runStart[1].length;
+        return;
+      }
+      if (!inRun) return;
+      const indent = line.length - line.trimStart().length;
+      if (line.trim() !== '' && indent <= runIndent) {
+        inRun = false;
+        return;
+      }
+      ok(
+        !line.includes('${{'),
+        `${file}:${String(i + 1)} has a \${{ }} expression inside a run block: ${line.trim()}`,
+      );
+    });
+  }
+});
+
 test('docs document all three build hooks and the trust boundary', async () => {
   const docs = await readGenerated('docs/inputs.md');
   ok(docs.includes('## Build hooks'));
