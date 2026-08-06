@@ -55,7 +55,7 @@ jobs:
             archive: zip
             ext: zip
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Run pkg-action
         id: build
@@ -99,8 +99,8 @@ jobs:
     name: Verify action.yml codegen drift
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .node-version
           cache: yarn
@@ -127,7 +127,7 @@ jobs:
     outputs:
       matrix: ${{ steps.plan.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Expand targets into a matrix
         id: plan
         uses: ./matrix
@@ -149,7 +149,7 @@ jobs:
       matrix:
         entry: ${{ fromJson(needs.matrix-plan.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Build fixture for ${{ matrix.entry.target }}
         id: build
@@ -178,7 +178,7 @@ jobs:
     name: multi-target / ubuntu-latest
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Build two linux targets in one invocation
         id: build
@@ -221,8 +221,8 @@ jobs:
     name: windows-metadata / windows-latest
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .node-version
           cache: yarn
@@ -282,9 +282,9 @@ jobs:
           - os: windows-latest
             target: node22-win-x64
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .node-version
 
